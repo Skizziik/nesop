@@ -8,7 +8,7 @@ import { resolveAsset } from "./lib/assets";
 import { activeEvent } from "./lib/timeline";
 import { FORMAT_COMPONENTS } from "./registry";
 
-const HOOK_Y = 150;
+const HOOK_Y = 140;
 const TITLE_Y = 260;
 const CTA_Y = 1580;
 

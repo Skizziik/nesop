@@ -43,7 +43,7 @@ export const HookText: React.FC<{ text: string; palette: Palette; font: string; 
   const { fps } = useVideoConfig();
   if (!text) return null;
   const width = CANVAS.w - SAFE.right - SAFE.left;
-  const size = fitFontSize(text, width - 40, 58, font, 34);
+  const size = fitFontSize(text, width - 40, 72, font, 36);
   const s = hookActiveSince === null ? 0 : spring({ frame: Math.round(hookActiveSince * fps), fps, config: { damping: 9, stiffness: 160 } });
   const scale = 1 + 0.06 * Math.sin(s * Math.PI);
   return (
@@ -57,7 +57,7 @@ export const HookText: React.FC<{ text: string; palette: Palette; font: string; 
         fontFamily: font,
         fontWeight: 800,
         fontSize: size,
-        color: "#fff",
+        color: "#FFE600",
         WebkitTextStroke: `${Math.round(size / 9)}px ${palette.title_text}`,
         paintOrder: "stroke fill",
         transform: `scale(${scale})`,
@@ -101,13 +101,13 @@ export const Watermark: React.FC<{ text: string; color: string; font: string }> 
     <div
       style={{
         position: "absolute",
-        bottom: SAFE.bottom + 10,
-        left: SAFE.left + 10,
+        top: 66,
+        left: 44,
         fontFamily: font,
         fontWeight: 800,
-        fontSize: 34,
+        fontSize: 30,
         color,
-        opacity: 0.55,
+        opacity: 0.5,
       }}
     >
       {text}

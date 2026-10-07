@@ -1,0 +1,28 @@
+{
+  "name": "@ipt/renderer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ipt/templates": "workspace:*",
+    "@remotion/bundler": "4.0.534",
+    "@remotion/renderer": "4.0.534",
+    "express": "5.2.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "remotion": "4.0.534",
+    "tsx": "4.23.15"
+  },
+  "devDependencies": {
+    "@types/express": "5.0.6",
+    "@types/node": "22.18.0",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}
