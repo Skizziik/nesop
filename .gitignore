@@ -1,0 +1,25 @@
+# secrets
+.env
+*.secret.json
+client_secret*.json
+# deps / builds
+node_modules/
+.pnpm-store/
+.next/
+dist/
+build/
+out/
+*.tsbuildinfo
+__pycache__/
+*.pyc
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+# runtime data
+/data/
+/models/
+legacy/**/output/
+legacy/**/cache/
+.DS_Store
+Thumbs.db

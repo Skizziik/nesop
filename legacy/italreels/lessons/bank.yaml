@@ -1,0 +1,222 @@
+# Банк уроков. Каждый урок = один ролик.
+# left_style: badge (бордовая плашка, для чисел) | dark (чёрная, для местоимений/английского/артиклей)
+# speak:      right (озвучить только итальянское справа) | both (лево + право, «io sono»)
+# hide:       right | left  (что спрятать под ??? в последней строке)
+# Последняя строка = загадка, её ответ уходит в описание.
+
+- id: numeri-0-9
+  title: Numeri a una cifra
+  left_style: badge
+  speak: right
+  hide: right
+  items: [[0, zero], [1, uno], [2, due], [3, tre], [4, quattro], [5, cinque], [6, sei], [7, sette], [8, otto], [9, nove]]
+
+- id: numeri-10-19
+  title: Numeri da 10 a 19
+  left_style: badge
+  speak: right
+  hide: right
+  items: [[10, dieci], [11, undici], [12, dodici], [13, tredici], [14, quattordici], [15, quindici], [16, sedici], [17, diciassette], [18, diciotto], [19, diciannove]]
+
+- id: numeri-20-29
+  title: Numeri da 20 a 29
+  left_style: badge
+  speak: right
+  hide: right
+  items: [[20, venti], [21, ventuno], [22, ventidue], [23, ventitré], [24, ventiquattro], [25, venticinque], [26, ventisei], [27, ventisette], [28, ventotto], [29, ventinove]]
+
+- id: decine
+  title: Le decine
+  left_style: badge
+  speak: right
+  hide: right
+  items: [[10, dieci], [20, venti], [30, trenta], [40, quaranta], [50, cinquanta], [60, sessanta], [70, settanta], [80, ottanta], [90, novanta], [100, cento]]
+
+- id: centinaia
+  title: Le centinaia
+  left_style: badge
+  speak: right
+  hide: right
+  items: [[100, cento], [200, duecento], [300, trecento], [400, quattrocento], [500, cinquecento], [600, seicento], [700, settecento], [800, ottocento], [900, novecento], [1000, mille]]
+
+- id: giorni
+  title: I giorni della settimana
+  left_style: dark
+  speak: right
+  hide: right
+  items: [[Monday, lunedì], [Tuesday, martedì], [Wednesday, mercoledì], [Thursday, giovedì], [Friday, venerdì], [Saturday, sabato], [Sunday, domenica]]
+
+- id: mesi
+  title: I mesi dell'anno
+  left_style: dark
+  speak: right
+  hide: right
+  items: [[January, gennaio], [February, febbraio], [March, marzo], [April, aprile], [May, maggio], [June, giugno], [July, luglio], [August, agosto], [September, settembre], [October, ottobre], [November, novembre], [December, dicembre]]
+
+- id: colori
+  title: I colori
+  left_style: dark
+  speak: right
+  hide: right
+  items: [[red, rosso], [blue, blu], [green, verde], [yellow, giallo], [black, nero], [white, bianco], [orange, arancione], [pink, rosa], [purple, viola], [brown, marrone]]
+
+- id: essere-presente
+  title: "Essere: presente"
+  left_style: dark
+  speak: both
+  hide: right
+  items: [[io, sono], [tu, sei], [lui/lei, è], [noi, siamo], [voi, siete], [loro, sono]]
+
+- id: essere-imperfetto
+  title: "Essere: imperfetto"
+  left_style: dark
+  speak: both
+  hide: right
+  items: [[io, ero], [tu, eri], [lui/lei, era], [noi, eravamo], [voi, eravate], [loro, erano]]
+
+- id: essere-futuro
+  title: "Essere: futuro"
+  left_style: dark
+  speak: both
+  hide: right
+  items: [[io, sarò], [tu, sarai], [lui/lei, sarà], [noi, saremo], [voi, sarete], [loro, saranno]]
+
+- id: avere-imperfetto
+  title: "Avere: imperfetto"
+  left_style: dark
+  speak: both
+  hide: right
+  items: [[io, avevo], [tu, avevi], [lui/lei, aveva], [noi, avevamo], [voi, avevate], [loro, avevano]]
+
+- id: fare-presente
+  title: "Fare: presente"
+  left_style: dark
+  speak: both
+  hide: right
+  items: [[io, faccio], [tu, fai], [lui/lei, fa], [noi, facciamo], [voi, fate], [loro, fanno]]
+
+- id: andare-presente
+  title: "Andare: presente"
+  left_style: dark
+  speak: both
+  hide: right
+  items: [[io, vado], [tu, vai], [lui/lei, va], [noi, andiamo], [voi, andate], [loro, vanno]]
+
+- id: parlare-presente
+  title: "Parlare: presente"
+  left_style: dark
+  speak: both
+  hide: right
+  items: [[io, parlo], [tu, parli], [lui/lei, parla], [noi, parliamo], [voi, parlate], [loro, parlano]]
+
+- id: mangiare-presente
+  title: "Mangiare: presente"
+  left_style: dark
+  speak: both
+  hide: right
+  items: [[io, mangio], [tu, mangi], [lui/lei, mangia], [noi, mangiamo], [voi, mangiate], [loro, mangiano]]
+
+- id: volere-presente
+  title: "Volere: presente"
+  left_style: dark
+  speak: both
+  hide: right
+  items: [[io, voglio], [tu, vuoi], [lui/lei, vuole], [noi, vogliamo], [voi, volete], [loro, vogliono]]
+
+- id: potere-presente
+  title: "Potere: presente"
+  left_style: dark
+  speak: both
+  hide: right
+  items: [[io, posso], [tu, puoi], [lui/lei, può], [noi, possiamo], [voi, potete], [loro, possono]]
+
+- id: venire-presente
+  title: "Venire: presente"
+  left_style: dark
+  speak: both
+  hide: right
+  items: [[io, vengo], [tu, vieni], [lui/lei, viene], [noi, veniamo], [voi, venite], [loro, vengono]]
+
+- id: dormire-presente
+  title: "Dormire: presente"
+  left_style: dark
+  speak: both
+  hide: right
+  items: [[io, dormo], [tu, dormi], [lui/lei, dorme], [noi, dormiamo], [voi, dormite], [loro, dormono]]
+
+- id: articoli
+  title: Quale articolo?
+  left_style: dark
+  speak: both
+  hide: left
+  items: [[il, gatto], [la, sedia], [lo, zaino], ["l'", acqua], [il, pane], [la, borsa], [lo, specchio], ["l'", albero], [lo, studente], [il, problema]]
+
+- id: plurali
+  title: Singolare e plurale
+  left_style: dark
+  speak: both
+  hide: right
+  items: [[libro, libri], [casa, case], [cane, cani], [amico, amici], [uomo, uomini], [mano, mani], [città, città], [uovo, uova], [problema, problemi], [braccio, braccia]]
+
+- id: contrari
+  title: I contrari
+  left_style: dark
+  speak: both
+  hide: right
+  items: [[grande, piccolo], [alto, basso], [caldo, freddo], [nuovo, vecchio], [bello, brutto], [veloce, lento], [facile, difficile], [pieno, vuoto], [aperto, chiuso], [felice, triste]]
+
+- id: cibo
+  title: Il cibo
+  left_style: dark
+  speak: right
+  hide: right
+  items: [[bread, pane], [cheese, formaggio], [apple, mela], [meat, carne], [fish, pesce], [egg, uovo], [milk, latte], [sugar, zucchero], [rice, riso], [salt, sale]]
+
+- id: famiglia
+  title: La famiglia
+  left_style: dark
+  speak: right
+  hide: right
+  items: [[mother, madre], [father, padre], [brother, fratello], [sister, sorella], [son, figlio], [daughter, figlia], [grandfather, nonno], [grandmother, nonna], [uncle, zio], [aunt, zia]]
+
+- id: corpo
+  title: Il corpo
+  left_style: dark
+  speak: right
+  hide: right
+  items: [[head, testa], [eye, occhio], [nose, naso], [mouth, bocca], [ear, orecchio], [hand, mano], [arm, braccio], [leg, gamba], [foot, piede], [heart, cuore]]
+
+- id: saluti
+  title: Saluti e cortesia
+  left_style: dark
+  speak: right
+  hide: right
+  items: [[hello, ciao], [good morning, buongiorno], [good evening, buonasera], [good night, buonanotte], [goodbye, arrivederci], [see you tomorrow, a domani], [thank you, grazie], [please, per favore], [sorry, scusa], ["you're welcome", prego]]
+
+- id: casa
+  title: La casa
+  left_style: dark
+  speak: right
+  hide: right
+  items: [[kitchen, cucina], [bathroom, bagno], [bedroom, camera da letto], [living room, soggiorno], [door, porta], [window, finestra], [table, tavolo], [chair, sedia], [bed, letto], [sofa, divano]]
+
+- id: animali
+  title: Gli animali
+  left_style: dark
+  speak: right
+  hide: right
+  items: [[dog, cane], [cat, gatto], [horse, cavallo], [cow, mucca], [pig, maiale], [bird, uccello], [mouse, topo], [rabbit, coniglio], [chicken, gallina], [sheep, pecora]]
+
+- id: quando
+  title: Quando?
+  left_style: dark
+  speak: right
+  hide: right
+  items: [[today, oggi], [tomorrow, domani], [yesterday, ieri], [now, adesso], [always, sempre], [never, mai], [often, spesso], [sometimes, a volte], [early, presto], [late, tardi]]
+
+- id: al-bar
+  title: Al bar
+  left_style: dark
+  speak: right
+  hide: right
+  items: [[coffee, caffè], [tea, tè], [hot chocolate, cioccolata calda], [orange juice, spremuta], [still water, acqua naturale], [sparkling water, acqua frizzante], [croissant, cornetto], [sandwich, panino], [sugar, zucchero], [the bill, il conto]]

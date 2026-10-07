@@ -1,0 +1,80 @@
+# ============================================================
+#  ItalianoPerTe Reels Factory: конфиг
+# ============================================================
+
+video:
+  width: 1080
+  height: 1920
+  fps: 30
+  center_x: 520          # горизонтальный центр списка (чуть левее, чтобы не лезть под кнопки YouTube)
+  center_x_with_avatar: 430   # если включена ведущая, список сдвигается левее
+  list_top: 300          # где начинается список
+  list_bottom: 1560      # где он обязан закончиться
+  uppercase: true        # слова КАПСОМ, как в старых роликах
+  font: assets/fonts/Montserrat.ttf
+  font_weight: 700
+  backgrounds:           # фон выбирается случайно из этих цветов
+    - "#E9D5FA"   # лавандовый
+    - "#1F4FA0"   # синий
+    - "#FAF08C"   # жёлтый
+    - "#D9DCFF"   # голубой
+    - "#A5D86E"   # салатовый
+    - "#B5531E"   # терракота
+    - "#4E7A1E"   # оливковый
+    - "#F7C6D9"   # розовый
+    - "#FFD7A8"   # персиковый
+  title_bg: "#FFE135"
+  highlight_bg: "#2DE53A"
+  highlight_badge_text: "#FFE600"
+  bookmark_sticker: true   # нарисовать «сохрани» закладку
+  reveal_answer: false     # true = в конце показать ответ (по умолчанию ??? остаётся крючком для комментов)
+
+timing:
+  lead_in: 0.25          # тишина перед первым словом
+  gap_after_title: 0.45
+  gap_between_items: 0.35
+  min_item: 0.9          # минимум секунд на подсветку одного слова
+  end_hold: 1.6          # сколько держать последний кадр с ???
+
+audio:
+  speak_title: true
+  hook_phrase: "Scrivilo nei commenti!"   # что сказать на последнем (скрытом) слове
+  music_volume: 0.10                      # если в assets/music лежат mp3, один выберется случайно
+  loudnorm: true
+
+tts:
+  # piper  = локально, быстро, CPU, работает на Windows из коробки (рекомендую)
+  # kokoro = локально, голос приятнее, но нужен espeak-ng в системе
+  # espeak = совсем робот, только для теста
+  engine: piper
+  piper_voice: assets/voices/it_IT-paola-medium.onnx
+  piper_length_scale: 1.12      # >1 = медленнее, для учеников это плюс
+  kokoro_voice: if_sara         # if_sara (женский) / im_nicola (мужской)
+  kokoro_speed: 0.9
+
+avatar:
+  # none       = без ведущей
+  # alpha      = видео с прозрачностью (.mov ProRes 4444 или .webm VP9 alpha) или .png
+  # chromakey  = зелёный фон, вырежется автоматически
+  mode: none
+  path: assets/avatar/avatar.mp4
+  chroma_color: "0x00FF00"
+  height: 880
+  margin_right: 0
+  margin_bottom: 0
+
+llm:
+  # claude = через Anthropic API (лучше всего с итальянским), ключ в переменной ANTHROPIC_API_KEY
+  # ollama = локальная модель (например qwen2.5:14b), ollama должна быть запущена
+  provider: claude
+  claude_model: claude-sonnet-5-5
+  ollama_model: qwen2.5:14b
+  ollama_url: http://localhost:11434
+
+youtube:
+  enabled: false                 # true = после рендера сразу заливать
+  client_secrets: client_secret.json
+  privacy: private               # private / unlisted / public
+  schedule_every_hours: 0        # >0 = ставить отложенную публикацию с таким шагом
+  category_id: "27"              # Education
+  base_tags: [italiano, imparare italiano, learn italian, italian lesson, shorts]

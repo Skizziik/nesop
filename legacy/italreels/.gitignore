@@ -1,0 +1,6 @@
+.venv/
+cache/
+output/
+token.json
+client_secret.json
+assets/voices/*.onnx*

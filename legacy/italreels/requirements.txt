@@ -1,0 +1,12 @@
+pillow>=10.0
+numpy
+soundfile
+pyyaml
+requests
+gradio>=4.0
+piper-tts>=1.2
+# опционально, голос получше (нужен espeak-ng в системе):
+# kokoro>=0.9
+# опционально, заливка на YouTube:
+google-api-python-client
+google-auth-oauthlib
