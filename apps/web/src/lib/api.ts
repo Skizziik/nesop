@@ -221,6 +221,28 @@ export const api = {
   },
   patchAsset: (id: string, body: Partial<AssetItem>) => request<AssetItem>(`/api/assets/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
   deleteAsset: (id: string) => request<{ ok: boolean }>(`/api/assets/${id}`, { method: "DELETE" }),
+  ttsModels: () => request<TtsModel[]>("/api/tts/models"),
+  ttsHardware: () => request<{ cuda: boolean; gpu_name: string | null; vram_gb: number }>("/api/tts/hardware"),
+  ttsInstall: (id: string, voice?: string) => request<unknown>(`/api/tts/models/${id}/install`, { method: "POST", body: JSON.stringify({ voice: voice ?? null }) }),
+  ttsUninstall: (id: string, voice?: string) => request<unknown>(`/api/tts/models/${id}${voice ? `?voice=${voice}` : ""}`, { method: "DELETE" }),
+  voiceProfiles: () => request<VoiceProfile[]>("/api/voices"),
+  createVoice: (body: { name: string; kind: "builtin" | "design"; model: string; voice?: string; speed?: number; description?: string }) =>
+    request<VoiceProfile>("/api/voices", { method: "POST", body: JSON.stringify(body) }),
+  cloneVoice: async (form: FormData) => {
+    const r = await fetch("/api/voices/clone", { method: "POST", body: form });
+    if (!r.ok) {
+      const b = (await r.json().catch(() => ({}))) as { detail?: unknown };
+      throw new ApiError(typeof b.detail === "string" ? b.detail : "Не удалось создать клон");
+    }
+    return (await r.json()) as VoiceProfile;
+  },
+  deleteVoice: (id: string) => request<{ ok: boolean }>(`/api/voices/${id}`, { method: "DELETE" }),
+  testVoice: (body: { text?: string; profile_id?: string; model?: string; voice?: string; speed?: number }) =>
+    request<{ url: string; duration: number }>("/api/voices/test", { method: "POST", body: JSON.stringify(body) }),
+  abVoices: (a: string, b: string, text?: string) =>
+    request<{ left: { profile_id: string; url: string }; right: { profile_id: string; url: string } }>("/api/voices/ab", { method: "POST", body: JSON.stringify({ a, b, ...(text ? { text } : {}) }) }),
+  voteVoice: (winner: string, loser: string) => request<unknown>("/api/voices/vote", { method: "POST", body: JSON.stringify({ winner, loser }) }),
+  applyVoice: (id: string, series_ids: string[]) => request<{ updated: number }>(`/api/voices/${id}/apply`, { method: "POST", body: JSON.stringify({ series_ids }) }),
   llmUsage: (days = 30) => request<{ rows: { purpose: string; model: string; calls: number; input_tokens: number; output_tokens: number; usd: number }[] }>(`/api/llm/usage?days=${days}`),
 };
 
@@ -249,6 +271,51 @@ export interface AssetItem {
   attribution: string;
   data: Record<string, unknown>;
   enabled: boolean;
+}
+
+export interface TtsVoice {
+  id: string;
+  name: string;
+  language: string;
+  gender: string;
+  installed: boolean;
+  size_mb: number;
+  license: string;
+  commercial: string;
+  note: string;
+}
+
+export interface TtsModel {
+  id: string;
+  name: string;
+  license: string;
+  commercial: string;
+  languages: string[];
+  requires_gpu: boolean;
+  vram_gb: number;
+  supports_cloning: boolean;
+  supports_voice_design: boolean;
+  description: string;
+  installed: boolean;
+  default_voice: string | null;
+  voices: TtsVoice[];
+  fits_hardware: boolean;
+  unfit_reason: string | null;
+  installs: Record<string, { key: string; status: string; progress: number; message: string }>;
+}
+
+export interface VoiceProfile {
+  id: string;
+  name: string;
+  kind: "builtin" | "design" | "clone";
+  model: string;
+  voice: string;
+  speed: number;
+  description: string;
+  ref_audio: string | null;
+  consent: boolean;
+  wins: number;
+  losses: number;
 }
 
 export interface LlmSettings {
