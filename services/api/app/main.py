@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from .config import get_settings
 from .db import SessionLocal
 from .logging_setup import setup
-from .routers import core, library, llm, studio
+from .routers import core, library, llm, studio, voices
 from .seeds import seed_all
 
 setup("api")
@@ -34,6 +34,7 @@ app.include_router(core.router)
 app.include_router(studio.router)
 app.include_router(llm.router)
 app.include_router(library.router)
+app.include_router(voices.router)
 app.mount("/media", StaticFiles(directory=str(get_settings().data_dir), check_dir=False), name="media")
 
 
