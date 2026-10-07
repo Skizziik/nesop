@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+/* Тёмная тема по умолчанию, итальянские акценты: basilico / mozzarella / pomodoro. */
+@theme {
+  --color-bg: #0f1115;
+  --color-panel: #171a21;
+  --color-panel-2: #1f232c;
+  --color-line: #2a2f3a;
+  --color-ink: #eef0f4;
+  --color-mute: #9aa3b2;
+  --color-verde: #1fa463;
+  --color-verde-2: #2dd47f;
+  --color-rosso: #e23d4b;
+  --color-giallo: #ffd23f;
+  --font-sans: "Nunito", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fredoka", "Nunito", ui-sans-serif, sans-serif;
+}
+
+html,
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+}
+
+body {
+  font-family: var(--font-sans);
+}
+
+.tricolore {
+  background: linear-gradient(90deg, #009246 0 33.3%, #f1f2f1 33.3% 66.6%, #ce2b37 66.6% 100%);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2f3a;
+  border-radius: 8px;
+}
