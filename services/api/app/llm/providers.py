@@ -122,7 +122,7 @@ class AnthropicProvider(LLMProvider):
                 max_tokens=max_tokens,
                 system=system,
                 messages=[{"role": "user", "content": user}],
-                output_config={"effort": effort, "format": {"type": "json_schema", "schema": schema}},
+                output_config={"effort": effort, "format": {"type": "json_schema", "schema": schema}},  # type: ignore[arg-type]
                 # серверный fallback: при ложном отказе классификатора запрос сам перезапускается на другой модели
                 extra_headers={"anthropic-beta": "server-side-fallback-2026-07-01"},
                 extra_body={"fallbacks": "default"},

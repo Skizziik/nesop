@@ -62,10 +62,10 @@ async def seed_all(s: AsyncSession) -> dict[str, int]:
     existing_h = {(h.kind, h.text): h for h in (await s.scalars(select(HookPattern))).all()}
     for kind, items in (("hook", hk["hooks"]), ("cta", hk["cta"])):
         for h in items:
-            have = existing_h.get((kind, h["text"]))
-            if have is not None:
-                if have.source == "seed" and have.formats != h.get("formats", []):
-                    have.formats = h.get("formats", [])  # сид обновляет привязку к форматам, правки владельца не трогаем
+            hp = existing_h.get((kind, h["text"]))
+            if hp is not None:
+                if hp.source == "seed" and hp.formats != h.get("formats", []):
+                    hp.formats = h.get("formats", [])  # сид обновляет привязку к форматам, правки владельца не трогаем
                 continue
             s.add(HookPattern(kind=kind, text=h["text"], spoken=h.get("spoken", ""), type=h.get("type", "hidden_answer"), formats=h.get("formats", []),
                               answer_mode=h.get("answer_mode"), source="seed"))

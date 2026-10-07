@@ -20,11 +20,16 @@ from ..schemas_gen.level_ladder import LevelLadderBody
 from ..schemas_gen.quiz_abc import QuizAbcBody
 from ..schemas_gen.spot_the_error import SpotTheErrorBody
 from ..schemas_gen.tongue_twister import TongueTwisterBody
-from .base import Issue, Placement, Segment, TimingConfig, join_pair, normalize, speech_text
+from .base import FormatSpec, Issue, Placement, Segment, TimingConfig, join_pair, normalize, speech_text
 
 LETTERS = "ABCD"
 PRONOUNS = ["io", "tu", "lui/lei", "noi", "voi", "loro"]
 BLANK = "___"
+
+
+def _plain(xs: Any) -> list[Any]:
+    """Элементы массивов с ограничениями кодоген оборачивает в RootModel — разворачиваем."""
+    return [getattr(x, "root", x) for x in xs]
 
 
 def _ev(t0: float, t1: float, action: str, target: Any = None) -> dict[str, Any]:
@@ -107,19 +112,19 @@ class _Base:
 # ====================================================================== quiz_abc
 class QuizAbc(_Base):
     id = "quiz_abc"
-    body_model = QuizAbcBody
+    body_model: ClassVar[type[BaseModel]] = QuizAbcBody
 
     def segments(self, script: dict[str, Any], cta_spoken: str, timing: TimingConfig) -> list[Segment]:
         b = QuizAbcBody.model_validate(script["body"])
         head, tail = _hook_cta(script, cta_spoken, timing)
         q = b.spoken_question or b.question
         segs = [*head, Segment("q", speech_text(q) if (b.question_lang or "it") == "it" else "", min_dur=1.6, gap_after=0.35)]
-        for i, o in enumerate(b.options):
+        for i, o in enumerate(_plain(b.options)):
             segs.append(Segment(f"opt:{i}", speech_text(o) if (b.options_lang or "it") == "it" else "", min_dur=0.9, gap_after=0.25))
         timer = float(b.timer_s or 3)
         if b.reveal is not False:
             segs += [Segment("countdown", "", min_dur=timer, gap_after=0.0)]
-            ans = b.options[b.correct]
+            ans = _plain(b.options)[b.correct]
             segs += [Segment("reveal", f"Risposta {LETTERS[b.correct]}: {speech_text(ans)}" if (b.options_lang or "it") == "it" else f"Risposta {LETTERS[b.correct]}",
                              min_dur=1.4, gap_after=0.3)]
             segs += tail
@@ -141,20 +146,20 @@ class QuizAbc(_Base):
 
     def rules(self, script: dict[str, Any]) -> list[Issue]:
         b = QuizAbcBody.model_validate(script["body"])
-        out = _dupes(b.options, "body.options")
-        if b.correct >= len(b.options):
+        out = _dupes(_plain(b.options), "body.options")
+        if b.correct >= len(_plain(b.options)):
             out.append(Issue("body.correct", "Номер правильного ответа вне списка"))
         return out
 
     def answer(self, script: dict[str, Any]) -> str:
         b = QuizAbcBody.model_validate(script["body"])
-        return f"{LETTERS[b.correct]}) {b.options[b.correct]}"
+        return f"{LETTERS[b.correct]}) {_plain(b.options)[b.correct]}"
 
     def italian_words(self, script: dict[str, Any]) -> list[tuple[str, str]]:
         b = QuizAbcBody.model_validate(script["body"])
         out = [("body.question", b.question)] if (b.question_lang or "it") == "it" else []
         if (b.options_lang or "it") == "it":
-            out += [(f"body.options.{i}", o) for i, o in enumerate(b.options)]
+            out += [(f"body.options.{i}", o) for i, o in enumerate(_plain(b.options))]
         return out
 
 
@@ -168,7 +173,7 @@ class FillBlank(QuizAbc):
         head, tail = _hook_cta(script, cta_spoken, timing)
         spoken = b.sentence.replace(BLANK, "…")
         segs = [*head, Segment("q", speech_text(spoken), min_dur=1.8, gap_after=0.35)]
-        segs += [Segment(f"opt:{i}", speech_text(o), min_dur=0.8, gap_after=0.2) for i, o in enumerate(b.options)]
+        segs += [Segment(f"opt:{i}", speech_text(o), min_dur=0.8, gap_after=0.2) for i, o in enumerate(_plain(b.options))]
         timer = float(b.timer_s or 3)
         if b.reveal is not False:
             segs += [Segment("countdown", "", min_dur=timer, gap_after=0.0), Segment("reveal", speech_text(self.full(b)), min_dur=1.6, gap_after=0.3), *tail]
@@ -178,7 +183,7 @@ class FillBlank(QuizAbc):
 
     @staticmethod
     def full(b: FillBlankBody) -> str:
-        return b.sentence.replace(BLANK, b.options[b.correct], 1)
+        return b.sentence.replace(BLANK, _plain(b.options)[b.correct], 1)
 
     def timeline(self, script: dict[str, Any], placements: list[Placement], total: float) -> list[dict[str, Any]]:
         by = {p.key: p for p in placements}
@@ -193,20 +198,20 @@ class FillBlank(QuizAbc):
 
     def rules(self, script: dict[str, Any]) -> list[Issue]:
         b = FillBlankBody.model_validate(script["body"])
-        out = _dupes(b.options, "body.options")
+        out = _dupes(_plain(b.options), "body.options")
         if b.sentence.count(BLANK) != 1:
             out.append(Issue("body.sentence", f"В фразе должен быть ровно один пропуск {BLANK}"))
-        if b.correct >= len(b.options):
+        if b.correct >= len(_plain(b.options)):
             out.append(Issue("body.correct", "Номер правильного ответа вне списка"))
         return out
 
     def answer(self, script: dict[str, Any]) -> str:
         b = FillBlankBody.model_validate(script["body"])
-        return b.options[b.correct]
+        return str(_plain(b.options)[b.correct])
 
     def italian_words(self, script: dict[str, Any]) -> list[tuple[str, str]]:
         b = FillBlankBody.model_validate(script["body"])
-        if b.correct >= len(b.options):
+        if b.correct >= len(_plain(b.options)):
             return []
         return [("body.sentence", self.full(b))]
 
@@ -357,7 +362,7 @@ class ConjugationChallenge(_Rows):
 
     def row_texts(self, script: dict[str, Any]) -> list[str]:
         b = ConjugationChallengeBody.model_validate(script["body"])
-        return [join_pair(p, f) for p, f in zip(PRONOUNS, b.forms, strict=True)]
+        return [join_pair(p, f) for p, f in zip(PRONOUNS, _plain(b.forms), strict=True)]
 
     def segments(self, script: dict[str, Any], cta_spoken: str, timing: TimingConfig) -> list[Segment]:
         segs = super().segments(script, cta_spoken, timing)
@@ -366,7 +371,7 @@ class ConjugationChallenge(_Rows):
         return [Segment(s.key, PRONOUNS[int(s.key[4:])].split("/")[0], s.min_dur, s.gap_after) if s.key.startswith("row:") and int(s.key[4:]) in hid else s for s in segs]
 
     def hidden(self, script: dict[str, Any]) -> set[int]:
-        return set(ConjugationChallengeBody.model_validate(script["body"]).hidden)
+        return set(_plain(ConjugationChallengeBody.model_validate(script["body"]).hidden))
 
     def timeline(self, script: dict[str, Any], placements: list[Placement], total: float) -> list[dict[str, Any]]:
         ev = super().timeline(script, placements, total)
@@ -379,17 +384,17 @@ class ConjugationChallenge(_Rows):
     def rules(self, script: dict[str, Any]) -> list[Issue]:
         b = ConjugationChallengeBody.model_validate(script["body"])
         out = []
-        if len(set(b.hidden)) != len(b.hidden):
+        if len(set(_plain(b.hidden))) != len(_plain(b.hidden)):
             out.append(Issue("body.hidden", "Одна и та же форма скрыта дважды"))
         return out
 
     def answer(self, script: dict[str, Any]) -> str:
         b = ConjugationChallengeBody.model_validate(script["body"])
-        return ", ".join(join_pair(PRONOUNS[i], b.forms[i]) for i in sorted(set(b.hidden)))
+        return ", ".join(join_pair(PRONOUNS[i], _plain(b.forms)[i]) for i in sorted(set(_plain(b.hidden))))
 
     def italian_words(self, script: dict[str, Any]) -> list[tuple[str, str]]:
         b = ConjugationChallengeBody.model_validate(script["body"])
-        return [(f"body.forms.{i}", f) for i, f in enumerate(b.forms)]
+        return [(f"body.forms.{i}", f) for i, f in enumerate(_plain(b.forms))]
 
 
 # ====================================================================== tongue_twister
@@ -509,4 +514,4 @@ class DailyWord(_Base):
         return [("body.word", b.word), ("body.example", b.example)]
 
 
-ALL = [QuizAbc(), FillBlank(), SpotTheError(), FalseFriends(), EmojiVocab(), LevelLadder(), ConjugationChallenge(), TongueTwister(), Idiom(), DailyWord()]
+ALL: list[FormatSpec] = [QuizAbc(), FillBlank(), SpotTheError(), FalseFriends(), EmojiVocab(), LevelLadder(), ConjugationChallenge(), TongueTwister(), Idiom(), DailyWord()]

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import random
+
 from sqlalchemy import select
 
 from ..checks import full_check, lesson_exists
@@ -57,9 +58,10 @@ async def run_ideas(batch_id: str, free_topic: str = "", like_video_id: str | No
         pres = Presenter(s, await load_palettes(s))
         rng = random.Random(batch_id)
         for vid in ids:
-            v = await s.get(Video, vid)
-            if v is None:
+            got = await s.get(Video, vid)
+            if got is None:
                 continue
+            v = got
             try:
                 script = await generate_script(s, series, json.loads(v.idea), video_id=vid)
                 issues, script = await full_check(s, script, series.id, video_id=vid)
