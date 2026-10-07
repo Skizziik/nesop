@@ -1,0 +1,58 @@
+# Серии = будущие плейлисты. Банк уроков каждой серии: content/bank/<slug>.yaml
+# Формат list_mystery реализован на этапе 1; серии остальных форматов добавляются на этапе 4.
+- slug: numeri
+  name: Numeri
+  format: list_mystery
+  level: A1
+  topic: numeri, ore, ordinali
+  description: Числа от нуля до миллиарда, порядковые, время.
+  palettes: [lavanda, blu, limone, cielo, rosa, pesca, menta, tricolore]
+  auto_approve: true
+- slug: verbi-presente
+  name: "Verbi: presente"
+  format: list_mystery
+  level: A1
+  topic: coniugazione, presente indicativo
+  description: Спряжение частых глаголов в presente.
+  palettes: [cielo, basilico, lavanda, terracotta, notte, pesca, menta]
+  auto_approve: true
+- slug: verbi-passato-prossimo
+  name: "Verbi: passato prossimo"
+  format: list_mystery
+  level: A2
+  topic: coniugazione, passato prossimo, essere/avere
+  description: Passato prossimo с essere и avere.
+  palettes: [oliva, blu, rosa, limone, notte, cielo, tricolore]
+  auto_approve: true
+- slug: articoli
+  name: Articoli
+  format: list_mystery
+  level: A1
+  topic: articoli determinativi e indeterminativi
+  description: Какой артикль? Последний артикль спрятан.
+  palettes: [limone, lavanda, menta, pesca, terracotta, blu]
+  auto_approve: true
+- slug: plurali
+  name: Plurali
+  format: list_mystery
+  level: A1
+  topic: singolare e plurale
+  description: Единственное и множественное число, включая исключения.
+  palettes: [rosa, cielo, basilico, notte, limone, tricolore]
+  auto_approve: true
+- slug: contrari
+  name: Contrari
+  format: list_mystery
+  level: A1
+  topic: aggettivi, verbi, avverbi opposti
+  description: Пары противоположностей.
+  palettes: [pesca, oliva, lavanda, blu, menta, terracotta]
+  auto_approve: true
+- slug: vocabolario
+  name: Vocabolario
+  format: list_mystery
+  level: A1
+  topic: cibo, casa, corpo, famiglia, animali, viaggio, al bar, al ristorante
+  description: Тематическая лексика EN → IT.
+  palettes: [lavanda, blu, limone, cielo, basilico, terracotta, oliva, rosa, pesca, notte, menta, tricolore]
+  auto_approve: true

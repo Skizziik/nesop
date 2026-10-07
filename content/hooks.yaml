@@ -1,0 +1,54 @@
+# Библиотека хуков (текст поверх заголовка, 2-6 слов) и призывов в комменты (cta).
+# Грузится в таблицу hook_patterns при первом запуске; дальше редактируется в дашборде.
+# spoken — что произносит голос (пусто = text). type — тип comment_hook (раздел 5 ТЗ).
+hooks:
+  - {text: "Il 90% sbaglia l'ultima", type: hidden_answer}
+  - {text: "Solo i B2 sanno l'ultima", type: hidden_answer}
+  - {text: "L'ultima è impossibile?", type: hidden_answer}
+  - {text: "Scommetto che sbagli l'ultima", type: hidden_answer}
+  - {text: "Gli italiani sbagliano questa", type: hidden_answer}
+  - {text: "Sai l'ultima? Vediamo!", type: hidden_answer}
+  - {text: "Ultima = livello esperto", type: hidden_answer, spoken: "L'ultima è da esperti"}
+  - {text: "Pochi indovinano l'ultima", type: hidden_answer}
+  - {text: "Test: sai l'ultima?", type: hidden_answer}
+  - {text: "Indovina l'ultima!", type: hidden_answer}
+  - {text: "L'ultima ti frega", type: hidden_answer}
+  - {text: "Facile... fino all'ultima", type: hidden_answer}
+  - {text: "Solo il 10% la sa", type: hidden_answer, spoken: "Solo il dieci per cento la sa"}
+  - {text: "Sfida: l'ultima parola", type: hidden_answer}
+  - {text: "Se sai l'ultima, sei bravo", type: hidden_answer}
+  - {text: "Attento all'ultima!", type: hidden_answer}
+  - {text: "Non sbagliare l'ultima!", type: hidden_answer}
+  - {text: "La sai senza guardare?", type: hidden_answer}
+  - {text: "Quanti ne sai?", type: hidden_answer}
+  - {text: "Memorizzali in 15 secondi", type: hidden_answer, spoken: "Memorizzali in quindici secondi"}
+  - {text: "Prova a non sbagliare", type: hidden_answer}
+  - {text: "Ripeti con me!", type: hidden_answer}
+  - {text: "Lo sai dire in italiano?", type: hidden_answer}
+  - {text: "Livello principiante?", type: hidden_answer}
+  - {text: "L'ultima la sai tu?", type: hidden_answer}
+
+cta:
+  - {text: "Scrivila nei commenti! 👇", spoken: "E l'ultima? Scrivila nei commenti!"}
+  - {text: "La risposta nei commenti 👇", spoken: "Qual è l'ultima? Scrivilo nei commenti!"}
+  - {text: "Tocca a te! 👇", spoken: "Tocca a te: scrivi l'ultima nei commenti!"}
+  - {text: "Commenta la risposta ✍️", spoken: "Sai l'ultima? Commenta!"}
+  - {text: "Chi indovina? 👇", spoken: "Chi indovina l'ultima?"}
+  - {text: "Scrivi l'ultima! ✍️", spoken: "Dai, scrivi l'ultima nei commenti!"}
+  - {text: "Vediamo chi la sa 👀", spoken: "Vediamo chi la sa! Scrivila qui sotto."}
+  - {text: "Rispondi qui sotto 👇", spoken: "Rispondi qui sotto!"}
+  - {text: "La sai? Scrivila! 💬", spoken: "La sai? Allora scrivila!"}
+  - {text: "Mettila nei commenti 👇", spoken: "Mettila nei commenti!"}
+  - {text: "Senza Google! 😉", spoken: "Senza Google! Scrivi l'ultima nei commenti."}
+  - {text: "Ti aspetto nei commenti 💬", spoken: "E l'ultima qual è? Ti aspetto nei commenti!"}
+  - {text: "Facile? Dimostralo 👇", spoken: "Facile? Dimostralo nei commenti!"}
+  - {text: "Indovina e commenta ✍️", spoken: "Indovina e commenta!"}
+  - {text: "E tu la sai? 👇", spoken: "E l'ultima, la sai tu?"}
+  - {text: "Scrivi solo l'ultima 👇", spoken: "Scrivi solo l'ultima parola!"}
+  - {text: "Chi la scrive per primo? 🏁", spoken: "Chi la scrive per primo?"}
+  - {text: "Sfida accettata? 💪", spoken: "Sfida accettata? Scrivila nei commenti!"}
+  - {text: "Risposta? Nei commenti! 👇", spoken: "La risposta? Nei commenti!"}
+  - {text: "Prova! Nessuno giudica 😄", spoken: "Prova a scriverla, nessuno giudica!"}
+  - {text: "Allenati: scrivila! ✍️", spoken: "Allenati: scrivi l'ultima nei commenti!"}
+  - {text: "Domani la soluzione ⏰", spoken: "Scrivila nei commenti: domani la soluzione!", answer_mode: answer_tomorrow}
+  - {text: "Soluzione domani! ⏰", spoken: "Scrivi la tua risposta: la soluzione arriva domani!", answer_mode: answer_tomorrow}

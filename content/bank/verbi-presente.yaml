@@ -1,0 +1,24 @@
+# Спряжение в presente indicativo. speak: both → голос читает «io sono», «tu sei»...
+- {slug: essere-presente, title: "Essere: presente", source: legacy, left_style: dark, speak: both, hide: right, items: [[io, sono], [tu, sei], [lui/lei, è], [noi, siamo], [voi, siete], [loro, sono]]}
+- {slug: avere-presente, title: "Avere: presente", left_style: dark, speak: both, hide: right, items: [[io, ho], [tu, hai], [lui/lei, ha], [noi, abbiamo], [voi, avete], [loro, hanno]]}
+- {slug: fare-presente, title: "Fare: presente", source: legacy, left_style: dark, speak: both, hide: right, items: [[io, faccio], [tu, fai], [lui/lei, fa], [noi, facciamo], [voi, fate], [loro, fanno]]}
+- {slug: andare-presente, title: "Andare: presente", source: legacy, left_style: dark, speak: both, hide: right, items: [[io, vado], [tu, vai], [lui/lei, va], [noi, andiamo], [voi, andate], [loro, vanno]]}
+- {slug: parlare-presente, title: "Parlare: presente", source: legacy, left_style: dark, speak: both, hide: right, items: [[io, parlo], [tu, parli], [lui/lei, parla], [noi, parliamo], [voi, parlate], [loro, parlano]]}
+- {slug: mangiare-presente, title: "Mangiare: presente", source: legacy, left_style: dark, speak: both, hide: right, items: [[io, mangio], [tu, mangi], [lui/lei, mangia], [noi, mangiamo], [voi, mangiate], [loro, mangiano]]}
+- {slug: volere-presente, title: "Volere: presente", source: legacy, left_style: dark, speak: both, hide: right, items: [[io, voglio], [tu, vuoi], [lui/lei, vuole], [noi, vogliamo], [voi, volete], [loro, vogliono]]}
+- {slug: potere-presente, title: "Potere: presente", source: legacy, left_style: dark, speak: both, hide: right, items: [[io, posso], [tu, puoi], [lui/lei, può], [noi, possiamo], [voi, potete], [loro, possono]]}
+- {slug: venire-presente, title: "Venire: presente", source: legacy, left_style: dark, speak: both, hide: right, items: [[io, vengo], [tu, vieni], [lui/lei, viene], [noi, veniamo], [voi, venite], [loro, vengono]]}
+- {slug: dormire-presente, title: "Dormire: presente", source: legacy, left_style: dark, speak: both, hide: right, items: [[io, dormo], [tu, dormi], [lui/lei, dorme], [noi, dormiamo], [voi, dormite], [loro, dormono]]}
+- {slug: dovere-presente, title: "Dovere: presente", left_style: dark, speak: both, hide: right, items: [[io, devo], [tu, devi], [lui/lei, deve], [noi, dobbiamo], [voi, dovete], [loro, devono]]}
+- {slug: sapere-presente, title: "Sapere: presente", left_style: dark, speak: both, hide: right, items: [[io, so], [tu, sai], [lui/lei, sa], [noi, sappiamo], [voi, sapete], [loro, sanno]]}
+- {slug: dire-presente, title: "Dire: presente", left_style: dark, speak: both, hide: right, items: [[io, dico], [tu, dici], [lui/lei, dice], [noi, diciamo], [voi, dite], [loro, dicono]]}
+- {slug: stare-presente, title: "Stare: presente", left_style: dark, speak: both, hide: right, items: [[io, sto], [tu, stai], [lui/lei, sta], [noi, stiamo], [voi, state], [loro, stanno]]}
+- {slug: uscire-presente, title: "Uscire: presente", level: A2, left_style: dark, speak: both, hide: right, items: [[io, esco], [tu, esci], [lui/lei, esce], [noi, usciamo], [voi, uscite], [loro, escono]]}
+- {slug: capire-presente, title: "Capire: presente", left_style: dark, speak: both, hide: right, items: [[io, capisco], [tu, capisci], [lui/lei, capisce], [noi, capiamo], [voi, capite], [loro, capiscono]]}
+- {slug: bere-presente, title: "Bere: presente", left_style: dark, speak: both, hide: right, items: [[io, bevo], [tu, bevi], [lui/lei, beve], [noi, beviamo], [voi, bevete], [loro, bevono]]}
+- {slug: finire-presente, title: "Finire: presente", left_style: dark, speak: both, hide: right, items: [[io, finisco], [tu, finisci], [lui/lei, finisce], [noi, finiamo], [voi, finite], [loro, finiscono]]}
+- {slug: dare-presente, title: "Dare: presente", left_style: dark, speak: both, hide: right, items: [[io, do], [tu, dai], [lui/lei, dà], [noi, diamo], [voi, date], [loro, danno]]}
+- {slug: leggere-presente, title: "Leggere: presente", left_style: dark, speak: both, hide: right, items: [[io, leggo], [tu, leggi], [lui/lei, legge], [noi, leggiamo], [voi, leggete], [loro, leggono]]}
+- {slug: essere-imperfetto, title: "Essere: imperfetto", source: legacy, level: A2, left_style: dark, speak: both, hide: right, items: [[io, ero], [tu, eri], [lui/lei, era], [noi, eravamo], [voi, eravate], [loro, erano]]}
+- {slug: essere-futuro, title: "Essere: futuro", source: legacy, level: A2, left_style: dark, speak: both, hide: right, items: [[io, sarò], [tu, sarai], [lui/lei, sarà], [noi, saremo], [voi, sarete], [loro, saranno]]}
+- {slug: avere-imperfetto, title: "Avere: imperfetto", source: legacy, level: A2, left_style: dark, speak: both, hide: right, items: [[io, avevo], [tu, avevi], [lui/lei, aveva], [noi, avevamo], [voi, avevate], [loro, avevano]]}
