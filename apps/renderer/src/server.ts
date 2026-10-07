@@ -1,9 +1,9 @@
 import express from "express";
-import { spawn } from "node:child_process";
 import { mkdir, rename, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { renderMedia, renderStill, selectComposition, ensureBrowser } from "@remotion/renderer";
 import { bundleTemplates } from "./bundle";
+import { ffmpeg } from "./ffmpeg";
 import { JobQueue, type RenderJob } from "./jobs";
 
 const PORT = Number(process.env.RENDERER_PORT ?? 3100);
@@ -26,15 +26,6 @@ async function prepare(): Promise<void> {
   const t0 = Date.now();
   serveUrl = await bundleTemplates(join(DATA_DIR, ".remotion-bundle"));
   log("info", "bundle ready", { ms: Date.now() - t0 });
-}
-
-function ffmpeg(args: string[]): Promise<void> {
-  return new Promise((res, rej) => {
-    const p = spawn("ffmpeg", ["-hide_banner", "-loglevel", "error", "-y", ...args]);
-    let err = "";
-    p.stderr.on("data", (d: Buffer) => (err += d.toString()));
-    p.on("close", (code) => (code === 0 ? res() : rej(new Error(`ffmpeg exit ${code}: ${err.slice(-1500)}`))));
-  });
 }
 
 /** Внутри /data только: защищает от записи куда попало по пути из запроса. */
