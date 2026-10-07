@@ -5,6 +5,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -27,6 +28,8 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="ItalianoPerTe Farm API", lifespan=lifespan)
+# Chromium в renderer грузит /media с другого origin (бандл Remotion) — нужен CORS на чтение
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET", "HEAD"], allow_headers=["*"])
 app.include_router(core.router)
 app.include_router(studio.router)
 app.include_router(llm.router)

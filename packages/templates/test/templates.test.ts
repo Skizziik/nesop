@@ -50,3 +50,11 @@ describe("layout list_mystery", () => {
     expect(fitFontSize("X".repeat(20), L.rightW - 36, L.pillH * 0.56, "Montserrat")).toBeGreaterThanOrEqual(22);
   });
 });
+
+describe("color", async () => {
+  const { readableOn } = await import("../src/lib/color");
+  it("тёмный фон → белый текст, светлый → чёрный", () => {
+    expect(readableOn("#1F4FA0")).toBe("#FFFFFF");
+    expect(readableOn("#E9D5FA")).toBe("#141414");
+  });
+});

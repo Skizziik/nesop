@@ -85,7 +85,7 @@ export const Bookmark: React.FC<{ position: NonNullable<Theme["bookmark"]>["posi
   const frame = useCurrentFrame();
   const sway = Math.sin(frame / 12) * 2;
   const pos: React.CSSProperties =
-    position === "top_left" ? { top: 0, left: 70 } : position === "mid_right" ? { top: 760, right: 170 } : { top: 0, right: 170 };
+    position === "top_left" ? { top: 0, left: 70 } : position === "mid_right" ? { top: 330, right: 14 } : { top: 0, right: 170 }; // mid_right — в свободной полосе справа от заголовка, не над списком
   return (
     <div style={{ position: "absolute", ...pos, transform: `rotate(${sway}deg)`, transformOrigin: "top center" }}>
       <svg width="110" height="170" viewBox="0 0 110 170">
