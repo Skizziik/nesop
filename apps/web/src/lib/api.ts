@@ -205,8 +205,51 @@ export const api = {
   llmSettings: () => request<LlmSettings>("/api/settings/llm"),
   saveLlmSettings: (body: Omit<LlmSettings, "anthropic_key_set" | "openai_key_set">) => request<LlmSettings>("/api/settings/llm", { method: "PUT", body: JSON.stringify(body) }),
   testLlm: () => request<{ ok: boolean; answer: unknown; model: string; cost_usd: number }>("/api/settings/llm/test", { method: "POST" }),
+  hooks: (kind?: "hook" | "cta") => request<Hook[]>(`/api/hooks${kind ? `?kind=${kind}` : ""}`),
+  createHook: (body: Partial<Hook> & { text: string; kind: "hook" | "cta" }) => request<Hook>("/api/hooks", { method: "POST", body: JSON.stringify(body) }),
+  patchHook: (id: string, body: Partial<Hook>) => request<Hook>(`/api/hooks/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+  deleteHook: (id: string) => request<{ ok: boolean }>(`/api/hooks/${id}`, { method: "DELETE" }),
+  generateHooks: (count: number, formats: string[]) => request<{ added: Hook[] }>("/api/hooks/generate", { method: "POST", body: JSON.stringify({ count, formats }) }),
+  assets: (kind?: string) => request<AssetItem[]>(`/api/assets${kind ? `?kind=${kind}` : ""}`),
+  uploadAsset: async (form: FormData) => {
+    const r = await fetch("/api/assets", { method: "POST", body: form });
+    if (!r.ok) {
+      const b = (await r.json().catch(() => ({}))) as { detail?: unknown };
+      throw new ApiError(typeof b.detail === "string" ? b.detail : "Не удалось загрузить файл");
+    }
+    return (await r.json()) as AssetItem;
+  },
+  patchAsset: (id: string, body: Partial<AssetItem>) => request<AssetItem>(`/api/assets/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+  deleteAsset: (id: string) => request<{ ok: boolean }>(`/api/assets/${id}`, { method: "DELETE" }),
   llmUsage: (days = 30) => request<{ rows: { purpose: string; model: string; calls: number; input_tokens: number; output_tokens: number; usd: number }[] }>(`/api/llm/usage?days=${days}`),
 };
+
+export interface Hook {
+  id: string;
+  kind: "hook" | "cta";
+  text: string;
+  spoken: string;
+  type: string;
+  formats: string[];
+  answer_mode: string | null;
+  use_count: number;
+  used_in_videos: number;
+  last_used_at: string | null;
+  enabled: boolean;
+  source: string;
+}
+
+export interface AssetItem {
+  id: string;
+  kind: string;
+  name: string;
+  url: string | null;
+  license: string;
+  source: string;
+  attribution: string;
+  data: Record<string, unknown>;
+  enabled: boolean;
+}
 
 export interface LlmSettings {
   provider: "anthropic" | "openai" | "ollama";

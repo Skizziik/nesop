@@ -5,140 +5,468 @@
   "description": "Единый вход любой Remotion-композиции. Один и тот же JSON идёт в @remotion/player и в renderer.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["format", "canvas", "theme", "title", "hook_text", "body", "timeline", "audio", "avatar", "duration_s", "seed"],
+  "required": [
+    "format",
+    "canvas",
+    "theme",
+    "title",
+    "hook_text",
+    "body",
+    "timeline",
+    "audio",
+    "avatar",
+    "duration_s",
+    "seed"
+  ],
   "properties": {
-    "format": { "$ref": "#/$defs/FormatId" },
-    "video_id": { "type": ["string", "null"] },
-    "series_id": { "type": ["string", "null"] },
-    "episode_no": { "type": ["integer", "null"], "minimum": 1 },
-    "canvas": { "$ref": "#/$defs/Canvas" },
-    "theme": { "$ref": "#/$defs/Theme" },
-    "hook_text": { "type": "string", "maxLength": 60 },
-    "title": { "type": "string", "minLength": 1, "maxLength": 60 },
-    "cta_text": { "type": "string", "maxLength": 80, "default": "" },
-    "body": { "type": "object", "description": "Формат-специфичный объект, схема в schemas/formats/<format>.schema.json" },
-    "timeline": { "type": "array", "items": { "$ref": "#/$defs/TimelineEvent" } },
-    "audio": { "$ref": "#/$defs/Audio" },
-    "avatar": { "$ref": "#/$defs/Avatar" },
-    "loop_seamless": { "type": "boolean", "default": true },
-    "duration_s": { "type": "number", "minimum": 3, "maximum": 60 },
-    "asset_base": { "type": "string", "default": "", "description": "Префикс для относительных /media/... URL. Пусто в браузере, http://api:8000 в renderer." },
-    "seed": { "type": "integer", "minimum": 0 },
-    "show_yt_overlay": { "type": "boolean", "default": false, "description": "Только для превью: оверлей интерфейса YouTube Shorts." }
+    "format": {
+      "$ref": "#/$defs/FormatId"
+    },
+    "video_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "series_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "episode_no": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1
+    },
+    "canvas": {
+      "$ref": "#/$defs/Canvas"
+    },
+    "theme": {
+      "$ref": "#/$defs/Theme"
+    },
+    "hook_text": {
+      "type": "string",
+      "maxLength": 60
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 60
+    },
+    "cta_text": {
+      "type": "string",
+      "maxLength": 80,
+      "default": ""
+    },
+    "body": {
+      "type": "object",
+      "description": "Формат-специфичный объект, схема в schemas/formats/<format>.schema.json"
+    },
+    "timeline": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/TimelineEvent"
+      }
+    },
+    "audio": {
+      "$ref": "#/$defs/Audio"
+    },
+    "avatar": {
+      "$ref": "#/$defs/Avatar"
+    },
+    "loop_seamless": {
+      "type": "boolean",
+      "default": true
+    },
+    "duration_s": {
+      "type": "number",
+      "minimum": 3,
+      "maximum": 60
+    },
+    "asset_base": {
+      "type": "string",
+      "default": "",
+      "description": "Префикс для относительных /media/... URL. Пусто в браузере, http://api:8000 в renderer."
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "show_yt_overlay": {
+      "type": "boolean",
+      "default": false,
+      "description": "Только для превью: оверлей интерфейса YouTube Shorts."
+    },
+    "prev_answer": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 60,
+      "default": null,
+      "description": "Режим answer_tomorrow: ответ на загадку предыдущего ролика серии («Risposta di ieri»)"
+    }
   },
   "$defs": {
     "FormatId": {
       "type": "string",
-      "enum": ["list_mystery", "quiz_abc", "spot_the_error", "false_friends", "fill_blank", "level_ladder", "tongue_twister", "idiom", "emoji_vocab", "conjugation_challenge", "daily_word"]
+      "enum": [
+        "list_mystery",
+        "quiz_abc",
+        "spot_the_error",
+        "false_friends",
+        "fill_blank",
+        "level_ladder",
+        "tongue_twister",
+        "idiom",
+        "emoji_vocab",
+        "conjugation_challenge",
+        "daily_word"
+      ]
     },
     "Canvas": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["w", "h", "fps"],
+      "required": [
+        "w",
+        "h",
+        "fps"
+      ],
       "properties": {
-        "w": { "type": "integer", "const": 1080 },
-        "h": { "type": "integer", "const": 1920 },
-        "fps": { "type": "integer", "const": 30 }
+        "w": {
+          "type": "integer",
+          "const": 1080
+        },
+        "h": {
+          "type": "integer",
+          "const": 1920
+        },
+        "fps": {
+          "type": "integer",
+          "const": 30
+        }
       }
     },
     "Palette": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["bg", "title_bg", "title_text", "left_bg", "left_text", "right_bg", "right_text", "highlight_bg", "highlight_text", "highlight_left_text", "accent"],
+      "required": [
+        "bg",
+        "title_bg",
+        "title_text",
+        "left_bg",
+        "left_text",
+        "right_bg",
+        "right_text",
+        "highlight_bg",
+        "highlight_text",
+        "highlight_left_text",
+        "accent"
+      ],
       "properties": {
-        "name": { "type": "string" },
-        "bg": { "type": "string" },
-        "bg2": { "type": ["string", "null"], "description": "Второй цвет для градиента, null = однотонный" },
-        "title_bg": { "type": "string" },
-        "title_text": { "type": "string" },
-        "left_bg": { "type": "string" },
-        "left_text": { "type": "string" },
-        "right_bg": { "type": "string" },
-        "right_text": { "type": "string" },
-        "highlight_bg": { "type": "string" },
-        "highlight_text": { "type": "string" },
-        "highlight_left_text": { "type": "string" },
-        "accent": { "type": "string" }
+        "name": {
+          "type": "string"
+        },
+        "bg": {
+          "type": "string"
+        },
+        "bg2": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Второй цвет для градиента, null = однотонный"
+        },
+        "title_bg": {
+          "type": "string"
+        },
+        "title_text": {
+          "type": "string"
+        },
+        "left_bg": {
+          "type": "string"
+        },
+        "left_text": {
+          "type": "string"
+        },
+        "right_bg": {
+          "type": "string"
+        },
+        "right_text": {
+          "type": "string"
+        },
+        "highlight_bg": {
+          "type": "string"
+        },
+        "highlight_text": {
+          "type": "string"
+        },
+        "highlight_left_text": {
+          "type": "string"
+        },
+        "accent": {
+          "type": "string"
+        }
       }
     },
     "Bookmark": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "enabled": { "type": "boolean", "default": true },
-        "position": { "type": "string", "enum": ["top_right", "top_left", "mid_right"], "default": "top_right" }
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "position": {
+          "type": "string",
+          "enum": [
+            "top_right",
+            "top_left",
+            "mid_right"
+          ],
+          "default": "top_right"
+        }
       }
     },
     "Theme": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["palette", "font", "badge_shape", "layout"],
+      "required": [
+        "palette",
+        "font",
+        "badge_shape",
+        "layout"
+      ],
       "properties": {
-        "palette": { "$ref": "#/$defs/Palette" },
-        "font": { "type": "string", "enum": ["Montserrat", "Fredoka", "Nunito"] },
-        "badge_shape": { "type": "string", "enum": ["rounded", "square", "pill"] },
-        "layout": { "type": "string", "enum": ["center", "left"] },
-        "stickers": { "type": "array", "items": { "$ref": "#/$defs/StickerPlacement" }, "default": [] },
-        "bookmark": { "$ref": "#/$defs/Bookmark" },
-        "watermark": { "type": "string", "default": "@ItalianoPerTe" },
-        "show_progress_bar": { "type": "boolean", "default": true },
-        "second_lang": { "type": ["string", "null"], "description": "Язык подписей вторым языком (en, ru, uk, es) или null" }
+        "palette": {
+          "$ref": "#/$defs/Palette"
+        },
+        "font": {
+          "type": "string",
+          "enum": [
+            "Montserrat",
+            "Fredoka",
+            "Nunito"
+          ]
+        },
+        "badge_shape": {
+          "type": "string",
+          "enum": [
+            "rounded",
+            "square",
+            "pill"
+          ]
+        },
+        "layout": {
+          "type": "string",
+          "enum": [
+            "center",
+            "left"
+          ]
+        },
+        "stickers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StickerPlacement"
+          },
+          "default": []
+        },
+        "bookmark": {
+          "$ref": "#/$defs/Bookmark"
+        },
+        "watermark": {
+          "type": "string",
+          "default": "@ItalianoPerTe"
+        },
+        "show_progress_bar": {
+          "type": "boolean",
+          "default": true
+        },
+        "second_lang": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Язык подписей вторым языком (en, ru, uk, es) или null"
+        }
       }
     },
     "StickerPlacement": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "x", "y", "size"],
+      "required": [
+        "name",
+        "x",
+        "y",
+        "size"
+      ],
       "properties": {
-        "name": { "type": "string" },
-        "x": { "type": "number" },
-        "y": { "type": "number" },
-        "size": { "type": "number" },
-        "rotate": { "type": "number", "default": 0 }
+        "name": {
+          "type": "string"
+        },
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "size": {
+          "type": "number"
+        },
+        "rotate": {
+          "type": "number",
+          "default": 0
+        }
       }
     },
     "TimelineEvent": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["t_start", "t_end", "action"],
+      "required": [
+        "t_start",
+        "t_end",
+        "action"
+      ],
       "properties": {
-        "t_start": { "type": "number", "minimum": 0 },
-        "t_end": { "type": "number", "minimum": 0 },
-        "action": { "type": "string", "enum": ["show_title", "hook", "highlight", "reveal", "countdown", "cta", "speak_slow", "speak_fast", "word"] },
-        "target": { "type": ["integer", "string", "null"] }
+        "t_start": {
+          "type": "number",
+          "minimum": 0
+        },
+        "t_end": {
+          "type": "number",
+          "minimum": 0
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "show_title",
+            "hook",
+            "highlight",
+            "reveal",
+            "countdown",
+            "cta",
+            "speak_slow",
+            "speak_fast",
+            "word"
+          ]
+        },
+        "target": {
+          "type": [
+            "integer",
+            "string",
+            "null"
+          ]
+        }
       }
     },
     "Sfx": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["t", "name"],
+      "required": [
+        "t",
+        "name"
+      ],
       "properties": {
-        "t": { "type": "number", "minimum": 0 },
-        "name": { "type": "string", "enum": ["pop", "tick", "ding", "whoosh", "buzz", "confetti"] },
-        "volume": { "type": "number", "default": 0.5 }
+        "t": {
+          "type": "number",
+          "minimum": 0
+        },
+        "name": {
+          "type": "string",
+          "enum": [
+            "pop",
+            "tick",
+            "ding",
+            "whoosh",
+            "buzz",
+            "confetti"
+          ]
+        },
+        "volume": {
+          "type": "number",
+          "default": 0.5
+        }
       }
     },
     "Audio": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["voice_url"],
+      "required": [
+        "voice_url"
+      ],
       "properties": {
-        "voice_url": { "type": ["string", "null"] },
-        "music_url": { "type": ["string", "null"] },
-        "music_volume": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.08 },
-        "sfx": { "type": "array", "items": { "$ref": "#/$defs/Sfx" }, "default": [] },
-        "envelope": { "type": "array", "items": { "type": "number" }, "default": [], "description": "RMS-огибающая голоса по кадрам (0..1) для маскота" }
+        "voice_url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "music_url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "music_volume": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.08
+        },
+        "sfx": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Sfx"
+          },
+          "default": []
+        },
+        "envelope": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "default": [],
+          "description": "RMS-огибающая голоса по кадрам (0..1) для маскота"
+        }
       }
     },
     "Avatar": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["mode"],
+      "required": [
+        "mode"
+      ],
       "properties": {
-        "mode": { "type": "string", "enum": ["none", "loop", "mascot", "lipsync"] },
-        "src": { "type": ["string", "null"] },
-        "position": { "type": "string", "enum": ["bottom_right", "bottom_left"], "default": "bottom_right" },
-        "height": { "type": "integer", "default": 620 }
+        "mode": {
+          "type": "string",
+          "enum": [
+            "none",
+            "loop",
+            "mascot",
+            "lipsync"
+          ]
+        },
+        "src": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "position": {
+          "type": "string",
+          "enum": [
+            "bottom_right",
+            "bottom_left"
+          ],
+          "default": "bottom_right"
+        },
+        "height": {
+          "type": "integer",
+          "default": 620
+        }
       }
     }
   }

@@ -164,3 +164,10 @@ class RenderProps(BaseModel):
         bool | None,
         Field(description="Только для превью: оверлей интерфейса YouTube Shorts."),
     ] = False
+    prev_answer: Annotated[
+        str | None,
+        Field(
+            description="Режим answer_tomorrow: ответ на загадку предыдущего ролика серии («Risposta di ieri»)",
+            max_length=60,
+        ),
+    ] = None

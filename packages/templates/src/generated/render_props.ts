@@ -45,6 +45,10 @@ export interface RenderProps {
    * Только для превью: оверлей интерфейса YouTube Shorts.
    */
   show_yt_overlay?: boolean;
+  /**
+   * Режим answer_tomorrow: ответ на загадку предыдущего ролика серии («Risposta di ieri»)
+   */
+  prev_answer?: string | null;
 }
 export interface Canvas {
   w: 1080;

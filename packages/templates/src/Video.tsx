@@ -39,6 +39,7 @@ export const ShortVideo: React.FC<RenderProps> = (props) => {
       {Body ? <Body props={props} /> : <Unsupported format={props.format} />}
       <CtaBubble text={props.cta_text ?? ""} palette={theme.palette} font={theme.font} since={ctaEv ? t - ctaEv.t_start : null} endsIn={endsIn} y={CTA_Y} />
       <Watermark text={theme.watermark ?? "@ItalianoPerTe"} color={readableOn(theme.palette.bg)} font={theme.font} />
+      {props.prev_answer ? <PrevAnswer text={props.prev_answer} font={theme.font} /> : null}
       {voice ? <Audio src={voice} /> : null}
       {music ? <Audio src={music} volume={audio.music_volume ?? 0.08} loop /> : null}
       {(audio.sfx ?? []).map((s, i) => {
@@ -53,6 +54,15 @@ export const ShortVideo: React.FC<RenderProps> = (props) => {
     </AbsoluteFill>
   );
 };
+
+/** answer_tomorrow: ответ на загадку прошлого эпизода — возвращает зрителей к серии. */
+const PrevAnswer: React.FC<{ text: string; font: string }> = ({ text, font }) => (
+  <div style={{ position: "absolute", top: 72, left: 300, right: 300, display: "flex", justifyContent: "center" }}>
+    <div style={{ background: "#141414", color: "#fff", fontFamily: font, fontWeight: 800, fontSize: 28, borderRadius: 999, padding: "8px 22px", whiteSpace: "nowrap", opacity: 0.92 }}>
+      ✅ Risposta di ieri: <span style={{ color: "#FFE600" }}>{text.toLocaleUpperCase("it-IT")}</span>
+    </div>
+  </div>
+);
 
 const Unsupported: React.FC<{ format: string }> = ({ format }) => (
   <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 60, fontWeight: 800 }}>

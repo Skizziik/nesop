@@ -147,6 +147,7 @@ async def plan_batch(batch_id: str) -> list[str]:
 def make_render_props(
     script: dict[str, Any], theme: dict[str, Any], track: Track, *, voice_url: str | None, video_id: str | None = None,
     series_id: str | None = None, episode_no: int | None = None, seed: int = 0, avatar: dict[str, Any] | None = None,
+    music_url: str | None = None, prev_answer: str | None = None,
 ) -> dict[str, Any]:
     """Скрипт + оформление + звуковая дорожка → валидный RenderProps (dict для JSON)."""
     spec = get_format(script["format"])
@@ -156,9 +157,10 @@ def make_render_props(
         "canvas": {"w": 1080, "h": 1920, "fps": 30}, "theme": theme, "hook_text": script.get("hook_text", ""),
         "title": script["title"], "cta_text": (script.get("comment_hook") or {}).get("text", ""), "body": script["body"],
         "timeline": timeline,
-        "audio": {"voice_url": voice_url, "music_url": None, "music_volume": 0.08, "sfx": spec.sfx(timeline), "envelope": envelope(track.audio)},
+        "audio": {"voice_url": voice_url, "music_url": music_url, "music_volume": 0.07, "sfx": spec.sfx(timeline), "envelope": envelope(track.audio)},
         "avatar": avatar or {"mode": "none"},
         "loop_seamless": True, "duration_s": max(track.total, 3.0), "asset_base": "", "seed": seed, "show_yt_overlay": False,
+        "prev_answer": prev_answer[:60] if prev_answer else None,
     }
     return RenderProps.model_validate(props).model_dump(mode="json", exclude_none=False)
 
@@ -188,6 +190,31 @@ async def synth_track(script: dict[str, Any], voice_cfg: dict[str, Any], timing:
         clips[seg.key] = trim_silence(load_mono(st.data_dir / r["path"].lstrip("/")))
     track = assemble(segs, clips, timing.lead_in)
     return track, {"segments": len(segs), "synthesized": len(clips), "cached": cached}
+
+
+async def pick_music(s: AsyncSession, seed: int, series: Series | None) -> str | None:
+    """Фоновая музыка: только загруженные владельцем треки с указанной лицензией; series.settings.music = "none" выключает."""
+    if series and (series.settings or {}).get("music") == "none":
+        return None
+    rows = list((await s.scalars(select(Asset).where(Asset.kind == "music", Asset.enabled.is_(True), Asset.path.is_not(None)).order_by(Asset.id))).all())
+    if not rows:
+        return None
+    return f"/media{random.Random(seed).choice(rows).path}"
+
+
+async def previous_answer(s: AsyncSession, series: Series | None, episode_no: int | None) -> str | None:
+    """answer_tomorrow: ответ прошлого эпизода серии показываем плашкой «Risposta di ieri»."""
+    if series is None or series.answer_mode != AnswerMode.answer_tomorrow or not episode_no:
+        return None
+    q = (select(Video).where(Video.series_id == series.id, Video.episode_no < episode_no, Video.status.in_([VideoStatus.ready, VideoStatus.published]))
+         .order_by(Video.episode_no.desc()).limit(1))
+    prev = (await s.scalars(q)).first()
+    if prev is None or not prev.script:
+        return None
+    try:
+        return get_format(prev.script["format"]).answer(prev.script) or None
+    except Exception:  # noqa: BLE001 — старый скрипт мог не пройти новую схему
+        return None
 
 
 async def llm_metadata(base: dict[str, Any], script: dict[str, Any], answer: str, series_name: str, answer_mode: str, video_id: str) -> dict[str, Any]:
@@ -239,10 +266,14 @@ async def produce_video(video_id: str) -> None:
         async with stage("timeline", video_id, batch_id, 0.25) as info:
             voice_path = out_dir / "voice.wav"
             write_wav(voice_path, track.audio, SR)
+            async with SessionLocal() as s2:
+                music = await pick_music(s2, seed, series)
+                prev = await previous_answer(s2, series, episode_no)
             props = make_render_props(
                 script, theme, track, voice_url="/media" + _rel(voice_path), video_id=video_id, series_id=series.id if series else None,
-                episode_no=episode_no, seed=seed, avatar=series.avatar if series and series.avatar else None,
+                episode_no=episode_no, seed=seed, avatar=series.avatar if series and series.avatar else None, music_url=music, prev_answer=prev,
             )
+            info.update(music=music, prev_answer=prev)
             await set_video(video_id, render_props=props, duration_s=props["duration_s"])
             info.update(duration_s=props["duration_s"], events=len(props["timeline"]))
 
