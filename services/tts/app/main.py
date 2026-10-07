@@ -54,6 +54,9 @@ class SynthIn(BaseModel):
     text: str = Field(min_length=1, max_length=500)
     speed: float = Field(default=1.0, ge=0.5, le=1.5)
     variant: int = Field(default=0, ge=0, le=1000)
+    ref_audio: str | None = Field(default=None, description="Путь относительно /data к референсу для клона")
+    ref_text: str | None = None
+    design: str | None = Field(default=None, max_length=500, description="Описание голоса для voice design")
 
 
 class InstallIn(BaseModel):
@@ -97,7 +100,7 @@ def uninstall(pid: str, voice: str | None = None) -> dict[str, bool]:
 @app.post("/synthesize")
 async def synthesize(body: SynthIn) -> dict[str, object]:
     try:
-        return await run_in_threadpool(manager.synthesize, body.model, body.voice, body.text, body.speed, body.variant)
+        return await run_in_threadpool(manager.synthesize, body.model, body.voice, body.text, body.speed, body.variant, body.ref_audio, body.ref_text, body.design)
     except KeyError as e:
         raise HTTPException(404, str(e)) from e
     except FileNotFoundError as e:

@@ -45,9 +45,9 @@ def detect_hardware() -> Hardware:
         return Hardware(cuda=False, gpu_name=None, vram_gb=0.0)
 
 
-def cache_key(model: str, voice: str, speed: float, text: str, variant: int = 0) -> str:
-    """variant > 0 — другой дубль той же фразы («перегенерировать строку»)."""
-    base = f"{model}|{voice}|{speed:.3f}|{text}"
+def cache_key(model: str, voice: str, speed: float, text: str, variant: int = 0, extra: str = "") -> str:
+    """variant > 0 — другой дубль той же фразы («перегенерировать строку»); extra — профиль клона/дизайна."""
+    base = f"{model}|{voice}|{speed:.3f}|{text}" + (f"|{extra}" if extra else "")
     return hashlib.sha1((base if variant == 0 else f"{base}|v{variant}").encode()).hexdigest()
 
 
@@ -101,16 +101,21 @@ class Manager:
             self.start_install("piper")
 
     # ---------- синтез ----------
-    def synthesize(self, model: str, voice: str | None, text: str, speed: float = 1.0, variant: int = 0) -> dict[str, object]:
+    def synthesize(self, model: str, voice: str | None, text: str, speed: float = 1.0, variant: int = 0,
+                   ref_audio: str | None = None, ref_text: str | None = None, design: str | None = None) -> dict[str, object]:
         plugin = self.plugin(model)
         vid = voice or plugin.default_voice()
         if not vid:
             raise FileNotFoundError(f"У модели {model} нет установленных голосов")
-        key = cache_key(model, vid, speed, text, variant)
+        ref = self.data_dir / ref_audio.lstrip("/") if ref_audio else None
+        if ref is not None and not ref.exists():
+            raise FileNotFoundError(f"Нет референса {ref_audio}")
+        extra = f"{ref_audio}:{ref.stat().st_mtime_ns}|{ref_text}" if ref else (f"design:{design}" if design else "")
+        key = cache_key(model, vid, speed, text, variant, extra)
         path = self.cache_dir / f"{key}.wav"
         cached = path.exists()
         if not cached:
-            res = plugin.synthesize(text, vid, speed=speed, seed=variant)
+            res = plugin.synthesize(text, vid, speed=speed, seed=variant, ref_audio=ref, ref_text=ref_text, design=design)
             tmp = path.with_suffix(".tmp.wav")
             sf.write(str(tmp), np.clip(res.audio, -1, 1), res.sample_rate, subtype="PCM_16")
             tmp.replace(path)
