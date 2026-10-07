@@ -67,7 +67,9 @@ class TTSPlugin(abc.ABC):
     def list_voices(self) -> list[Voice]: ...
 
     @abc.abstractmethod
-    def synthesize(self, text: str, voice: str, speed: float = 1.0, emotion: str | None = None, ref_audio: Path | None = None) -> Synthesis: ...
+    def synthesize(self, text: str, voice: str, speed: float = 1.0, emotion: str | None = None, ref_audio: Path | None = None, seed: int = 0) -> Synthesis:
+        """seed — номер дубля: у стохастических моделей даёт другую интонацию."""
+        ...
 
     def default_voice(self) -> str | None:
         return None

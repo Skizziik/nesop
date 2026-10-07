@@ -112,13 +112,15 @@ class PiperPlugin(TTSPlugin):
                 self._loaded[voice_id] = PiperVoice.load(str(self._path(voice_id)))
             return self._loaded[voice_id]
 
-    def synthesize(self, text: str, voice: str, speed: float = 1.0, emotion: str | None = None, ref_audio: Path | None = None) -> Synthesis:
+    def synthesize(self, text: str, voice: str, speed: float = 1.0, emotion: str | None = None, ref_audio: Path | None = None, seed: int = 0) -> Synthesis:
         from piper import SynthesisConfig
 
         pv = self._voice(voice)
+        # дубль: слегка другой шум VITS → другая интонация при том же тексте
+        cfg = SynthesisConfig(length_scale=1.0 / max(speed, 0.3), noise_scale=0.667 + 0.06 * ((seed % 5) - 2) if seed else None)
         buf = io.BytesIO()
         with wave.open(buf, "wb") as wf:
-            pv.synthesize_wav(text, wf, syn_config=SynthesisConfig(length_scale=1.0 / max(speed, 0.3)))  # type: ignore[attr-defined]
+            pv.synthesize_wav(text, wf, syn_config=cfg)  # type: ignore[attr-defined]
         buf.seek(0)
         with wave.open(buf, "rb") as rf:
             sr = rf.getframerate()

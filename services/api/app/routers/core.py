@@ -87,18 +87,20 @@ async def series_lessons(sid: str, s: Session) -> list[dict[str, Any]]:
 class BatchIn(BaseModel):
     series_id: str | None = Field(default=None, description="null = микс серий")
     count: int = Field(ge=1, le=50)
-    auto_approve: bool = True
+    auto_approve: bool | None = Field(default=None, description="null = как в настройках серии (для микса — да)")
 
 
 @router.post("/batches", status_code=202)
 async def create_batch(body: BatchIn, s: Session) -> dict[str, Any]:
+    ser = None
     if body.series_id:
         ser = await s.get(Series, body.series_id)
         if ser is None:
             raise HTTPException(404, "Серия не найдена")
         if ser.format not in FORMATS:
             raise HTTPException(400, f"Формат «{ser.format}» этой серии ещё не реализован")
-    b = Batch(series_id=body.series_id, requested=body.count, auto_approve=body.auto_approve)
+    auto = body.auto_approve if body.auto_approve is not None else (ser.auto_approve if ser is not None else True)
+    b = Batch(series_id=body.series_id, requested=body.count, auto_approve=auto)
     s.add(b)
     await s.commit()
     await enqueue("run_batch", b.id)

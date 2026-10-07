@@ -14,6 +14,14 @@ export type VideoStatus =
 
 export interface Series {
   id: string;
+  fonts: string[];
+  voice: { model?: string; voice?: string; speed?: number };
+  avatar: { mode: string };
+  hook_type: string;
+  answer_delay_h: number;
+  second_lang: string | null;
+  youtube_playlist_id: string | null;
+  archived: boolean;
   slug: string;
   name: string;
   format: string;
@@ -87,6 +95,42 @@ export interface Stats {
   lessons: number;
 }
 
+export interface Palette {
+  name: string;
+  enabled: boolean;
+  [k: string]: unknown;
+}
+
+export interface VideoFull extends Video {
+  script: Record<string, unknown> & { title: string; format: string; body: unknown; hook_text?: string; comment_hook?: { type: string; text: string; spoken?: string } };
+  render_props: (RenderPropsLike & { theme?: Record<string, unknown> }) | null;
+  seed: number;
+  voice: { model?: string; voice?: string; speed?: number; variants?: Record<string, number> };
+  events: { id: string; stage: string; status: string; message: string; duration_ms: number | null; created_at: string }[];
+}
+
+// RenderProps описан в @ipt/templates; здесь — минимальный контракт, чтобы не тянуть типы в клиент API.
+export type RenderPropsLike = Record<string, unknown>;
+
+export interface PreviewResult {
+  props: RenderPropsLike | null;
+  issues: { field: string; message: string; severity: string; source: string }[];
+  segments: { key: string; text: string }[];
+  voice: Record<string, unknown>;
+}
+
+export interface Lesson {
+  id: string;
+  series_id: string;
+  slug: string;
+  title: string;
+  script: Record<string, unknown>;
+  source: string;
+  used_count: number;
+}
+
+export type SeriesInput = Partial<Omit<Series, "id" | "slug" | "counts" | "implemented">> & { name: string; format: string };
+
 export class ApiError extends Error {}
 
 const HUMAN: Record<number, string> = {
@@ -124,7 +168,7 @@ export const api = {
   series: () => request<Series[]>("/api/series"),
   batches: (limit = 10) => request<Batch[]>(`/api/batches?limit=${limit}`),
   batch: (id: string) => request<Batch>(`/api/batches/${id}`),
-  createBatch: (body: { series_id: string | null; count: number; auto_approve: boolean }) =>
+  createBatch: (body: { series_id: string | null; count: number; auto_approve: boolean | null }) =>
     request<Batch>("/api/batches", { method: "POST", body: JSON.stringify(body) }),
   videos: (params: { status?: VideoStatus[]; series_id?: string; batch_id?: string; limit?: number; offset?: number }) => {
     const q = new URLSearchParams();
@@ -139,6 +183,21 @@ export const api = {
     request<Video>(`/api/videos/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
   rerender: (id: string) => request<Video>(`/api/videos/${id}/render`, { method: "POST" }),
   deleteVideo: (id: string) => request<{ ok: boolean }>(`/api/videos/${id}`, { method: "DELETE" }),
+  video: (id: string) => request<VideoFull>(`/api/videos/${id}`),
+  saveVideo: (id: string, body: { script?: unknown; theme?: unknown; voice?: unknown }) => request<VideoFull>(`/api/videos/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  preview: (id: string, body: { script?: unknown; theme?: unknown; voice?: unknown }) => request<PreviewResult>(`/api/videos/${id}/preview`, { method: "POST", body: JSON.stringify(body) }),
+  regenLine: (id: string, key: string) => request<{ variants: Record<string, number> }>(`/api/videos/${id}/regen-line`, { method: "POST", body: JSON.stringify({ key }) }),
+  rerollTheme: (id: string) => request<{ theme: Record<string, unknown> }>(`/api/videos/${id}/reroll-theme`, { method: "POST" }),
+  bulk: (ids: string[], action: "approve" | "to_review" | "reject" | "rerender") =>
+    request<{ processed: number; skipped: string[] }>("/api/videos/bulk", { method: "POST", body: JSON.stringify({ ids, action }) }),
+  schemas: () => request<{ script: unknown; formats: Record<string, unknown>; implemented: string[] }>("/api/meta/schemas"),
+  palettes: () => request<Palette[]>("/api/palettes"),
+  seriesOne: (id: string) => request<Series>(`/api/series/${id}`),
+  createSeries: (body: SeriesInput) => request<Series>("/api/series", { method: "POST", body: JSON.stringify(body) }),
+  patchSeries: (id: string, body: Partial<SeriesInput> & { archived?: boolean }) => request<Series>(`/api/series/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+  archiveSeries: (id: string) => request<{ ok: boolean }>(`/api/series/${id}`, { method: "DELETE" }),
+  lessons: (seriesId: string) => request<Lesson[]>(`/api/series/${seriesId}/lessons`),
+  deleteLesson: (id: string) => request<{ ok: boolean }>(`/api/lessons/${id}`, { method: "DELETE" }),
 };
 
 export const STATUS_LABEL: Record<VideoStatus, string> = {

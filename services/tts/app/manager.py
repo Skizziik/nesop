@@ -45,8 +45,10 @@ def detect_hardware() -> Hardware:
         return Hardware(cuda=False, gpu_name=None, vram_gb=0.0)
 
 
-def cache_key(model: str, voice: str, speed: float, text: str) -> str:
-    return hashlib.sha1(f"{model}|{voice}|{speed:.3f}|{text}".encode()).hexdigest()
+def cache_key(model: str, voice: str, speed: float, text: str, variant: int = 0) -> str:
+    """variant > 0 — другой дубль той же фразы («перегенерировать строку»)."""
+    base = f"{model}|{voice}|{speed:.3f}|{text}"
+    return hashlib.sha1((base if variant == 0 else f"{base}|v{variant}").encode()).hexdigest()
 
 
 class Manager:
@@ -99,16 +101,16 @@ class Manager:
             self.start_install("piper")
 
     # ---------- синтез ----------
-    def synthesize(self, model: str, voice: str | None, text: str, speed: float = 1.0) -> dict[str, object]:
+    def synthesize(self, model: str, voice: str | None, text: str, speed: float = 1.0, variant: int = 0) -> dict[str, object]:
         plugin = self.plugin(model)
         vid = voice or plugin.default_voice()
         if not vid:
             raise FileNotFoundError(f"У модели {model} нет установленных голосов")
-        key = cache_key(model, vid, speed, text)
+        key = cache_key(model, vid, speed, text, variant)
         path = self.cache_dir / f"{key}.wav"
         cached = path.exists()
         if not cached:
-            res = plugin.synthesize(text, vid, speed=speed)
+            res = plugin.synthesize(text, vid, speed=speed, seed=variant)
             tmp = path.with_suffix(".tmp.wav")
             sf.write(str(tmp), np.clip(res.audio, -1, 1), res.sample_rate, subtype="PCM_16")
             tmp.replace(path)

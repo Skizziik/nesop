@@ -103,7 +103,7 @@ async def plan_batch(batch_id: str) -> list[str]:
                 script["body"]["reveal"] = True
             issues = validate_script(script)
             has_err = any(x["severity"] == "error" for x in issues)
-            status = VideoStatus.needs_review if has_err else (VideoStatus.approved if (batch.auto_approve or series.auto_approve) else VideoStatus.verified)
+            status = VideoStatus.needs_review if has_err else (VideoStatus.approved if batch.auto_approve else VideoStatus.verified)
             series.episode_counter += 1
             lesson.used_count += 1
             lesson.last_used_at = utcnow()
@@ -148,6 +148,32 @@ def make_render_props(
     return RenderProps.model_validate(props).model_dump(mode="json", exclude_none=False)
 
 
+def voice_config(video_voice: dict[str, Any] | None, series_voice: dict[str, Any] | None = None) -> dict[str, Any]:
+    st = get_settings()
+    return {"model": st.default_tts_model, "voice": st.default_tts_voice, "speed": st.default_tts_speed, **(series_voice or {}), **(video_voice or {})}
+
+
+async def synth_track(script: dict[str, Any], voice_cfg: dict[str, Any], timing: TimingConfig | None = None) -> tuple[Track, dict[str, Any]]:
+    """Озвучка построчно (кеш на стороне tts) → обрезка тишины → сборка дорожки по таймлайну.
+    voice_cfg["variants"] = {"item:3": 2} — номер дубля для отдельных строк."""
+    st = get_settings()
+    timing = timing or TimingConfig()
+    spec = get_format(script["format"])
+    ch = script.get("comment_hook") or {}
+    segs = spec.segments(script, ch.get("spoken") or ch.get("text", ""), timing)
+    variants: dict[str, int] = voice_cfg.get("variants") or {}
+    clips = {}
+    cached = 0
+    for seg in segs:
+        if not seg.text:
+            continue
+        r = await clients.tts_synthesize(seg.text, voice_cfg["model"], voice_cfg.get("voice"), float(voice_cfg.get("speed", 1.0)), int(variants.get(seg.key, 0)))
+        cached += bool(r["cached"])
+        clips[seg.key] = trim_silence(load_mono(st.data_dir / r["path"].lstrip("/")))
+    track = assemble(segs, clips, timing.lead_in)
+    return track, {"segments": len(segs), "synthesized": len(clips), "cached": cached}
+
+
 def _rel(p: Path) -> str:
     return "/" + p.relative_to(get_settings().data_dir).as_posix()
 
@@ -162,7 +188,7 @@ async def produce_video(video_id: str) -> None:
         script = copy.deepcopy(v.script or {})
         theme = (v.render_props or {}).get("theme")
         batch_id, seed, episode_no = v.batch_id, v.seed, v.episode_no
-        voice_cfg = {"model": st.default_tts_model, "voice": st.default_tts_voice, "speed": st.default_tts_speed, **(v.voice or {})}
+        voice_cfg = voice_config(v.voice, series.voice if series else None)
         if not theme:
             theme = variation.build_theme(seed, series, await load_palettes(s), set())
     await set_video(video_id, status=VideoStatus.rendering, error=None, progress=0.0)
@@ -173,20 +199,10 @@ async def produce_video(video_id: str) -> None:
     try:
         # 1. озвучка: каждая строка отдельно, кеш на стороне tts
         async with stage("tts", video_id, batch_id, 0.05) as info:
-            cta_spoken = (script.get("comment_hook") or {}).get("spoken") or (script.get("comment_hook") or {}).get("text", "")
-            segs = spec.segments(script, cta_spoken, timing)
-            clips = {}
-            cached = 0
-            for seg in segs:
-                if not seg.text:
-                    continue
-                r = await clients.tts_synthesize(seg.text, voice_cfg["model"], voice_cfg.get("voice"), float(voice_cfg.get("speed", 1.0)))
-                cached += bool(r["cached"])
-                clips[seg.key] = trim_silence(load_mono(st.data_dir / r["path"].lstrip("/")))
-            info.update(segments=len(segs), synthesized=len(clips), cached=cached, voice=voice_cfg)
+            track, tstats = await synth_track(script, voice_cfg, timing)
+            info.update(**tstats, voice=voice_cfg)
         # 2. таймлайн и RenderProps
         async with stage("timeline", video_id, batch_id, 0.25) as info:
-            track = assemble(segs, clips, timing.lead_in)
             voice_path = out_dir / "voice.wav"
             write_wav(voice_path, track.audio, SR)
             props = make_render_props(

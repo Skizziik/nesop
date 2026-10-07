@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from .config import get_settings
 from .db import SessionLocal
 from .logging_setup import setup
-from .routers import core
+from .routers import core, studio
 from .seeds import seed_all
 
 setup("api")
@@ -28,6 +28,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(title="ItalianoPerTe Farm API", lifespan=lifespan)
 app.include_router(core.router)
+app.include_router(studio.router)
 app.mount("/media", StaticFiles(directory=str(get_settings().data_dir), check_dir=False), name="media")
 
 

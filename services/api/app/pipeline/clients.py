@@ -13,11 +13,11 @@ class ServiceError(RuntimeError):
     pass
 
 
-async def tts_synthesize(text: str, model: str, voice: str | None, speed: float) -> dict[str, Any]:
+async def tts_synthesize(text: str, model: str, voice: str | None, speed: float, variant: int = 0) -> dict[str, Any]:
     st = get_settings()
     async with httpx.AsyncClient(timeout=120) as c:
         for attempt in range(60):  # первый запуск: голос по умолчанию может ещё качаться
-            r = await c.post(f"{st.tts_url}/synthesize", json={"model": model, "voice": voice, "text": text, "speed": speed})
+            r = await c.post(f"{st.tts_url}/synthesize", json={"model": model, "voice": voice, "text": text, "speed": speed, "variant": variant})
             if r.status_code == 409 and attempt < 59:
                 await asyncio.sleep(5)
                 continue

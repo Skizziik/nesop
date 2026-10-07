@@ -54,8 +54,9 @@ export function GenerateCard() {
   const usable = useMemo(() => series.filter((s) => s.implemented), [series]);
   const [seriesId, setSeriesId] = useState<string>("mix");
   const [count, setCount] = useState(3);
-  const [autoApprove, setAutoApprove] = useState(true);
   const chosen: Series | undefined = usable.find((s) => s.id === seriesId);
+  const [autoOverride, setAutoOverride] = useState<boolean | null>(null);
+  const autoApprove = autoOverride ?? (chosen ? chosen.auto_approve : true); // по умолчанию — как в настройках серии
 
   const m = useMutation({
     mutationFn: () => api.createBatch({ series_id: seriesId === "mix" ? null : seriesId, count, auto_approve: autoApprove }),
@@ -73,7 +74,7 @@ export function GenerateCard() {
       <div className="grid gap-4 md:grid-cols-[1fr_200px]">
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-mute">Серия</span>
-          <select value={seriesId} onChange={(e) => setSeriesId(e.target.value)} className="rounded-xl border border-line bg-panel-2 px-3 py-2.5 font-semibold">
+          <select value={seriesId} onChange={(e) => (setSeriesId(e.target.value), setAutoOverride(null))} className="rounded-xl border border-line bg-panel-2 px-3 py-2.5 font-semibold">
             <option value="mix">🎲 Микс серий</option>
             {usable.map((s) => (
               <option key={s.id} value={s.id}>
@@ -89,7 +90,7 @@ export function GenerateCard() {
       </div>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={autoApprove} onChange={(e) => setAutoApprove(e.target.checked)} className="h-4 w-4 accent-[var(--color-verde-2)]" />
+          <input type="checkbox" checked={autoApprove} onChange={(e) => setAutoOverride(e.target.checked)} className="h-4 w-4 accent-[var(--color-verde-2)]" />
           Авто-аппрув (всё, что прошло проверки, сразу в рендер)
         </label>
         <Button className="px-8 py-3 text-base" disabled={m.isPending || !usable.length} onClick={() => m.mutate()}>
