@@ -2,7 +2,7 @@
 
 import type { RenderProps } from "@ipt/templates";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Dices, Eye, Film, Loader2, RefreshCw, Save } from "lucide-react";
+import { Dices, Eye, Film, Loader2, RefreshCw, Save, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -98,6 +98,20 @@ export function Editor({ id }: { id: string }) {
     onError: onErr,
   });
 
+  const recheck = useMutation({
+    mutationFn: async () => {
+      await api.saveVideo(id, { script, theme, voice: speed ? { speed } : undefined });
+      return api.recheck(id);
+    },
+    onSuccess: (v) => {
+      setScript(v.script);
+      setPreview((p) => (p ? { ...p, issues: v.issues as PreviewResult["issues"] } : p));
+      toast.success(v.issues.length ? `Проверка: ${v.issues.length} замечаний` : "Проверка пройдена, ошибок нет");
+      void qc.invalidateQueries({ queryKey: ["videos"] });
+    },
+    onError: onErr,
+  });
+
   const props = useMemo(() => {
     if (!preview?.props) return null;
     return { ...(preview.props as unknown as RenderProps), theme: (theme ?? (preview.props as { theme: Theme }).theme) as unknown as RenderProps["theme"] };
@@ -126,6 +140,9 @@ export function Editor({ id }: { id: string }) {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => recheck.mutate()} disabled={recheck.isPending} title="LanguageTool + Hunspell + LLM-верификатор + дедуп">
+            {recheck.isPending ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />} Проверить
+          </Button>
           <Button variant="outline" onClick={() => save.mutate(false)} disabled={save.isPending}>
             <Save size={16} /> Сохранить
           </Button>

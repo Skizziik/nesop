@@ -208,6 +208,12 @@ function SeriesDrawer({ s, onClose }: { s: Series | null; onClose: () => void })
 
 function Bank({ seriesId }: { seriesId: string }) {
   const qc = useQueryClient();
+  const [n, setN] = useState(10);
+  const fill = useMutation({
+    mutationFn: () => api.fillBank(seriesId, n),
+    onSuccess: () => toast.success(`LLM пишет ${n} уроков; в банк попадут только прошедшие проверки`),
+    onError: (e) => toast.error(e instanceof ApiError ? e.message : "Ошибка"),
+  });
   const { data: lessons = [] } = useQuery({ queryKey: ["lessons", seriesId], queryFn: () => api.lessons(seriesId) });
   const del = useMutation({
     mutationFn: (id: string) => api.deleteLesson(id),
@@ -216,7 +222,19 @@ function Bank({ seriesId }: { seriesId: string }) {
   });
   return (
     <Card className="mt-6">
-      <CardTitle extra={<Badge>{lessons.length}</Badge>}>Банк уроков</CardTitle>
+      <CardTitle
+        extra={
+          <div className="flex items-center gap-2">
+            <Badge>{lessons.length}</Badge>
+            <input type="number" min={1} max={30} value={n} onChange={(e) => setN(Number(e.target.value))} className="w-14 rounded-lg bg-panel-2 px-2 py-1 text-sm" />
+            <Button variant="outline" onClick={() => fill.mutate()} disabled={fill.isPending}>
+              Наполнить банк
+            </Button>
+          </div>
+        }
+      >
+        Банк уроков
+      </CardTitle>
       {lessons.length ? (
         <div className="grid gap-1">
           {lessons.map((l) => {
@@ -237,7 +255,7 @@ function Bank({ seriesId }: { seriesId: string }) {
           })}
         </div>
       ) : (
-        <Empty>Банк пуст. Генерация уроков через LLM появится на этапе 3.</Empty>
+        <Empty>Банк пуст. Нажми «Наполнить банк» — LLM придумает и проверит уроки.</Empty>
       )}
     </Card>
   );

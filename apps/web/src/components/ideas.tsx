@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, CheckCheck, Library, Trash2, Undo2 } from "lucide-react";
+import { AlertTriangle, CheckCheck, Copy, Library, Sparkles, Trash2, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -55,6 +55,18 @@ export function Ideas() {
     onError: (e) => toast.error(e instanceof ApiError ? e.message : "Ошибка"),
   });
 
+  const [topic, setTopic] = useState("");
+  const llm = useMutation({
+    mutationFn: () => api.llmIdeas(seriesId, bankCount, topic),
+    onSuccess: () => toast.success(`LLM придумывает ${bankCount} идей — появятся в «Идеи», затем пройдут проверку`),
+    onError: (e) => toast.error(e instanceof ApiError ? e.message : "Ошибка"),
+  });
+  const similar = useMutation({
+    mutationFn: (id: string) => api.similar(id, 5),
+    onSuccess: () => toast.success("Делаю 5 похожих"),
+    onError: (e) => toast.error(e instanceof ApiError ? e.message : "Ошибка"),
+  });
+
   const toggle = (id: string) => setSelected((s) => (s.has(id) ? (s.delete(id), new Set(s)) : new Set(s.add(id))));
   const ids = [...selected];
 
@@ -83,6 +95,10 @@ export function Ideas() {
               <Button variant="ghost" onClick={() => fromBank.mutate()} disabled={fromBank.isPending}>
                 <Library size={16} /> Взять из банка
               </Button>
+              <input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="тема (необязательно)" className="w-44 rounded-lg bg-panel-2 px-2 py-1 text-sm" />
+              <Button onClick={() => llm.mutate()} disabled={llm.isPending}>
+                <Sparkles size={16} /> Придумать идеи
+              </Button>
             </div>
           ) : null}
         </div>
@@ -103,6 +119,11 @@ export function Ideas() {
           <Button variant="danger" onClick={() => confirm(`Удалить ${ids.length}?`) && bulk.mutate({ ids, action: "reject" })}>
             <Trash2 size={16} /> Удалить
           </Button>
+          {ids.length === 1 ? (
+            <Button variant="outline" onClick={() => similar.mutate(ids[0]!)}>
+              <Copy size={16} /> Сделать похожие
+            </Button>
+          ) : null}
           <Button variant="ghost" onClick={() => setSelected(new Set())}>
             Снять выбор
           </Button>
@@ -172,6 +193,7 @@ function KanbanCard({ v, seriesName, selected, onToggle }: { v: Video; seriesNam
         ) : null}
         {warns ? <Badge tone="yellow">{warns}</Badge> : null}
         {v.status === "failed" ? <Badge tone="red">ошибка рендера</Badge> : null}
+        {v.status === "idea" ? <Badge tone="blue">пишу скрипт…</Badge> : null}
       </div>
       {v.status === "rendering" ? (
         <div className="mt-2">

@@ -198,7 +198,26 @@ export const api = {
   archiveSeries: (id: string) => request<{ ok: boolean }>(`/api/series/${id}`, { method: "DELETE" }),
   lessons: (seriesId: string) => request<Lesson[]>(`/api/series/${seriesId}/lessons`),
   deleteLesson: (id: string) => request<{ ok: boolean }>(`/api/lessons/${id}`, { method: "DELETE" }),
+  llmIdeas: (seriesId: string, count: number, topic = "") => request<Batch>(`/api/series/${seriesId}/ideas`, { method: "POST", body: JSON.stringify({ count, topic }) }),
+  similar: (videoId: string, count = 5) => request<Batch>(`/api/videos/${videoId}/similar`, { method: "POST", body: JSON.stringify({ count }) }),
+  fillBank: (seriesId: string, count: number) => request<{ ok: boolean }>(`/api/series/${seriesId}/fill-bank`, { method: "POST", body: JSON.stringify({ count }) }),
+  recheck: (videoId: string) => request<VideoFull>(`/api/videos/${videoId}/check`, { method: "POST" }),
+  llmSettings: () => request<LlmSettings>("/api/settings/llm"),
+  saveLlmSettings: (body: Omit<LlmSettings, "anthropic_key_set" | "openai_key_set">) => request<LlmSettings>("/api/settings/llm", { method: "PUT", body: JSON.stringify(body) }),
+  testLlm: () => request<{ ok: boolean; answer: unknown; model: string; cost_usd: number }>("/api/settings/llm/test", { method: "POST" }),
+  llmUsage: (days = 30) => request<{ rows: { purpose: string; model: string; calls: number; input_tokens: number; output_tokens: number; usd: number }[] }>(`/api/llm/usage?days=${days}`),
 };
+
+export interface LlmSettings {
+  provider: "anthropic" | "openai" | "ollama";
+  anthropic_model: string;
+  openai_base_url: string;
+  openai_model: string;
+  ollama_url: string;
+  ollama_model: string;
+  anthropic_key_set: boolean;
+  openai_key_set: boolean;
+}
 
 export const STATUS_LABEL: Record<VideoStatus, string> = {
   idea: "Идея",
