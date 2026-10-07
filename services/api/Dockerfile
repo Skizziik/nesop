@@ -4,7 +4,7 @@ FROM python:3.12-slim-bookworm
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 \
     DATA_DIR=/data CONTENT_DIR=/srv/content SCHEMAS_DIR=/srv/schemas
 
-RUN apt-get update && apt-get install -y --no-install-recommends libsndfile1 \
+RUN apt-get update && apt-get install -y --no-install-recommends libsndfile1 hunspell-it \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /srv/api

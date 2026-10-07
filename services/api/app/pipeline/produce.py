@@ -51,8 +51,52 @@ def validate_script(script: dict[str, Any]) -> list[dict[str, str]]:
     return [i.as_dict() for i in spec.rules(script)]
 
 
+class Presenter:
+    """Оформление ролика внутри пачки: тема без повтора палитры подряд, хук/CTA без повторов, номер эпизода."""
+
+    def __init__(self, s: AsyncSession, palettes: dict[str, dict[str, Any]]) -> None:
+        self.s, self.palettes = s, palettes
+        self.used_hooks: set[str] = set()
+        self.used_ctas: set[str] = set()
+        self.prev_palette: dict[str, str | None] = {}
+        self.themes: list[dict[str, Any]] = []
+        self.hook_texts: list[str] = []
+
+    async def dress(self, series: Series, script: dict[str, Any], seed: int) -> dict[str, Any]:
+        """Добавляет к скрипту хук/CTA, возвращает поля для Video (тема, паттерны, эпизод)."""
+        s = self.s
+        if series.id not in self.prev_palette:
+            self.prev_palette[series.id] = await last_palette(s, series.id)
+        theme = variation.build_theme(seed, series, self.palettes, {p for p in [self.prev_palette[series.id]] if p})
+        self.prev_palette[series.id] = theme["palette"]["name"]
+        vrng = random.Random(seed)
+        hook = await hooks.pick(s, vrng, "hook", series.format, series.id, self.used_hooks)
+        cta = await hooks.pick(s, vrng, "cta", series.format, series.id, self.used_ctas, answer_mode=series.answer_mode.value)
+        if hook:
+            self.used_hooks.add(hook.id)
+        if cta:
+            self.used_ctas.add(cta.id)
+        script["hook_text"] = hook.text if hook else ""
+        script["spoken_hook"] = (hook.spoken or hook.text) if hook else ""
+        script["comment_hook"] = {"type": series.hook_type, "text": cta.text if cta else "", "spoken": (cta.spoken or cta.text) if cta else ""}
+        if series.answer_mode == AnswerMode.reveal:
+            script["body"]["reveal"] = True
+        series.episode_counter += 1
+        self.themes.append(theme)
+        self.hook_texts.append(script["hook_text"])
+        return {
+            "seed": seed, "episode_no": series.episode_counter, "palette_name": theme["palette"]["name"],
+            "hook_pattern_id": hook.id if hook else None, "cta_pattern_id": cta.id if cta else None,
+            "voice": series.voice or {}, "render_props": {"theme": theme},
+        }
+
+    @property
+    def similarity(self) -> float:
+        return variation.similarity_index(self.themes, self.hook_texts)
+
+
 async def plan_batch(batch_id: str) -> list[str]:
-    """Создаёт ролики пачки. Возвращает id роликов, готовых к производству (approved)."""
+    """Создаёт ролики пачки из банка уроков. Возвращает id роликов, готовых к производству (approved)."""
     async with SessionLocal() as s:
         batch = await s.get(Batch, batch_id)
         if batch is None:
@@ -64,14 +108,9 @@ async def plan_batch(batch_id: str) -> list[str]:
             pool = list((await s.scalars(select(Series).where(Series.archived.is_(False), Series.format.in_(list(FORMATS))).order_by(Series.slug))).all())
         if not pool:
             raise ValueError("Нет серий с реализованным форматом")
-        palettes = await load_palettes(s)
+        pres = Presenter(s, await load_palettes(s))
         rng = random.Random(batch_id)
         taken: set[str] = set()
-        used_hooks: set[str] = set()
-        used_ctas: set[str] = set()
-        prev_palette: dict[str, str | None] = {}
-        themes: list[dict[str, Any]] = []
-        hook_texts: list[str] = []
         approved: list[str] = []
         for i in range(batch.requested):
             series = pool[i % len(pool)] if not batch.series_id else pool[0]
@@ -83,48 +122,24 @@ async def plan_batch(batch_id: str) -> list[str]:
                 await record("plan", "error", f"В серии «{series.name}» пустой банк уроков", batch_id=batch_id)
                 continue
             taken.add(lesson.id)
-            seed = rng.randrange(1, 2**31 - 1)
-            if series.id not in prev_palette:
-                prev_palette[series.id] = await last_palette(s, series.id)
-            theme = variation.build_theme(seed, series, palettes, {p for p in [prev_palette[series.id]] if p})
-            prev_palette[series.id] = theme["palette"]["name"]
-            vrng = random.Random(seed)
-            hook = await hooks.pick(s, vrng, "hook", series.format, series.id, used_hooks)
-            cta = await hooks.pick(s, vrng, "cta", series.format, series.id, used_ctas, answer_mode=series.answer_mode.value)
-            if hook:
-                used_hooks.add(hook.id)
-            if cta:
-                used_ctas.add(cta.id)
             script = copy.deepcopy(lesson.script)
-            script["hook_text"] = hook.text if hook else ""
-            script["spoken_hook"] = (hook.spoken or hook.text) if hook else ""
-            script["comment_hook"] = {"type": series.hook_type, "text": cta.text if cta else "", "spoken": (cta.spoken or cta.text) if cta else ""}
-            if series.answer_mode == AnswerMode.reveal:
-                script["body"]["reveal"] = True
+            fields = await pres.dress(series, script, rng.randrange(1, 2**31 - 1))
             issues = validate_script(script)
             has_err = any(x["severity"] == "error" for x in issues)
             status = VideoStatus.needs_review if has_err else (VideoStatus.approved if batch.auto_approve else VideoStatus.verified)
-            series.episode_counter += 1
             lesson.used_count += 1
             lesson.last_used_at = utcnow()
             spec = get_format(series.format)
-            v = Video(
-                series_id=series.id, lesson_id=lesson.id, batch_id=batch_id, status=status, format=series.format, title=script["title"],
-                script=script, seed=seed, episode_no=series.episode_counter, palette_name=theme["palette"]["name"],
-                hook_pattern_id=hook.id if hook else None, cta_pattern_id=cta.id if cta else None,
-                voice=series.voice or {}, issues=issues, content_hash=content_hash(spec.content_words(script)),
-                render_props={"theme": theme},
-            )
+            v = Video(series_id=series.id, lesson_id=lesson.id, batch_id=batch_id, status=status, format=series.format, title=script["title"],
+                      script=script, issues=issues, content_hash=content_hash(spec.content_words(script)), **fields)
             s.add(v)
             await s.flush()
-            themes.append(theme)
-            hook_texts.append(script["hook_text"])
             if status == VideoStatus.approved:
                 approved.append(v.id)
-        batch.similarity_index = variation.similarity_index(themes, hook_texts)
+        batch.similarity_index = pres.similarity
         batch.status = "running" if approved else "done"
         await s.commit()
-    await record("plan", "ok", f"Запланировано {len(themes)}, в работу {len(approved)}", batch_id=batch_id, data={"similarity_index": batch.similarity_index})
+    await record("plan", "ok", f"Запланировано {len(pres.themes)}, в работу {len(approved)}", batch_id=batch_id, data={"similarity_index": batch.similarity_index})
     return approved
 
 
@@ -172,6 +187,24 @@ async def synth_track(script: dict[str, Any], voice_cfg: dict[str, Any], timing:
         clips[seg.key] = trim_silence(load_mono(st.data_dir / r["path"].lstrip("/")))
     track = assemble(segs, clips, timing.lead_in)
     return track, {"segments": len(segs), "synthesized": len(clips), "cached": cached}
+
+
+async def llm_metadata(base: dict[str, Any], script: dict[str, Any], answer: str, series_name: str, answer_mode: str, video_id: str) -> dict[str, Any]:
+    """Если LLM настроена — варианты A/B, описание, теги от LLM; правило-движок проверяет. Иначе — шаблон по правилам."""
+    from ..llm.generate import generate_metadata
+    from ..llm.providers import LLMError
+
+    try:
+        async with SessionLocal() as s:
+            m = await generate_metadata(s, script, answer, series_name, script.get("hook_text", ""), answer_mode, video_id)
+    except LLMError:
+        return {**base, "source": "rules"}
+    cand = {**base, "title": m["title_a"], "title_variants": {"A": m["title_a"], "B": m["title_b"]}, "description": m["description"],
+            "tags": list(dict.fromkeys([*m.get("tags", []), *base["tags"]]))[:15], "hashtags": [h if h.startswith("#") else f"#{h}" for h in m.get("hashtags", [])][:5],
+            "pinned_comment": m["pinned_comment"], "source": "llm"}
+    if answer_mode != "reveal" and answer.lower() not in cand["pinned_comment"].lower():
+        cand["pinned_comment"] = base["pinned_comment"]  # закреп обязан содержать ответ
+    return cand if not metadata.check(cand) else {**base, "source": "rules"}
 
 
 def _rel(p: Path) -> str:
@@ -223,6 +256,8 @@ async def produce_video(video_id: str) -> None:
         async with stage("metadata", video_id, batch_id, 0.95) as info:
             answer_mode = series.answer_mode.value if series else "hide"
             meta = metadata.build(script, spec.answer(script), series.name if series else "", episode_no, script.get("hook_text", ""), answer_mode)
+            meta = await llm_metadata(meta, script, spec.answer(script), series.name if series else "", answer_mode, video_id)
+            info["meta_source"] = meta.get("source", "rules")
             problems = metadata.check(meta)
             if problems:
                 info["warnings"] = problems

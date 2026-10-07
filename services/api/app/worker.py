@@ -8,6 +8,7 @@ from arq.connections import ArqRedis, RedisSettings
 
 from .config import get_settings
 from .logging_setup import setup
+from .pipeline.ideas import fill_bank, run_ideas
 from .pipeline.produce import plan_batch, produce_video
 
 
@@ -21,6 +22,18 @@ async def run_batch(ctx: dict[str, Any], batch_id: str) -> int:
 
 async def run_video(ctx: dict[str, Any], video_id: str) -> None:
     await produce_video(video_id)
+
+
+async def run_llm_ideas(ctx: dict[str, Any], batch_id: str, topic: str = "", like_video_id: str | None = None) -> int:
+    approved = await run_ideas(batch_id, topic, like_video_id)
+    redis: ArqRedis = ctx["redis"]
+    for vid in approved:
+        await redis.enqueue_job("run_video", vid)
+    return len(approved)
+
+
+async def run_fill_bank(ctx: dict[str, Any], series_id: str, count: int) -> dict[str, int]:
+    return await fill_bank(series_id, count)
 
 
 def redis_settings() -> RedisSettings:
@@ -41,7 +54,7 @@ async def startup(ctx: dict[str, Any]) -> None:
 
 class WorkerSettings:
     on_startup = startup
-    functions = [run_batch, run_video]
+    functions = [run_batch, run_video, run_llm_ideas, run_fill_bank]
     redis_settings = redis_settings()
     max_jobs = get_settings().worker_max_jobs
     job_timeout = 60 * 30
