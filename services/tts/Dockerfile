@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends libsndfile1 esp
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /srv
-COPY requirements.txt requirements-dev.txt ./
+COPY requirements.txt requirements-dev.txt pyproject.toml ./
 RUN pip install -r requirements.txt -r requirements-dev.txt
 COPY app ./app
 COPY tests ./tests

@@ -1,0 +1,14 @@
+**/node_modules
+**/.next
+**/dist
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+.git
+.env
+data
+models
+legacy
+docs
+**/*.tsbuildinfo

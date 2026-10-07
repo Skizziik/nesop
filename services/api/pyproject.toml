@@ -1,0 +1,28 @@
+[project]
+name = "ipt-api"
+version = "0.1.0"
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 180
+target-version = "py312"
+extend-exclude = ["app/schemas_gen", "alembic/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "BLE", "ASYNC"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+exclude = ["alembic/"]
+
+[[tool.mypy.overrides]]
+module = ["app.formats.*", "app.pipeline.*", "app.schemas_gen.*"]
+strict = true

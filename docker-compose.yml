@@ -1,0 +1,166 @@
+# ItalianoPerTe Shorts Farm
+# CPU (по умолчанию):  docker compose up        (COMPOSE_PROFILES=cpu в .env)
+# GPU (NVIDIA):        COMPOSE_PROFILES=gpu docker compose up
+name: italianoperte
+
+x-api-env: &api-env
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-farm}:${POSTGRES_PASSWORD:-farm}@postgres:5432/${POSTGRES_DB:-farm}
+  REDIS_URL: redis://redis:6379/0
+  TTS_URL: http://tts:8100
+  RENDERER_URL: http://renderer:3100
+  LANGUAGETOOL_URL: http://languagetool:8010
+  DATA_DIR: /data
+  LLM_PROVIDER: ${LLM_PROVIDER:-anthropic}
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5-5}
+  OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  OPENAI_MODEL: ${OPENAI_MODEL:-}
+  OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+  OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:14b}
+  WORKER_MAX_JOBS: ${WORKER_MAX_JOBS:-2}
+  DEFAULT_TTS_MODEL: ${DEFAULT_TTS_MODEL:-piper}
+  DEFAULT_TTS_VOICE: ${DEFAULT_TTS_VOICE:-it_IT-serena-medium}
+  DEFAULT_TTS_SPEED: ${DEFAULT_TTS_SPEED:-0.92}
+  YOUTUBE_UPLOAD_ENABLED: ${YOUTUBE_UPLOAD_ENABLED:-false}
+  MAX_PUBLISH_PER_DAY: ${MAX_PUBLISH_PER_DAY:-3}
+
+x-tts-common: &tts-common
+  build:
+    context: ./services/tts
+  image: italianoperte/tts:dev
+  environment:
+    MODELS_DIR: /models
+    DATA_DIR: /data
+  volumes:
+    - models:/models
+    - data:/data
+  restart: unless-stopped
+  healthcheck:
+    test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8100/health',timeout=4).status==200 else 1)"]
+    interval: 10s
+    timeout: 5s
+    retries: 30
+    start_period: 20s
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-farm}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-farm}
+      POSTGRES_DB: ${POSTGRES_DB:-farm}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    image: italianoperte/api:dev
+    environment: *api-env
+    volumes:
+      - data:/data
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    restart: unless-stopped
+
+  worker:
+    image: italianoperte/api:dev
+    command: ["arq", "app.worker.WorkerSettings"]
+    environment: *api-env
+    volumes:
+      - data:/data
+    depends_on:
+      api: { condition: service_healthy }
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "arq", "--check", "app.worker.WorkerSettings"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  tts-cpu:
+    <<: *tts-common
+    profiles: ["cpu"]
+    networks:
+      default:
+        aliases: [tts]
+
+  tts-gpu:
+    <<: *tts-common
+    profiles: ["gpu"]
+    networks:
+      default:
+        aliases: [tts]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  renderer:
+    build:
+      context: .
+      dockerfile: apps/renderer/Dockerfile
+    image: italianoperte/renderer:dev
+    environment:
+      DATA_DIR: /data
+      RENDER_ASSET_BASE: http://api:8000
+      RENDER_CONCURRENCY: ${RENDER_CONCURRENCY:-1}
+      RENDER_THREADS: ${RENDER_THREADS:-}
+    volumes:
+      - data:/data
+    shm_size: "1gb"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3100/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 60s
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    image: italianoperte/web:dev
+    environment:
+      API_INTERNAL_URL: http://api:8000
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    depends_on:
+      api: { condition: service_healthy }
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  pgdata:
+  data:
+  models:

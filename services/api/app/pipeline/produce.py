@@ -1,0 +1,236 @@
+"""Оркестрация: пачка → ролики → (озвучка → таймлайн → рендер → метаданные)."""
+from __future__ import annotations
+
+import copy
+import json
+import random
+from datetime import timedelta
+from pathlib import Path
+from typing import Any
+
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from ..config import get_settings
+from ..db import SessionLocal, utcnow
+from ..events import publish, record, set_video, stage
+from ..formats import FORMATS, get_format
+from ..formats.base import TimingConfig, content_hash
+from ..models import AnswerMode, Asset, Batch, Lesson, Series, Video, VideoStatus
+from ..schemas_gen.render_props import RenderProps
+from . import clients, hooks, metadata, variation
+from .audio import SR, Track, assemble, envelope, load_mono, trim_silence, write_wav
+
+
+# ---------------------------------------------------------------- планирование
+async def load_palettes(s: AsyncSession) -> dict[str, dict[str, Any]]:
+    rows = (await s.scalars(select(Asset).where(Asset.kind == "palette", Asset.enabled.is_(True)))).all()
+    return {r.name: r.data for r in rows}
+
+
+async def last_palette(s: AsyncSession, series_id: str) -> str | None:
+    q = select(Video.palette_name).where(Video.series_id == series_id, Video.palette_name.is_not(None)).order_by(Video.created_at.desc()).limit(1)
+    return (await s.scalars(q)).first()
+
+
+async def pick_lesson(s: AsyncSession, rng: random.Random, series_id: str, taken: set[str]) -> Lesson | None:
+    rows = list((await s.scalars(select(Lesson).where(Lesson.series_id == series_id).order_by(Lesson.used_count, Lesson.slug))).all())
+    rows = [r for r in rows if r.id not in taken]
+    if not rows:
+        return None
+    least = rows[0].used_count
+    return rng.choice([r for r in rows if r.used_count == least])
+
+
+def validate_script(script: dict[str, Any]) -> list[dict[str, str]]:
+    spec = get_format(script["format"])
+    try:
+        spec.body_model.model_validate(script["body"])
+    except Exception as e:  # noqa: BLE001 — ошибка валидации → needs_review с текстом
+        return [{"field": "body", "message": f"Схема: {e}", "severity": "error", "source": "schema"}]
+    return [i.as_dict() for i in spec.rules(script)]
+
+
+async def plan_batch(batch_id: str) -> list[str]:
+    """Создаёт ролики пачки. Возвращает id роликов, готовых к производству (approved)."""
+    async with SessionLocal() as s:
+        batch = await s.get(Batch, batch_id)
+        if batch is None:
+            raise ValueError("Пачка не найдена")
+        if batch.series_id:
+            one = await s.get(Series, batch.series_id)
+            pool: list[Series] = [one] if one else []
+        else:
+            pool = list((await s.scalars(select(Series).where(Series.archived.is_(False), Series.format.in_(list(FORMATS))).order_by(Series.slug))).all())
+        if not pool:
+            raise ValueError("Нет серий с реализованным форматом")
+        palettes = await load_palettes(s)
+        rng = random.Random(batch_id)
+        taken: set[str] = set()
+        used_hooks: set[str] = set()
+        used_ctas: set[str] = set()
+        prev_palette: dict[str, str | None] = {}
+        themes: list[dict[str, Any]] = []
+        hook_texts: list[str] = []
+        approved: list[str] = []
+        for i in range(batch.requested):
+            series = pool[i % len(pool)] if not batch.series_id else pool[0]
+            lesson = await pick_lesson(s, rng, series.id, taken)
+            if lesson is None:
+                taken = set()  # банк меньше пачки: повторяем уроки, но с другим оформлением/хуком
+                lesson = await pick_lesson(s, rng, series.id, taken)
+            if lesson is None:
+                await record("plan", "error", f"В серии «{series.name}» пустой банк уроков", batch_id=batch_id)
+                continue
+            taken.add(lesson.id)
+            seed = rng.randrange(1, 2**31 - 1)
+            if series.id not in prev_palette:
+                prev_palette[series.id] = await last_palette(s, series.id)
+            theme = variation.build_theme(seed, series, palettes, {p for p in [prev_palette[series.id]] if p})
+            prev_palette[series.id] = theme["palette"]["name"]
+            vrng = random.Random(seed)
+            hook = await hooks.pick(s, vrng, "hook", series.format, series.id, used_hooks)
+            cta = await hooks.pick(s, vrng, "cta", series.format, series.id, used_ctas, answer_mode=series.answer_mode.value)
+            if hook:
+                used_hooks.add(hook.id)
+            if cta:
+                used_ctas.add(cta.id)
+            script = copy.deepcopy(lesson.script)
+            script["hook_text"] = hook.text if hook else ""
+            script["spoken_hook"] = (hook.spoken or hook.text) if hook else ""
+            script["comment_hook"] = {"type": series.hook_type, "text": cta.text if cta else "", "spoken": (cta.spoken or cta.text) if cta else ""}
+            if series.answer_mode == AnswerMode.reveal:
+                script["body"]["reveal"] = True
+            issues = validate_script(script)
+            has_err = any(x["severity"] == "error" for x in issues)
+            status = VideoStatus.needs_review if has_err else (VideoStatus.approved if (batch.auto_approve or series.auto_approve) else VideoStatus.verified)
+            series.episode_counter += 1
+            lesson.used_count += 1
+            lesson.last_used_at = utcnow()
+            spec = get_format(series.format)
+            v = Video(
+                series_id=series.id, lesson_id=lesson.id, batch_id=batch_id, status=status, format=series.format, title=script["title"],
+                script=script, seed=seed, episode_no=series.episode_counter, palette_name=theme["palette"]["name"],
+                hook_pattern_id=hook.id if hook else None, cta_pattern_id=cta.id if cta else None,
+                voice=series.voice or {}, issues=issues, content_hash=content_hash(spec.content_words(script)),
+                render_props={"theme": theme},
+            )
+            s.add(v)
+            await s.flush()
+            themes.append(theme)
+            hook_texts.append(script["hook_text"])
+            if status == VideoStatus.approved:
+                approved.append(v.id)
+        batch.similarity_index = variation.similarity_index(themes, hook_texts)
+        batch.status = "running" if approved else "done"
+        await s.commit()
+    await record("plan", "ok", f"Запланировано {len(themes)}, в работу {len(approved)}", batch_id=batch_id, data={"similarity_index": batch.similarity_index})
+    return approved
+
+
+# ---------------------------------------------------------------- производство
+def make_render_props(
+    script: dict[str, Any], theme: dict[str, Any], track: Track, *, voice_url: str | None, video_id: str | None = None,
+    series_id: str | None = None, episode_no: int | None = None, seed: int = 0, avatar: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Скрипт + оформление + звуковая дорожка → валидный RenderProps (dict для JSON)."""
+    spec = get_format(script["format"])
+    timeline = spec.timeline(script, track.placements, track.total)
+    props = {
+        "format": script["format"], "video_id": video_id, "series_id": series_id, "episode_no": episode_no,
+        "canvas": {"w": 1080, "h": 1920, "fps": 30}, "theme": theme, "hook_text": script.get("hook_text", ""),
+        "title": script["title"], "cta_text": (script.get("comment_hook") or {}).get("text", ""), "body": script["body"],
+        "timeline": timeline,
+        "audio": {"voice_url": voice_url, "music_url": None, "music_volume": 0.08, "sfx": spec.sfx(timeline), "envelope": envelope(track.audio)},
+        "avatar": avatar or {"mode": "none"},
+        "loop_seamless": True, "duration_s": max(track.total, 3.0), "asset_base": "", "seed": seed, "show_yt_overlay": False,
+    }
+    return RenderProps.model_validate(props).model_dump(mode="json", exclude_none=False)
+
+
+def _rel(p: Path) -> str:
+    return "/" + p.relative_to(get_settings().data_dir).as_posix()
+
+
+async def produce_video(video_id: str) -> None:
+    st = get_settings()
+    async with SessionLocal() as s:
+        v = await s.get(Video, video_id)
+        if v is None:
+            return
+        series = await s.get(Series, v.series_id) if v.series_id else None
+        script = copy.deepcopy(v.script or {})
+        theme = (v.render_props or {}).get("theme")
+        batch_id, seed, episode_no = v.batch_id, v.seed, v.episode_no
+        voice_cfg = {"model": st.default_tts_model, "voice": st.default_tts_voice, "speed": st.default_tts_speed, **(v.voice or {})}
+        if not theme:
+            theme = variation.build_theme(seed, series, await load_palettes(s), set())
+    await set_video(video_id, status=VideoStatus.rendering, error=None, progress=0.0)
+    spec = get_format(script["format"])
+    out_dir = st.renders_dir / utcnow().strftime("%Y-%m-%d") / video_id
+    out_dir.mkdir(parents=True, exist_ok=True)
+    timing = TimingConfig()
+    try:
+        # 1. озвучка: каждая строка отдельно, кеш на стороне tts
+        async with stage("tts", video_id, batch_id, 0.05) as info:
+            cta_spoken = (script.get("comment_hook") or {}).get("spoken") or (script.get("comment_hook") or {}).get("text", "")
+            segs = spec.segments(script, cta_spoken, timing)
+            clips = {}
+            cached = 0
+            for seg in segs:
+                if not seg.text:
+                    continue
+                r = await clients.tts_synthesize(seg.text, voice_cfg["model"], voice_cfg.get("voice"), float(voice_cfg.get("speed", 1.0)))
+                cached += bool(r["cached"])
+                clips[seg.key] = trim_silence(load_mono(st.data_dir / r["path"].lstrip("/")))
+            info.update(segments=len(segs), synthesized=len(clips), cached=cached, voice=voice_cfg)
+        # 2. таймлайн и RenderProps
+        async with stage("timeline", video_id, batch_id, 0.25) as info:
+            track = assemble(segs, clips, timing.lead_in)
+            voice_path = out_dir / "voice.wav"
+            write_wav(voice_path, track.audio, SR)
+            props = make_render_props(
+                script, theme, track, voice_url="/media" + _rel(voice_path), video_id=video_id, series_id=series.id if series else None,
+                episode_no=episode_no, seed=seed, avatar=series.avatar if series and series.avatar else None,
+            )
+            await set_video(video_id, render_props=props, duration_s=props["duration_s"])
+            info.update(duration_s=props["duration_s"], events=len(props["timeline"]))
+
+        # 3. рендер
+        async def on_progress(p: float) -> None:
+            await set_video(video_id, progress=round(0.3 + 0.6 * p, 3))
+
+        async with stage("render", video_id, batch_id, 0.3) as info:
+            res = await clients.render(props, _rel(out_dir), on_progress)
+            info.update(video=res.get("video"), cover=res.get("cover"))
+        # 4. метаданные
+        async with stage("metadata", video_id, batch_id, 0.95) as info:
+            answer_mode = series.answer_mode.value if series else "hide"
+            meta = metadata.build(script, spec.answer(script), series.name if series else "", episode_no, script.get("hook_text", ""), answer_mode)
+            problems = metadata.check(meta)
+            if problems:
+                info["warnings"] = problems
+            (out_dir / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+            (out_dir / "script.json").write_text(json.dumps(script, ensure_ascii=False, indent=2), encoding="utf-8")
+            reveal_at = utcnow() + timedelta(hours=series.answer_delay_h) if series and series.answer_mode == AnswerMode.answer_tomorrow else None
+        await set_video(video_id, status=VideoStatus.ready, stage="done", progress=1.0, meta=meta, out_dir=_rel(out_dir), answer_reveal_at=reveal_at,
+                        answer_comment_status="pending" if answer_mode != "reveal" else "n/a")
+    except Exception as e:  # noqa: BLE001 — любой сбой → failed с понятным текстом
+        await set_video(video_id, status=VideoStatus.failed, error=str(e)[:2000])
+    finally:
+        if batch_id:
+            await refresh_batch(batch_id)
+
+
+async def refresh_batch(batch_id: str) -> None:
+    async with SessionLocal() as s:
+        rows = (await s.execute(select(Video.status, func.count()).where(Video.batch_id == batch_id).group_by(Video.status))).all()
+        counts = {str(st.value if hasattr(st, "value") else st): n for st, n in rows}
+        active = counts.get("approved", 0) + counts.get("rendering", 0)
+        batch = await s.get(Batch, batch_id)
+        if batch is None:
+            return
+        if active == 0:
+            batch.status = "failed" if counts.get("ready", 0) == 0 and counts.get("failed", 0) else ("partial" if counts.get("failed") else "done")
+        await s.commit()
+    await publish({"type": "batch", "batch_id": batch_id, "counts": counts})
