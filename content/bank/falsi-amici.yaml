@@ -1,0 +1,234 @@
+- slug: ff-1
+  title: Falsi amici
+  body:
+    lang: en
+    items:
+    - it: camera
+      looks_like: camera
+      it_means: room
+      say_instead: macchina fotografica
+    - it: parenti
+      looks_like: parents
+      it_means: relatives
+      say_instead: genitori
+    - it: morbido
+      looks_like: morbid
+      it_means: soft
+      say_instead: morboso
+    - it: libreria
+      looks_like: library
+      it_means: bookshop
+      say_instead: biblioteca
+    - it: fattoria
+      looks_like: factory
+      it_means: farm
+      say_instead: fabbrica
+- slug: ff-2
+  title: Falsi amici
+  body:
+    lang: en
+    items:
+    - it: magazzino
+      looks_like: magazine
+      it_means: warehouse
+      say_instead: rivista
+    - it: educato
+      looks_like: educated
+      it_means: polite
+      say_instead: istruito
+    - it: cantina
+      looks_like: canteen
+      it_means: cellar
+      say_instead: mensa
+    - it: annoiato
+      looks_like: annoyed
+      it_means: bored
+      say_instead: infastidito
+    - it: fame
+      looks_like: fame
+      it_means: hunger
+      say_instead: fama
+- slug: ff-3
+  title: Falsi amici
+  body:
+    lang: en
+    items:
+    - it: sensibile
+      looks_like: sensible
+      it_means: sensitive
+      say_instead: ragionevole
+    - it: eventualmente
+      looks_like: eventually
+      it_means: possibly
+      say_instead: alla fine
+    - it: attualmente
+      looks_like: actually
+      it_means: currently
+      say_instead: in realtà
+    - it: argomento
+      looks_like: argument
+      it_means: topic
+      say_instead: litigio
+    - it: fabbrica
+      looks_like: fabric
+      it_means: factory
+      say_instead: tessuto
+- slug: ff-4
+  title: Falsi amici
+  body:
+    lang: en
+    items:
+    - it: estate
+      looks_like: estate
+      it_means: summer
+      say_instead: tenuta
+    - it: firma
+      looks_like: firm
+      it_means: signature
+      say_instead: azienda
+    - it: lussuria
+      looks_like: luxury
+      it_means: lust
+      say_instead: lusso
+    - it: pretendere
+      looks_like: pretend
+      it_means: to demand
+      say_instead: fingere
+    - it: ricoverare
+      looks_like: recover
+      it_means: to hospitalize
+      say_instead: guarire
+- slug: ff-5
+  title: Falsi amici
+  body:
+    lang: en
+    items:
+    - it: candido
+      looks_like: candid
+      it_means: pure white
+      say_instead: schietto
+    - it: delusione
+      looks_like: delusion
+      it_means: disappointment
+      say_instead: illusione
+    - it: noioso
+      looks_like: noisy
+      it_means: boring
+      say_instead: rumoroso
+    - it: romanzo
+      looks_like: romance
+      it_means: novel
+      say_instead: storia d'amore
+- slug: ff-6
+  title: Falsi amici
+  body:
+    lang: en
+    items:
+    - it: stampa
+      looks_like: stamp
+      it_means: press
+      say_instead: francobollo
+    - it: tasto
+      looks_like: taste
+      it_means: key (keyboard)
+      say_instead: sapore
+    - it: bravo
+      looks_like: brave
+      it_means: good, skilled
+      say_instead: coraggioso
+    - it: caldo
+      looks_like: cold
+      it_means: hot
+      say_instead: freddo
+    - it: editore
+      looks_like: editor
+      it_means: publisher
+      say_instead: redattore
+- slug: ff-7
+  title: Falsi amici
+  body:
+    lang: en
+    items:
+    - it: rumore
+      looks_like: rumour
+      it_means: noise
+      say_instead: pettegolezzo
+    - it: patente
+      looks_like: patent
+      it_means: driving licence
+      say_instead: brevetto
+    - it: assistere
+      looks_like: assist
+      it_means: to attend
+      say_instead: aiutare
+    - it: collegio
+      looks_like: college
+      it_means: boarding school
+      say_instead: università
+- slug: ff-8
+  title: Falsi amici
+  body:
+    lang: en
+    items:
+    - it: peperoni
+      looks_like: pepperoni
+      it_means: bell peppers
+      say_instead: salame piccante
+    - it: latte
+      looks_like: latte
+      it_means: milk
+      say_instead: caffellatte
+    - it: confetti
+      looks_like: confetti
+      it_means: sugared almonds
+      say_instead: coriandoli
+    - it: gentile
+      looks_like: gentle
+      it_means: kind
+      say_instead: delicato
+- slug: ff-9
+  title: Falsi amici
+  body:
+    lang: es
+    items:
+    - it: burro
+      looks_like: burro
+      it_means: mantequilla
+      say_instead: asino
+    - it: aceto
+      looks_like: aceite
+      it_means: vinagre
+      say_instead: olio
+    - it: salire
+      looks_like: salir
+      it_means: subir
+      say_instead: uscire
+    - it: guardare
+      looks_like: guardar
+      it_means: mirar
+      say_instead: conservare
+    - it: imbarazzata
+      looks_like: embarazada
+      it_means: avergonzada
+      say_instead: incinta
+- slug: ff-10
+  title: Falsi amici
+  body:
+    lang: ru
+    items:
+    - it: magazzino
+      looks_like: магазин
+      it_means: склад
+      say_instead: negozio
+    - it: artista
+      looks_like: артист
+      it_means: художник, творец
+      say_instead: attore
+    - it: camera
+      looks_like: камера
+      it_means: комната
+      say_instead: fotocamera
+    - it: simpatico
+      looks_like: симпатичный
+      it_means: приятный в общении
+      say_instead: carino

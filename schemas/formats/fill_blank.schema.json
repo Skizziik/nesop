@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "formats/fill_blank.schema.json",
+  "title": "FillBlankBody",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "sentence",
+    "options",
+    "correct"
+  ],
+  "properties": {
+    "sentence": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "description": "Фраза с пропуском ___ (ровно один)"
+    },
+    "options": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 4,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 18
+      }
+    },
+    "correct": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 3
+    },
+    "translation": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 0,
+      "maxLength": 90,
+      "description": "Перевод фразы"
+    },
+    "timer_s": {
+      "type": "number",
+      "minimum": 2,
+      "maximum": 6,
+      "default": 3
+    },
+    "reveal": {
+      "type": "boolean",
+      "default": true,
+      "description": "Показать ответ в конце ролика"
+    }
+  },
+  "description": "Completa la frase: пропуск и варианты (предлоги, артикли)."
+}

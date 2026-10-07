@@ -1,0 +1,144 @@
+- slug: al-ristorante
+  title: Completa la frase
+  body:
+    sentence: Vado ___ ristorante.
+    options:
+    - a
+    - al
+    - in
+    correct: 1
+    translation: Я иду в ресторан.
+    timer_s: 3
+    reveal: true
+- slug: a-roma
+  title: Completa la frase
+  body:
+    sentence: Abito ___ Roma.
+    options:
+    - a
+    - in
+    - da
+    correct: 0
+    translation: Я живу в Риме.
+    timer_s: 3
+    reveal: true
+- slug: in-italia
+  title: Completa la frase
+  body:
+    sentence: Vado ___ Italia.
+    options:
+    - a
+    - in
+    - per
+    correct: 1
+    translation: Я еду в Италию.
+    timer_s: 3
+    reveal: true
+- slug: dal-medico
+  title: Completa la frase
+  body:
+    sentence: Domani vado ___ medico.
+    options:
+    - dal
+    - al
+    - in
+    correct: 0
+    translation: Завтра я иду к врачу.
+    timer_s: 3
+    reveal: true
+- slug: sul-tavolo
+  title: Completa la frase
+  body:
+    sentence: Il libro è ___ tavolo.
+    options:
+    - sul
+    - nel
+    - al
+    correct: 0
+    translation: Книга на столе.
+    timer_s: 3
+    reveal: true
+- slug: da-due-anni
+  title: Completa la frase
+  body:
+    sentence: Studio italiano ___ due anni.
+    options:
+    - per
+    - da
+    - fa
+    correct: 1
+    translation: Я учу итальянский уже два года.
+    timer_s: 3
+    reveal: true
+- slug: a-casa
+  title: Completa la frase
+  body:
+    sentence: Torno ___ casa alle otto.
+    options:
+    - a
+    - in
+    - alla
+    correct: 0
+    translation: Я возвращаюсь домой в восемь.
+    timer_s: 3
+    reveal: true
+- slug: in-treno
+  title: Completa la frase
+  body:
+    sentence: Parto ___ treno.
+    options:
+    - in
+    - con il
+    - a
+    correct: 0
+    translation: Я уезжаю на поезде.
+    timer_s: 3
+    reveal: true
+- slug: uno-zaino
+  title: Completa la frase
+  body:
+    sentence: Ho comprato ___ zaino nuovo.
+    options:
+    - un
+    - uno
+    - una
+    correct: 1
+    translation: Я купил новый рюкзак.
+    timer_s: 3
+    reveal: true
+- slug: nel-1995
+  title: Completa la frase
+  body:
+    sentence: Sono nata ___ 1995.
+    options:
+    - nel
+    - in
+    - al
+    correct: 0
+    translation: Я родилась в 1995 году.
+    timer_s: 3
+    reveal: true
+- slug: penso-a-te
+  title: Completa la frase
+  body:
+    sentence: Penso ___ te.
+    options:
+    - di
+    - a
+    - per
+    correct: 1
+    translation: Я думаю о тебе.
+    timer_s: 3
+    reveal: true
+- slug: la-pizza
+  title: Completa la frase
+  body:
+    sentence: Mi piace ___ pizza.
+    options:
+    - il
+    - la
+    - lo
+    correct: 1
+    translation: Я люблю пиццу.
+    timer_s: 3
+    reveal: true

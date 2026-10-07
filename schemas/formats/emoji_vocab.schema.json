@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "formats/emoji_vocab.schema.json",
+  "title": "EmojiVocabBody",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "items"
+  ],
+  "properties": {
+    "items": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 9,
+      "items": {
+        "$ref": "#/$defs/EmojiItem"
+      }
+    }
+  },
+  "description": "Come si dice? Эмодзи → слово, последнее скрыто.",
+  "$defs": {
+    "EmojiItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "emoji",
+        "word"
+      ],
+      "properties": {
+        "emoji": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8
+        },
+        "word": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "article": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 0,
+          "maxLength": 4,
+          "description": "Артикль, если нужен: il, la, l'..."
+        }
+      }
+    }
+  }
+}

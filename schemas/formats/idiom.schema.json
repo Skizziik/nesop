@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "formats/idiom.schema.json",
+  "title": "IdiomBody",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "idiom",
+    "literal",
+    "meaning"
+  ],
+  "properties": {
+    "idiom": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 50,
+      "description": "Выражение"
+    },
+    "literal": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 60,
+      "description": "Буквальный перевод (2-й язык)"
+    },
+    "meaning": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 60,
+      "description": "Реальный смысл (2-й язык)"
+    },
+    "question": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 0,
+      "maxLength": 60,
+      "description": "Вопрос-продолжение, напр. «E cosa si risponde?»"
+    },
+    "answer": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 0,
+      "maxLength": 40,
+      "description": "Скрытый ответ, напр. «Crepi!»"
+    },
+    "example": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 0,
+      "maxLength": 90,
+      "description": "Пример употребления"
+    }
+  },
+  "description": "Espressioni: буквальный смысл vs реальный, затем вопрос со скрытым ответом."
+}

@@ -182,7 +182,8 @@ async def synth_track(script: dict[str, Any], voice_cfg: dict[str, Any], timing:
     for seg in segs:
         if not seg.text:
             continue
-        r = await clients.tts_synthesize(seg.text, voice_cfg["model"], voice_cfg.get("voice"), float(voice_cfg.get("speed", 1.0)), int(variants.get(seg.key, 0)))
+        speed = min(max(float(voice_cfg.get("speed", 1.0)) * seg.speed, 0.5), 1.5)
+        r = await clients.tts_synthesize(seg.text, voice_cfg["model"], voice_cfg.get("voice"), round(speed, 3), int(variants.get(seg.key, 0)))
         cached += bool(r["cached"])
         clips[seg.key] = trim_silence(load_mono(st.data_dir / r["path"].lstrip("/")))
     track = assemble(segs, clips, timing.lead_in)

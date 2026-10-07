@@ -1,0 +1,90 @@
+- slug: lupo
+  title: Espressioni italiane
+  body:
+    idiom: In bocca al lupo!
+    literal: Во рту у волка!
+    meaning: Удачи!
+    question: E cosa si risponde?
+    answer: Crepi!
+    example: null
+- slug: mani-in-pasta
+  title: Espressioni italiane
+  body:
+    idiom: Avere le mani in pasta
+    literal: Иметь руки в тесте
+    meaning: Быть в курсе дел, участвовать
+    question: null
+    answer: null
+    example: Marco ha le mani in pasta in tutto.
+- slug: peli-lingua
+  title: Espressioni italiane
+  body:
+    idiom: Non avere peli sulla lingua
+    literal: Не иметь волос на языке
+    meaning: Говорить прямо, что думаешь
+    question: null
+    answer: null
+    example: Mia nonna non ha peli sulla lingua.
+- slug: al-verde
+  title: Espressioni italiane
+  body:
+    idiom: Essere al verde
+    literal: Быть на зелёном
+    meaning: Сидеть без денег
+    question: null
+    answer: null
+    example: Non esco stasera, sono al verde.
+- slug: granchio
+  title: Espressioni italiane
+  body:
+    idiom: Prendere un granchio
+    literal: Поймать краба
+    meaning: Ошибиться, дать маху
+    question: null
+    answer: null
+    example: Scusa, ho preso un granchio!
+- slug: acqua-in-bocca
+  title: Espressioni italiane
+  body:
+    idiom: Acqua in bocca!
+    literal: Вода во рту!
+    meaning: Никому ни слова!
+    question: null
+    answer: null
+    example: 'È un segreto: acqua in bocca!'
+- slug: occhio-testa
+  title: Espressioni italiane
+  body:
+    idiom: Costare un occhio della testa
+    literal: Стоить глаз из головы
+    meaning: Стоить очень дорого
+    question: null
+    answer: null
+    example: Questa borsa costa un occhio della testa.
+- slug: nuvole
+  title: Espressioni italiane
+  body:
+    idiom: Avere la testa fra le nuvole
+    literal: Иметь голову в облаках
+    meaning: Витать в облаках
+    question: null
+    answer: null
+    example: Oggi Luca ha la testa fra le nuvole.
+- slug: ghiaccio
+  title: Espressioni italiane
+  body:
+    idiom: Rompere il ghiaccio
+    literal: Разбить лёд
+    meaning: Начать общение, разрядить обстановку
+    question: null
+    answer: null
+    example: Ho fatto una battuta per rompere il ghiaccio.
+- slug: pesci
+  title: Espressioni italiane
+  body:
+    idiom: Chi dorme non piglia pesci
+    literal: Кто спит, тот не ловит рыбу
+    meaning: Под лежачий камень вода не течёт
+    question: null
+    answer: null
+    example: null

@@ -18,6 +18,7 @@ class Segment:
     text: str  # пусто = тишина длиной min_dur
     min_dur: float = 0.0
     gap_after: float = 0.3
+    speed: float = 1.0  # множитель к скорости голоса серии (скороговорка: медленно/быстро)
 
 
 @dataclass

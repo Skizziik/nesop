@@ -59,12 +59,15 @@ async def seed_all(s: AsyncSession) -> dict[str, int]:
 
     # хуки и CTA
     hk = load_yaml(root / "hooks.yaml")
-    existing_h = {(h.kind, h.text) for h in (await s.scalars(select(HookPattern))).all()}
+    existing_h = {(h.kind, h.text): h for h in (await s.scalars(select(HookPattern))).all()}
     for kind, items in (("hook", hk["hooks"]), ("cta", hk["cta"])):
         for h in items:
-            if (kind, h["text"]) in existing_h:
+            have = existing_h.get((kind, h["text"]))
+            if have is not None:
+                if have.source == "seed" and have.formats != h.get("formats", []):
+                    have.formats = h.get("formats", [])  # сид обновляет привязку к форматам, правки владельца не трогаем
                 continue
-            s.add(HookPattern(kind=kind, text=h["text"], spoken=h.get("spoken", ""), type=h.get("type", "hidden_answer"), format=h.get("format"),
+            s.add(HookPattern(kind=kind, text=h["text"], spoken=h.get("spoken", ""), type=h.get("type", "hidden_answer"), formats=h.get("formats", []),
                               answer_mode=h.get("answer_mode"), source="seed"))
             stats["hooks"] += 1
 

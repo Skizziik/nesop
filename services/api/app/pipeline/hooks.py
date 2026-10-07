@@ -30,10 +30,12 @@ async def pick(
     answer_mode: str | None = None,
     window: int = DEFAULT_WINDOW,
 ) -> HookPattern | None:
-    q = select(HookPattern).where(HookPattern.kind == kind, HookPattern.enabled.is_(True), or_(HookPattern.format.is_(None), HookPattern.format == fmt))
+    q = select(HookPattern).where(HookPattern.kind == kind, HookPattern.enabled.is_(True))
     if kind == "cta":
         q = q.where(or_(HookPattern.answer_mode.is_(None), HookPattern.answer_mode == answer_mode))
-    pool = list((await s.scalars(q.order_by(HookPattern.id))).all())
+    rows = list((await s.scalars(q.order_by(HookPattern.id))).all())
+    # сначала паттерны именно этого формата, иначе — универсальные ([] = подходит любому)
+    pool = [p for p in rows if fmt in (p.formats or [])] or [p for p in rows if not p.formats]
     if not pool:
         return None
     column = "hook_pattern_id" if kind == "hook" else "cta_pattern_id"

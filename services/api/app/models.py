@@ -143,7 +143,7 @@ class HookPattern(IdMixin, TimestampMixin, Base):
     spoken: Mapped[str] = mapped_column(String(160), default="")
     type: Mapped[str] = mapped_column(String(30), default="hidden_answer")
     lang: Mapped[str] = mapped_column(String(5), default="it")
-    format: Mapped[str | None] = mapped_column(String(40), nullable=True)  # null = любой формат
+    formats: Mapped[list[str]] = mapped_column(Json, default=list)  # [] = любой формат
     answer_mode: Mapped[str | None] = mapped_column(String(20), nullable=True)
     use_count: Mapped[int] = mapped_column(Integer, default=0)
     last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

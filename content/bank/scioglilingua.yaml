@@ -1,0 +1,60 @@
+- slug: panca
+  title: Scioglilingua
+  body:
+    text: Sopra la panca la capra campa, sotto la panca la capra crepa.
+    slow_speed: 0.8
+    fast_speed: 1.25
+- slug: trentini
+  title: Scioglilingua
+  body:
+    text: Trentatré trentini entrarono a Trento tutti e trentatré trotterellando.
+    slow_speed: 0.8
+    fast_speed: 1.25
+- slug: apelle
+  title: Scioglilingua
+  body:
+    text: Apelle figlio di Apollo fece una palla di pelle di pollo.
+    slow_speed: 0.8
+    fast_speed: 1.25
+- slug: rana
+  title: Scioglilingua
+  body:
+    text: Una rana nera e rara sulla rena errò una sera.
+    slow_speed: 0.8
+    fast_speed: 1.25
+- slug: papa-pisa
+  title: Scioglilingua
+  body:
+    text: Il papà pesa e pesta il pepe a Pisa e Pisa pesa e pesta il papà.
+    slow_speed: 0.8
+    fast_speed: 1.25
+- slug: frasche
+  title: Scioglilingua
+  body:
+    text: Sotto le frasche del capanno quattro gatti grossi stanno.
+    slow_speed: 0.8
+    fast_speed: 1.25
+- slug: pozzo
+  title: Scioglilingua
+  body:
+    text: Al pozzo dei pazzi una pazza lavava le pezze.
+    slow_speed: 0.8
+    fast_speed: 1.25
+- slug: aglio
+  title: Scioglilingua
+  body:
+    text: 'Sul tagliere l''aglio taglia, non tagliare la tovaglia: la tovaglia non è aglio, se la tagli fai uno sbaglio.'
+    slow_speed: 0.8
+    fast_speed: 1.25
+- slug: spettri
+  title: Scioglilingua
+  body:
+    text: Stanno stretti sotto i letti sette spettri a denti stretti.
+    slow_speed: 0.8
+    fast_speed: 1.25
+- slug: tigri
+  title: Scioglilingua
+  body:
+    text: Tre tigri contro tre tigri.
+    slow_speed: 0.8
+    fast_speed: 1.25

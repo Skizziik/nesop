@@ -1,0 +1,120 @@
+- slug: magari
+  title: Parola del giorno
+  body:
+    word: magari
+    article: null
+    syllables: ma-GA-ri
+    part_of_speech: avverbio
+    translation: может быть; хотелось бы!
+    example: Vieni stasera? Magari!
+    example_translation: Придёшь вечером? Хотелось бы!
+- slug: boh
+  title: Parola del giorno
+  body:
+    word: boh
+    article: null
+    syllables: BOH
+    part_of_speech: altro
+    translation: без понятия
+    example: Dov'è Luca? Boh, non lo so.
+    example_translation: Где Лука? Без понятия.
+- slug: allora
+  title: Parola del giorno
+  body:
+    word: allora
+    article: null
+    syllables: al-LO-ra
+    part_of_speech: avverbio
+    translation: итак; тогда
+    example: Allora, andiamo?
+    example_translation: Итак, идём?
+- slug: dai
+  title: Parola del giorno
+  body:
+    word: dai
+    article: null
+    syllables: DAI
+    part_of_speech: espressione
+    translation: давай!; да ладно!
+    example: Dai, non è niente!
+    example_translation: Да ладно, это ерунда!
+- slug: figurati
+  title: Parola del giorno
+  body:
+    word: figurati
+    article: null
+    syllables: FI-gu-ra-ti
+    part_of_speech: espressione
+    translation: не за что; да что ты
+    example: Grazie mille! – Figurati!
+    example_translation: Спасибо! – Не за что!
+- slug: ecco
+  title: Parola del giorno
+  body:
+    word: ecco
+    article: null
+    syllables: EC-co
+    part_of_speech: avverbio
+    translation: вот
+    example: Ecco il tuo caffè.
+    example_translation: Вот твой кофе.
+- slug: un-sacco
+  title: Parola del giorno
+  body:
+    word: un sacco
+    article: null
+    syllables: un SAC-co
+    part_of_speech: espressione
+    translation: очень много
+    example: Mi piace un sacco!
+    example_translation: Мне ужасно нравится!
+- slug: comunque
+  title: Parola del giorno
+  body:
+    word: comunque
+    article: null
+    syllables: co-MUN-que
+    part_of_speech: avverbio
+    translation: всё равно; в любом случае
+    example: Fa freddo, ma esco comunque.
+    example_translation: Холодно, но я всё равно выйду.
+- slug: insomma
+  title: Parola del giorno
+  body:
+    word: insomma
+    article: null
+    syllables: in-SOM-ma
+    part_of_speech: espressione
+    translation: короче; так себе
+    example: Com'è il film? Insomma…
+    example_translation: Как фильм? Так себе…
+- slug: merenda
+  title: Parola del giorno
+  body:
+    word: merenda
+    article: la
+    syllables: me-REN-da
+    part_of_speech: nome
+    translation: полдник, перекус
+    example: Alle quattro faccio merenda.
+    example_translation: В четыре у меня полдник.
+- slug: colpo-di-fulmine
+  title: Parola del giorno
+  body:
+    word: colpo di fulmine
+    article: il
+    syllables: COL-po di FUL-mi-ne
+    part_of_speech: espressione
+    translation: любовь с первого взгляда
+    example: È stato un colpo di fulmine!
+    example_translation: Это была любовь с первого взгляда!
+- slug: abbiocco
+  title: Parola del giorno
+  body:
+    word: abbiocco
+    article: l'
+    syllables: ab-BIOC-co
+    part_of_speech: nome
+    translation: сонливость после еды
+    example: Dopo pranzo mi viene l'abbiocco.
+    example_translation: После обеда меня клонит в сон.

@@ -1,0 +1,132 @@
+- slug: cucchiaio
+  title: Quiz lampo
+  body:
+    question: Come si dice «spoon» in italiano?
+    options:
+    - forchetta
+    - cucchiaio
+    - coltello
+    correct: 1
+    timer_s: 3
+    reveal: true
+- slug: grazie
+  title: Quiz lampo
+  body:
+    question: Come si dice «thank you» in italiano?
+    options:
+    - Prego
+    - Grazie
+    - Scusa
+    correct: 1
+    timer_s: 3
+    reveal: true
+- slug: plurale-uovo
+  title: Quiz lampo
+  body:
+    question: Qual è il plurale di «uovo»?
+    options:
+    - uovi
+    - uova
+    - uove
+    correct: 1
+    timer_s: 3
+    reveal: true
+- slug: articolo-zaino
+  title: Quiz lampo
+  body:
+    question: Quale articolo va con «zaino»?
+    options:
+    - il
+    - lo
+    - la
+    correct: 1
+    timer_s: 3
+    reveal: true
+- slug: martedi
+  title: Quiz lampo
+  body:
+    question: Come si dice «Tuesday»?
+    options:
+    - martedì
+    - mercoledì
+    - giovedì
+    correct: 0
+    timer_s: 3
+    reveal: true
+- slug: pp-andare
+  title: Quiz lampo
+  body:
+    question: 'Passato prossimo di «andare» (io):'
+    options:
+    - ho andato
+    - sono andato
+    - andavo
+    correct: 1
+    timer_s: 3
+    reveal: true
+- slug: contrario-caldo
+  title: Quiz lampo
+  body:
+    question: Qual è il contrario di «caldo»?
+    options:
+    - freddo
+    - fresco
+    - tiepido
+    correct: 0
+    timer_s: 3
+    reveal: true
+- slug: formaggio
+  title: Quiz lampo
+  body:
+    question: Come si dice «cheese»?
+    options:
+    - formaggio
+    - burro
+    - latte
+    correct: 0
+    timer_s: 3
+    reveal: true
+- slug: eta
+  title: Quiz lampo
+  body:
+    question: Quale frase è corretta?
+    options:
+    - Ho 20 anni
+    - Sono 20 anni
+    - Faccio 20 anni
+    correct: 0
+    timer_s: 3
+    reveal: true
+- slug: buonanotte
+  title: Quiz lampo
+  body:
+    question: «Buonanotte» si dice…
+    options:
+    - la mattina
+    - prima di dormire
+    - a pranzo
+    correct: 1
+    timer_s: 3
+    reveal: true
+- slug: attrice
+  title: Quiz lampo
+  body:
+    question: Qual è il femminile di «attore»?
+    options:
+    - attora
+    - attrice
+    - attoressa
+    correct: 1
+    timer_s: 3
+    reveal: true
+- slug: fame
+  title: Quiz lampo
+  body:
+    question: Come si dice «I'm hungry»?
+    options:
+    - Ho fame
+    - Sono fame
+    - Ho sete
+    correct: 0
+    timer_s: 3
+    reveal: true

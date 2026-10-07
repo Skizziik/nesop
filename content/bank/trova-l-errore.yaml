@@ -1,0 +1,140 @@
+- slug: ho-andato
+  title: Trova l'errore
+  body:
+    sentence: Ieri ho andato al mare.
+    wrong: ho andato
+    right: sono andato
+    category: ausiliare
+    explanation: «Andare» образует passato prossimo с essere.
+    timer_s: 3
+    reveal: true
+- slug: a-italia
+  title: Trova l'errore
+  body:
+    sentence: Quest'estate vado a Italia.
+    wrong: a Italia
+    right: in Italia
+    category: preposizioni
+    explanation: 'Со странами — «in»: in Italia, in Francia.'
+    timer_s: 3
+    reveal: true
+- slug: in-milano
+  title: Trova l'errore
+  body:
+    sentence: Abito in Milano da due anni.
+    wrong: in Milano
+    right: a Milano
+    category: preposizioni
+    explanation: 'С городами — «a»: a Milano, a Roma.'
+    timer_s: 3
+    reveal: true
+- slug: al-casa
+  title: Trova l'errore
+  body:
+    sentence: Ho fame, torno al casa.
+    wrong: al casa
+    right: a casa
+    category: preposizioni
+    explanation: «A casa» — без артикля.
+    timer_s: 3
+    reveal: true
+- slug: la-problema
+  title: Trova l'errore
+  body:
+    sentence: La problema è difficile.
+    wrong: La problema
+    right: Il problema
+    category: articoli
+    explanation: «Problema» — мужского рода.
+    timer_s: 3
+    reveal: true
+- slug: stanco
+  title: Trova l'errore
+  body:
+    sentence: Lei è molto stanco oggi.
+    wrong: stanco
+    right: stanca
+    category: accordo
+    explanation: Прилагательное согласуется с «lei».
+    timer_s: 3
+    reveal: true
+- slug: piacciono
+  title: Trova l'errore
+  body:
+    sentence: Mi piacciono il caffè.
+    wrong: piacciono
+    right: piace
+    category: verbi
+    explanation: Один предмет — «piace».
+    timer_s: 3
+    reveal: true
+- slug: salutato
+  title: Trova l'errore
+  body:
+    sentence: Ho visto Maria e l'ho salutato.
+    wrong: salutato
+    right: salutata
+    category: accordo
+    explanation: 'После «l''» (= la) причастие согласуется: salutata.'
+    timer_s: 3
+    reveal: true
+- slug: cresciuto
+  title: Trova l'errore
+  body:
+    sentence: Sono nato in Russia e ho cresciuto a Mosca.
+    wrong: ho cresciuto
+    right: sono cresciuto
+    category: ausiliare
+    explanation: «Crescere» (вырасти) — с essere.
+    timer_s: 3
+    reveal: true
+- slug: congiuntivo
+  title: Trova l'errore
+  body:
+    sentence: Penso che lui ha ragione.
+    wrong: ha ragione
+    right: abbia ragione
+    category: verbi
+    explanation: После «penso che» — congiuntivo.
+    timer_s: 3
+    reveal: true
+- slug: un-aiuto
+  title: Trova l'errore
+  body:
+    sentence: Ho bisogno di un'aiuto.
+    wrong: un'aiuto
+    right: un aiuto
+    category: articoli
+    explanation: '«Aiuto» мужского рода: апостроф не нужен.'
+    timer_s: 3
+    reveal: true
+- slug: simpatichi
+  title: Trova l'errore
+  body:
+    sentence: I miei amici sono simpatichi.
+    wrong: simpatichi
+    right: simpatici
+    category: accordo
+    explanation: Simpatico → simpatici.
+    timer_s: 3
+    reveal: true
+- slug: da-il
+  title: Trova l'errore
+  body:
+    sentence: Domani vado da il dottore.
+    wrong: da il
+    right: dal
+    category: preposizioni
+    explanation: da + il = dal.
+    timer_s: 3
+    reveal: true
+- slug: anni
+  title: Trova l'errore
+  body:
+    sentence: Ciao, sono Anna e sono 25 anni.
+    wrong: sono 25 anni
+    right: ho 25 anni
+    category: verbi
+    explanation: Возраст — с глаголом «avere».
+    timer_s: 3
+    reveal: true

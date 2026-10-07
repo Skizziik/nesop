@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "formats/daily_word.schema.json",
+  "title": "DailyWordBody",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "word",
+    "syllables",
+    "part_of_speech",
+    "translation",
+    "example"
+  ],
+  "properties": {
+    "word": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 24
+    },
+    "article": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 0,
+      "maxLength": 4
+    },
+    "syllables": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 40,
+      "description": "Деление на слоги с ударением, напр. «buon-GIOR-no»"
+    },
+    "part_of_speech": {
+      "type": "string",
+      "enum": [
+        "nome",
+        "verbo",
+        "aggettivo",
+        "avverbio",
+        "espressione",
+        "altro"
+      ]
+    },
+    "translation": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 40,
+      "description": "Перевод (2-й язык)"
+    },
+    "example": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 90
+    },
+    "example_translation": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 0,
+      "maxLength": 110
+    }
+  },
+  "description": "Parola del giorno #N: слово, произношение, пример, номер эпизода."
+}

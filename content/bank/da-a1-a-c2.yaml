@@ -1,0 +1,174 @@
+- slug: stanco
+  title: «Sono stanco» da A1 a C2
+  body:
+    concept: Sono stanco
+    concept_translation: Я устал
+    steps:
+    - level: A1
+      text: Sono stanco
+    - level: A2
+      text: Sono molto stanco
+    - level: B1
+      text: Sono stanchissimo
+    - level: B2
+      text: Sono distrutto
+    - level: C1
+      text: Sono esausto
+    - level: C2
+      text: Sono a pezzi
+- slug: bello
+  title: «bello» da A1 a C2
+  body:
+    concept: bello
+    concept_translation: красивый
+    steps:
+    - level: A1
+      text: bello
+    - level: A2
+      text: molto bello
+    - level: B1
+      text: bellissimo
+    - level: B2
+      text: stupendo
+    - level: C1
+      text: meraviglioso
+    - level: C2
+      text: mozzafiato
+- slug: mi-piace
+  title: «Mi piace» da A1 a C2
+  body:
+    concept: Mi piace
+    concept_translation: Мне нравится
+    steps:
+    - level: A1
+      text: Mi piace
+    - level: A2
+      text: Mi piace molto
+    - level: B1
+      text: Lo adoro
+    - level: B2
+      text: Ne vado matto
+    - level: C1
+      text: Ne sono entusiasta
+- slug: non-capisco
+  title: «Non capisco» da A1 a C2
+  body:
+    concept: Non capisco
+    concept_translation: Не понимаю
+    steps:
+    - level: A1
+      text: Non capisco
+    - level: A2
+      text: Non ho capito
+    - level: B1
+      text: Non mi è chiaro
+    - level: B2
+      text: Non ti seguo
+    - level: C1
+      text: Mi sfugge il senso
+    - level: C2
+      text: Non ci arrivo
+- slug: ho-fame
+  title: «Ho fame» da A1 a C2
+  body:
+    concept: Ho fame
+    concept_translation: Я голоден
+    steps:
+    - level: A1
+      text: Ho fame
+    - level: A2
+      text: Ho molta fame
+    - level: B1
+      text: Ho una fame da lupo
+    - level: B2
+      text: Muoio di fame
+    - level: C1
+      text: Mangerei un bue
+- slug: arrabbiato
+  title: «arrabbiato» da A1 a C2
+  body:
+    concept: arrabbiato
+    concept_translation: сердитый
+    steps:
+    - level: A1
+      text: arrabbiato
+    - level: A2
+      text: molto arrabbiato
+    - level: B1
+      text: furioso
+    - level: B2
+      text: fuori di me
+    - level: C1
+      text: furibondo
+    - level: C2
+      text: su tutte le furie
+- slug: facile
+  title: «facile» da A1 a C2
+  body:
+    concept: facile
+    concept_translation: лёгкий
+    steps:
+    - level: A1
+      text: facile
+    - level: A2
+      text: molto facile
+    - level: B1
+      text: semplicissimo
+    - level: B2
+      text: un gioco da ragazzi
+    - level: C1
+      text: una passeggiata
+    - level: C2
+      text: liscio come l'olio
+- slug: paura
+  title: «Ho paura» da A1 a C2
+  body:
+    concept: Ho paura
+    concept_translation: Мне страшно
+    steps:
+    - level: A1
+      text: Ho paura
+    - level: A2
+      text: Ho molta paura
+    - level: B1
+      text: Sono spaventato
+    - level: B2
+      text: Sono terrorizzato
+    - level: C1
+      text: Mi tremano le gambe
+- slug: caro
+  title: «È caro» da A1 a C2
+  body:
+    concept: È caro
+    concept_translation: Это дорого
+    steps:
+    - level: A1
+      text: È caro
+    - level: A2
+      text: È molto caro
+    - level: B1
+      text: Costa troppo
+    - level: B2
+      text: Costa un sacco
+    - level: C1
+      text: È un salasso
+    - level: C2
+      text: Costa un occhio della testa
+- slug: saluto
+  title: «Ciao» da A1 a C2
+  body:
+    concept: Ciao
+    concept_translation: Привет
+    steps:
+    - level: A1
+      text: Ciao
+    - level: A2
+      text: Buongiorno
+    - level: B1
+      text: Salve
+    - level: B2
+      text: Come va?
+    - level: C1
+      text: Ben ritrovato!
+    - level: C2
+      text: Ma guarda chi si vede!

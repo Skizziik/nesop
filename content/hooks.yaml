@@ -2,53 +2,337 @@
 # Грузится в таблицу hook_patterns при первом запуске; дальше редактируется в дашборде.
 # spoken — что произносит голос (пусто = text). type — тип comment_hook (раздел 5 ТЗ).
 hooks:
-  - {text: "Il 90% sbaglia l'ultima", type: hidden_answer}
-  - {text: "Solo i B2 sanno l'ultima", type: hidden_answer}
-  - {text: "L'ultima è impossibile?", type: hidden_answer}
-  - {text: "Scommetto che sbagli l'ultima", type: hidden_answer}
-  - {text: "Gli italiani sbagliano questa", type: hidden_answer}
-  - {text: "Sai l'ultima? Vediamo!", type: hidden_answer}
-  - {text: "Ultima = livello esperto", type: hidden_answer, spoken: "L'ultima è da esperti"}
-  - {text: "Pochi indovinano l'ultima", type: hidden_answer}
-  - {text: "Test: sai l'ultima?", type: hidden_answer}
-  - {text: "Indovina l'ultima!", type: hidden_answer}
-  - {text: "L'ultima ti frega", type: hidden_answer}
-  - {text: "Facile... fino all'ultima", type: hidden_answer}
-  - {text: "Solo il 10% la sa", type: hidden_answer, spoken: "Solo il dieci per cento la sa"}
-  - {text: "Sfida: l'ultima parola", type: hidden_answer}
-  - {text: "Se sai l'ultima, sei bravo", type: hidden_answer}
-  - {text: "Attento all'ultima!", type: hidden_answer}
-  - {text: "Non sbagliare l'ultima!", type: hidden_answer}
-  - {text: "La sai senza guardare?", type: hidden_answer}
-  - {text: "Quanti ne sai?", type: hidden_answer}
-  - {text: "Memorizzali in 15 secondi", type: hidden_answer, spoken: "Memorizzali in quindici secondi"}
-  - {text: "Prova a non sbagliare", type: hidden_answer}
-  - {text: "Ripeti con me!", type: hidden_answer}
-  - {text: "Lo sai dire in italiano?", type: hidden_answer}
-  - {text: "Livello principiante?", type: hidden_answer}
-  - {text: "L'ultima la sai tu?", type: hidden_answer}
-
+- text: Il 90% sbaglia l'ultima
+  type: hidden_answer
+  formats: &id001 [list_mystery, false_friends, emoji_vocab]
+- text: Solo i B2 sanno l'ultima
+  type: hidden_answer
+  formats: *id001
+- text: L'ultima è impossibile?
+  type: hidden_answer
+  formats: *id001
+- text: Scommetto che sbagli l'ultima
+  type: hidden_answer
+  formats: *id001
+- text: Gli italiani sbagliano questa
+  type: hidden_answer
+  formats: *id001
+- text: Sai l'ultima? Vediamo!
+  type: hidden_answer
+  formats: *id001
+- text: Ultima = livello esperto
+  type: hidden_answer
+  spoken: L'ultima è da esperti
+  formats: *id001
+- text: Pochi indovinano l'ultima
+  type: hidden_answer
+  formats: *id001
+- text: 'Test: sai l''ultima?'
+  type: hidden_answer
+  formats: *id001
+- text: Indovina l'ultima!
+  type: hidden_answer
+  formats: *id001
+- text: L'ultima ti frega
+  type: hidden_answer
+  formats: *id001
+- text: Facile... fino all'ultima
+  type: hidden_answer
+  formats: *id001
+- text: Solo il 10% la sa
+  type: hidden_answer
+  spoken: Solo il dieci per cento la sa
+  formats: *id001
+- text: 'Sfida: l''ultima parola'
+  type: hidden_answer
+  formats: *id001
+- text: Se sai l'ultima, sei bravo
+  type: hidden_answer
+  formats: *id001
+- text: Attento all'ultima!
+  type: hidden_answer
+  formats: *id001
+- text: Non sbagliare l'ultima!
+  type: hidden_answer
+  formats: *id001
+- text: La sai senza guardare?
+  type: hidden_answer
+  formats: *id001
+- text: Quanti ne sai?
+  type: hidden_answer
+  formats: *id001
+- text: Memorizzali in 15 secondi
+  type: hidden_answer
+  spoken: Memorizzali in quindici secondi
+  formats: *id001
+- text: Prova a non sbagliare
+  type: hidden_answer
+  formats: *id001
+- text: Ripeti con me!
+  type: hidden_answer
+  formats: *id001
+- text: Lo sai dire in italiano?
+  type: hidden_answer
+  formats: *id001
+- text: Livello principiante?
+  type: hidden_answer
+  formats: *id001
+- text: L'ultima la sai tu?
+  type: hidden_answer
+  formats: *id001
+- text: Solo il 30% risponde giusto
+  type: abc
+  formats: [quiz_abc]
+  spoken: Solo il trenta per cento risponde giusto
+- text: A, B o C? Veloce!
+  type: abc
+  formats: [quiz_abc]
+- text: Hai solo 3 secondi
+  type: abc
+  formats: [quiz_abc]
+  spoken: Hai solo tre secondi
+- text: Quiz lampo!
+  type: abc
+  formats: [quiz_abc]
+- text: Sei sicuro della risposta?
+  type: abc
+  formats: [quiz_abc]
+- text: C'è un errore. Lo vedi?
+  type: hidden_answer
+  formats: [spot_the_error]
+- text: Gli stranieri sbagliano qui
+  type: hidden_answer
+  formats: [spot_the_error]
+- text: Trova l'errore in 3 secondi
+  type: hidden_answer
+  formats: [spot_the_error]
+  spoken: Trova l'errore in tre secondi
+- text: Questa frase è sbagliata
+  type: hidden_answer
+  formats: [spot_the_error]
+- text: Errore classico!
+  type: hidden_answer
+  formats: [spot_the_error]
+- text: Non è quello che pensi!
+  type: hidden_answer
+  formats: [false_friends]
+- text: Attenzione ai falsi amici
+  type: hidden_answer
+  formats: [false_friends]
+- text: Questa parola ti inganna
+  type: hidden_answer
+  formats: [false_friends]
+- text: Quale parola manca?
+  type: abc
+  formats: [fill_blank]
+- text: Completa la frase!
+  type: abc
+  formats: [fill_blank]
+- text: Di, a o da?
+  type: abc
+  formats: [fill_blank]
+- text: Una parola, tre opzioni
+  type: abc
+  formats: [fill_blank]
+- text: Che livello sei?
+  type: level
+  formats: [level_ladder]
+- text: Da principiante a madrelingua
+  type: level
+  formats: [level_ladder]
+- text: Parla come un C2
+  type: level
+  formats: [level_ladder]
+- text: Dal livello A1 al C2
+  type: level
+  formats: [level_ladder]
+  spoken: Dal livello A uno al C due
+- text: Riesci a dirlo veloce?
+  type: challenge
+  formats: [tongue_twister]
+- text: Sfida di pronuncia!
+  type: challenge
+  formats: [tongue_twister]
+- text: Impossibile per gli stranieri?
+  type: challenge
+  formats: [tongue_twister]
+- text: Prova a ripeterlo
+  type: challenge
+  formats: [tongue_twister]
+- text: Gli italiani lo dicono sempre
+  type: native_language
+  formats: [idiom]
+- text: Non tradurlo alla lettera!
+  type: native_language
+  formats: [idiom]
+- text: Cosa vuol dire davvero?
+  type: native_language
+  formats: [idiom]
+- text: Espressione italiana top
+  type: native_language
+  formats: [idiom]
+- text: Come si dice?
+  type: hidden_answer
+  formats: [emoji_vocab]
+- text: Indovina dall'emoji
+  type: hidden_answer
+  formats: [emoji_vocab]
+- text: Quali forme mancano?
+  type: hidden_answer
+  formats: [conjugation_challenge]
+- text: Coniuga senza errori
+  type: hidden_answer
+  formats: [conjugation_challenge]
+- text: Test di coniugazione
+  type: hidden_answer
+  formats: [conjugation_challenge]
+- text: Il verbo che tutti sbagliano
+  type: hidden_answer
+  formats: [conjugation_challenge]
+- text: Parola del giorno!
+  type: streak
+  formats: [daily_word]
+- text: Impara questa parola oggi
+  type: streak
+  formats: [daily_word]
+- text: Questa ti servirà
+  type: streak
+  formats: [daily_word]
+- text: Una parola al giorno
+  type: streak
+  formats: [daily_word]
 cta:
-  - {text: "Scrivila nei commenti! 👇", spoken: "E l'ultima? Scrivila nei commenti!"}
-  - {text: "La risposta nei commenti 👇", spoken: "Qual è l'ultima? Scrivilo nei commenti!"}
-  - {text: "Tocca a te! 👇", spoken: "Tocca a te: scrivi l'ultima nei commenti!"}
-  - {text: "Commenta la risposta ✍️", spoken: "Sai l'ultima? Commenta!"}
-  - {text: "Chi indovina? 👇", spoken: "Chi indovina l'ultima?"}
-  - {text: "Scrivi l'ultima! ✍️", spoken: "Dai, scrivi l'ultima nei commenti!"}
-  - {text: "Vediamo chi la sa 👀", spoken: "Vediamo chi la sa! Scrivila qui sotto."}
-  - {text: "Rispondi qui sotto 👇", spoken: "Rispondi qui sotto!"}
-  - {text: "La sai? Scrivila! 💬", spoken: "La sai? Allora scrivila!"}
-  - {text: "Mettila nei commenti 👇", spoken: "Mettila nei commenti!"}
-  - {text: "Senza Google! 😉", spoken: "Senza Google! Scrivi l'ultima nei commenti."}
-  - {text: "Ti aspetto nei commenti 💬", spoken: "E l'ultima qual è? Ti aspetto nei commenti!"}
-  - {text: "Facile? Dimostralo 👇", spoken: "Facile? Dimostralo nei commenti!"}
-  - {text: "Indovina e commenta ✍️", spoken: "Indovina e commenta!"}
-  - {text: "E tu la sai? 👇", spoken: "E l'ultima, la sai tu?"}
-  - {text: "Scrivi solo l'ultima 👇", spoken: "Scrivi solo l'ultima parola!"}
-  - {text: "Chi la scrive per primo? 🏁", spoken: "Chi la scrive per primo?"}
-  - {text: "Sfida accettata? 💪", spoken: "Sfida accettata? Scrivila nei commenti!"}
-  - {text: "Risposta? Nei commenti! 👇", spoken: "La risposta? Nei commenti!"}
-  - {text: "Prova! Nessuno giudica 😄", spoken: "Prova a scriverla, nessuno giudica!"}
-  - {text: "Allenati: scrivila! ✍️", spoken: "Allenati: scrivi l'ultima nei commenti!"}
-  - {text: "Domani la soluzione ⏰", spoken: "Scrivila nei commenti: domani la soluzione!", answer_mode: answer_tomorrow}
-  - {text: "Soluzione domani! ⏰", spoken: "Scrivi la tua risposta: la soluzione arriva domani!", answer_mode: answer_tomorrow}
+- text: Scrivila nei commenti! 👇
+  spoken: E l'ultima? Scrivila nei commenti!
+  formats: *id001
+- text: La risposta nei commenti 👇
+  spoken: Qual è l'ultima? Scrivilo nei commenti!
+  formats: *id001
+- text: Tocca a te! 👇
+  spoken: 'Tocca a te: scrivi l''ultima nei commenti!'
+  formats: *id001
+- text: Commenta la risposta ✍️
+  spoken: Sai l'ultima? Commenta!
+  formats: *id001
+- text: Chi indovina? 👇
+  spoken: Chi indovina l'ultima?
+  formats: *id001
+- text: Scrivi l'ultima! ✍️
+  spoken: Dai, scrivi l'ultima nei commenti!
+  formats: *id001
+- text: Vediamo chi la sa 👀
+  spoken: Vediamo chi la sa! Scrivila qui sotto.
+  formats: *id001
+- text: Rispondi qui sotto 👇
+  spoken: Rispondi qui sotto!
+  formats: *id001
+- text: La sai? Scrivila! 💬
+  spoken: La sai? Allora scrivila!
+  formats: *id001
+- text: Mettila nei commenti 👇
+  spoken: Mettila nei commenti!
+  formats: *id001
+- text: Senza Google! 😉
+  spoken: Senza Google! Scrivi l'ultima nei commenti.
+  formats: *id001
+- text: Ti aspetto nei commenti 💬
+  spoken: E l'ultima qual è? Ti aspetto nei commenti!
+  formats: *id001
+- text: Facile? Dimostralo 👇
+  spoken: Facile? Dimostralo nei commenti!
+  formats: *id001
+- text: Indovina e commenta ✍️
+  spoken: Indovina e commenta!
+  formats: *id001
+- text: E tu la sai? 👇
+  spoken: E l'ultima, la sai tu?
+  formats: *id001
+- text: Scrivi solo l'ultima 👇
+  spoken: Scrivi solo l'ultima parola!
+  formats: *id001
+- text: Chi la scrive per primo? 🏁
+  spoken: Chi la scrive per primo?
+  formats: *id001
+- text: Sfida accettata? 💪
+  spoken: Sfida accettata? Scrivila nei commenti!
+  formats: *id001
+- text: Risposta? Nei commenti! 👇
+  spoken: La risposta? Nei commenti!
+  formats: *id001
+- text: Prova! Nessuno giudica 😄
+  spoken: Prova a scriverla, nessuno giudica!
+  formats: *id001
+- text: 'Allenati: scrivila! ✍️'
+  spoken: 'Allenati: scrivi l''ultima nei commenti!'
+  formats: *id001
+- text: Domani la soluzione ⏰
+  spoken: 'Scrivila nei commenti: domani la soluzione!'
+  answer_mode: answer_tomorrow
+  formats: *id001
+- text: Soluzione domani! ⏰
+  spoken: 'Scrivi la tua risposta: la soluzione arriva domani!'
+  answer_mode: answer_tomorrow
+  formats: *id001
+- text: Scrivi A, B o C 👇
+  spoken: Scrivi A, B o C nei commenti!
+  formats: [quiz_abc]
+- text: La tua risposta? 👇
+  spoken: Qual è la tua risposta? A, B o C?
+  formats: [quiz_abc]
+- text: Commenta la lettera ✍️
+  spoken: Commenta solo la lettera!
+  formats: [quiz_abc]
+- text: Scrivi la frase giusta 👇
+  spoken: Scrivi la frase giusta nei commenti!
+  formats: [spot_the_error]
+- text: Dov'è l'errore? 👇
+  spoken: Dov'è l'errore? Scrivilo qui sotto!
+  formats: [spot_the_error]
+- text: Correggila tu ✍️
+  spoken: Correggila tu nei commenti!
+  formats: [spot_the_error]
+- text: Cosa significa davvero? 👇
+  spoken: E l'ultima? Cosa significa davvero?
+  formats: [false_friends]
+- text: Ne conosci altri? 👇
+  spoken: Conosci altri falsi amici? Scrivili!
+  formats: [false_friends]
+- text: Quale va bene? 👇
+  spoken: Quale va bene? Scrivilo nei commenti!
+  formats: [fill_blank]
+- text: Scrivi la parola giusta ✍️
+  spoken: Scrivi la parola giusta!
+  formats: [fill_blank]
+- text: Che livello sei? 👇
+  spoken: E tu, che livello sei? Scrivilo nei commenti!
+  formats: [level_ladder]
+- text: Quale usi tu? 👇
+  spoken: Quale usi tu di solito?
+  formats: [level_ladder]
+- text: Riesci a dirlo 3 volte? 💪
+  spoken: Riesci a dirlo tre volte di fila?
+  formats: [tongue_twister]
+- text: Prova e commenta! 🎤
+  spoken: Provaci e dimmi com'è andata!
+  formats: [tongue_twister]
+- text: Come si dice da voi? 🌍
+  spoken: Come si dice nella tua lingua?
+  formats: [idiom]
+- text: E cosa si risponde? 👇
+  spoken: E cosa si risponde? Scrivilo nei commenti!
+  formats: [idiom]
+- text: E l'ultima emoji? 👇
+  spoken: E l'ultima? Come si dice?
+  formats: [emoji_vocab]
+- text: Quali mancano? 👇
+  spoken: Quali forme mancano? Scrivile nei commenti!
+  formats: [conjugation_challenge]
+- text: Completa la tabella ✍️
+  spoken: Completa la tabella nei commenti!
+  formats: [conjugation_challenge]
+- text: Scrivi una frase ✍️
+  spoken: Scrivi una frase con questa parola!
+  formats: [daily_word]
+- text: Presente! 🙋
+  spoken: Commenta presente se sei qui ogni giorno!
+  formats: [daily_word]

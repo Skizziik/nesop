@@ -1,0 +1,256 @@
+- slug: animali
+  title: Gli animali
+  body:
+    items:
+    - emoji: 🐶
+      word: cane
+      article: il
+    - emoji: 🐱
+      word: gatto
+      article: il
+    - emoji: 🐭
+      word: topo
+      article: il
+    - emoji: 🐰
+      word: coniglio
+      article: il
+    - emoji: 🐷
+      word: maiale
+      article: il
+    - emoji: 🐮
+      word: mucca
+      article: la
+    - emoji: 🐴
+      word: cavallo
+      article: il
+    - emoji: 🐸
+      word: rana
+      article: la
+- slug: frutta
+  title: La frutta
+  body:
+    items:
+    - emoji: 🍎
+      word: mela
+      article: la
+    - emoji: 🍐
+      word: pera
+      article: la
+    - emoji: 🍊
+      word: arancia
+      article: l'
+    - emoji: 🍋
+      word: limone
+      article: il
+    - emoji: 🍌
+      word: banana
+      article: la
+    - emoji: 🍉
+      word: anguria
+      article: l'
+    - emoji: 🍇
+      word: uva
+      article: l'
+    - emoji: 🍓
+      word: fragola
+      article: la
+- slug: meteo
+  title: Il tempo
+  body:
+    items:
+    - emoji: ☀️
+      word: sole
+      article: il
+    - emoji: 🌧️
+      word: pioggia
+      article: la
+    - emoji: ❄️
+      word: neve
+      article: la
+    - emoji: 🌈
+      word: arcobaleno
+      article: l'
+    - emoji: ⚡
+      word: fulmine
+      article: il
+    - emoji: 🌫️
+      word: nebbia
+      article: la
+    - emoji: 💨
+      word: vento
+      article: il
+- slug: trasporti
+  title: I trasporti
+  body:
+    items:
+    - emoji: 🚗
+      word: macchina
+      article: la
+    - emoji: 🚌
+      word: autobus
+      article: l'
+    - emoji: 🚲
+      word: bicicletta
+      article: la
+    - emoji: ✈️
+      word: aereo
+      article: l'
+    - emoji: 🚆
+      word: treno
+      article: il
+    - emoji: 🚢
+      word: nave
+      article: la
+    - emoji: 🛵
+      word: motorino
+      article: il
+- slug: cibo
+  title: Il cibo
+  body:
+    items:
+    - emoji: 🍕
+      word: pizza
+      article: la
+    - emoji: 🍝
+      word: pasta
+      article: la
+    - emoji: 🧀
+      word: formaggio
+      article: il
+    - emoji: 🍞
+      word: pane
+      article: il
+    - emoji: 🥚
+      word: uovo
+      article: l'
+    - emoji: 🍦
+      word: gelato
+      article: il
+    - emoji: 🥛
+      word: latte
+      article: il
+    - emoji: ☕
+      word: caffè
+      article: il
+- slug: corpo
+  title: Il corpo
+  body:
+    items:
+    - emoji: 👁️
+      word: occhio
+      article: l'
+    - emoji: 👃
+      word: naso
+      article: il
+    - emoji: 👄
+      word: bocca
+      article: la
+    - emoji: 👂
+      word: orecchio
+      article: l'
+    - emoji: ✋
+      word: mano
+      article: la
+    - emoji: 🦶
+      word: piede
+      article: il
+    - emoji: 🦷
+      word: dente
+      article: il
+- slug: casa
+  title: La casa
+  body:
+    items:
+    - emoji: 🛏️
+      word: letto
+      article: il
+    - emoji: 🚪
+      word: porta
+      article: la
+    - emoji: 🪑
+      word: sedia
+      article: la
+    - emoji: 🛁
+      word: vasca
+      article: la
+    - emoji: 🔑
+      word: chiave
+      article: la
+    - emoji: 🪟
+      word: finestra
+      article: la
+    - emoji: 🛋️
+      word: divano
+      article: il
+- slug: vestiti
+  title: I vestiti
+  body:
+    items:
+    - emoji: 👕
+      word: maglietta
+      article: la
+    - emoji: 👖
+      word: pantaloni
+      article: i
+    - emoji: 👗
+      word: vestito
+      article: il
+    - emoji: 👟
+      word: scarpe
+      article: le
+    - emoji: 🧦
+      word: calzini
+      article: i
+    - emoji: 🧢
+      word: cappello
+      article: il
+    - emoji: 🧣
+      word: sciarpa
+      article: la
+- slug: emozioni
+  title: Le emozioni
+  body:
+    items:
+    - emoji: 😀
+      word: felice
+      article: null
+    - emoji: 😢
+      word: triste
+      article: null
+    - emoji: 😡
+      word: arrabbiato
+      article: null
+    - emoji: 😴
+      word: stanco
+      article: null
+    - emoji: 😱
+      word: spaventato
+      article: null
+    - emoji: 🤒
+      word: malato
+      article: null
+- slug: natura
+  title: La natura
+  body:
+    items:
+    - emoji: 🌳
+      word: albero
+      article: l'
+    - emoji: 🌸
+      word: fiore
+      article: il
+    - emoji: 🌊
+      word: mare
+      article: il
+    - emoji: ⛰️
+      word: montagna
+      article: la
+    - emoji: 🌙
+      word: luna
+      article: la
+    - emoji: ⭐
+      word: stella
+      article: la
+    - emoji: 🌋
+      word: vulcano
+      article: il

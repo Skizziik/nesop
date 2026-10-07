@@ -1,0 +1,203 @@
+- slug: essere-pres
+  title: 'Essere: presente'
+  body:
+    verb: essere
+    tense: presente
+    forms:
+    - sono
+    - sei
+    - è
+    - siamo
+    - siete
+    - sono
+    hidden:
+    - 2
+    - 4
+    reveal: false
+- slug: avere-pres
+  title: 'Avere: presente'
+  body:
+    verb: avere
+    tense: presente
+    forms:
+    - ho
+    - hai
+    - ha
+    - abbiamo
+    - avete
+    - hanno
+    hidden:
+    - 3
+    reveal: false
+- slug: andare-pres
+  title: 'Andare: presente'
+  body:
+    verb: andare
+    tense: presente
+    forms:
+    - vado
+    - vai
+    - va
+    - andiamo
+    - andate
+    - vanno
+    hidden:
+    - 0
+    - 5
+    reveal: false
+- slug: fare-pres
+  title: 'Fare: presente'
+  body:
+    verb: fare
+    tense: presente
+    forms:
+    - faccio
+    - fai
+    - fa
+    - facciamo
+    - fate
+    - fanno
+    hidden:
+    - 1
+    - 3
+    reveal: false
+- slug: venire-pres
+  title: 'Venire: presente'
+  body:
+    verb: venire
+    tense: presente
+    forms:
+    - vengo
+    - vieni
+    - viene
+    - veniamo
+    - venite
+    - vengono
+    hidden:
+    - 0
+    - 2
+    reveal: false
+- slug: volere-pres
+  title: 'Volere: presente'
+  body:
+    verb: volere
+    tense: presente
+    forms:
+    - voglio
+    - vuoi
+    - vuole
+    - vogliamo
+    - volete
+    - vogliono
+    hidden:
+    - 1
+    reveal: false
+- slug: potere-pres
+  title: 'Potere: presente'
+  body:
+    verb: potere
+    tense: presente
+    forms:
+    - posso
+    - puoi
+    - può
+    - possiamo
+    - potete
+    - possono
+    hidden:
+    - 2
+    - 5
+    reveal: false
+- slug: sapere-pres
+  title: 'Sapere: presente'
+  body:
+    verb: sapere
+    tense: presente
+    forms:
+    - so
+    - sai
+    - sa
+    - sappiamo
+    - sapete
+    - sanno
+    hidden:
+    - 3
+    reveal: false
+- slug: uscire-pres
+  title: 'Uscire: presente'
+  body:
+    verb: uscire
+    tense: presente
+    forms:
+    - esco
+    - esci
+    - esce
+    - usciamo
+    - uscite
+    - escono
+    hidden:
+    - 0
+    - 5
+    reveal: false
+- slug: essere-imperf
+  title: 'Essere: imperfetto'
+  body:
+    verb: essere
+    tense: imperfetto
+    forms:
+    - ero
+    - eri
+    - era
+    - eravamo
+    - eravate
+    - erano
+    hidden:
+    - 3
+    - 4
+    reveal: false
+- slug: fare-pp
+  title: 'Fare: passato prossimo'
+  body:
+    verb: fare
+    tense: passato prossimo
+    forms:
+    - ho fatto
+    - hai fatto
+    - ha fatto
+    - abbiamo fatto
+    - avete fatto
+    - hanno fatto
+    hidden:
+    - 3
+    reveal: false
+- slug: andare-fut
+  title: 'Andare: futuro semplice'
+  body:
+    verb: andare
+    tense: futuro semplice
+    forms:
+    - andrò
+    - andrai
+    - andrà
+    - andremo
+    - andrete
+    - andranno
+    hidden:
+    - 1
+    - 4
+    reveal: false
+- slug: dire-pres
+  title: 'Dire: presente'
+  body:
+    verb: dire
+    tense: presente
+    forms:
+    - dico
+    - dici
+    - dice
+    - diciamo
+    - dite
+    - dicono
+    hidden:
+    - 4
+    reveal: false

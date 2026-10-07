@@ -1,28 +1,50 @@
 # Серии = будущие плейлисты. Банк уроков каждой серии: content/bank/<slug>.yaml
-# Формат list_mystery реализован на этапе 1; серии остальных форматов добавляются на этапе 4.
+# Реализованы все 11 форматов.
 - slug: numeri
   name: Numeri
   format: list_mystery
   level: A1
   topic: numeri, ore, ordinali
   description: Числа от нуля до миллиарда, порядковые, время.
-  palettes: [lavanda, blu, limone, cielo, rosa, pesca, menta, tricolore]
+  palettes:
+  - lavanda
+  - blu
+  - limone
+  - cielo
+  - rosa
+  - pesca
+  - menta
+  - tricolore
   auto_approve: true
 - slug: verbi-presente
-  name: "Verbi: presente"
+  name: 'Verbi: presente'
   format: list_mystery
   level: A1
   topic: coniugazione, presente indicativo
   description: Спряжение частых глаголов в presente.
-  palettes: [cielo, basilico, lavanda, terracotta, notte, pesca, menta]
+  palettes:
+  - cielo
+  - basilico
+  - lavanda
+  - terracotta
+  - notte
+  - pesca
+  - menta
   auto_approve: true
 - slug: verbi-passato-prossimo
-  name: "Verbi: passato prossimo"
+  name: 'Verbi: passato prossimo'
   format: list_mystery
   level: A2
   topic: coniugazione, passato prossimo, essere/avere
   description: Passato prossimo с essere и avere.
-  palettes: [oliva, blu, rosa, limone, notte, cielo, tricolore]
+  palettes:
+  - oliva
+  - blu
+  - rosa
+  - limone
+  - notte
+  - cielo
+  - tricolore
   auto_approve: true
 - slug: articoli
   name: Articoli
@@ -30,7 +52,13 @@
   level: A1
   topic: articoli determinativi e indeterminativi
   description: Какой артикль? Последний артикль спрятан.
-  palettes: [limone, lavanda, menta, pesca, terracotta, blu]
+  palettes:
+  - limone
+  - lavanda
+  - menta
+  - pesca
+  - terracotta
+  - blu
   auto_approve: true
 - slug: plurali
   name: Plurali
@@ -38,7 +66,13 @@
   level: A1
   topic: singolare e plurale
   description: Единственное и множественное число, включая исключения.
-  palettes: [rosa, cielo, basilico, notte, limone, tricolore]
+  palettes:
+  - rosa
+  - cielo
+  - basilico
+  - notte
+  - limone
+  - tricolore
   auto_approve: true
 - slug: contrari
   name: Contrari
@@ -46,7 +80,13 @@
   level: A1
   topic: aggettivi, verbi, avverbi opposti
   description: Пары противоположностей.
-  palettes: [pesca, oliva, lavanda, blu, menta, terracotta]
+  palettes:
+  - pesca
+  - oliva
+  - lavanda
+  - blu
+  - menta
+  - terracotta
   auto_approve: true
 - slug: vocabolario
   name: Vocabolario
@@ -54,5 +94,147 @@
   level: A1
   topic: cibo, casa, corpo, famiglia, animali, viaggio, al bar, al ristorante
   description: Тематическая лексика EN → IT.
-  palettes: [lavanda, blu, limone, cielo, basilico, terracotta, oliva, rosa, pesca, notte, menta, tricolore]
+  palettes:
+  - lavanda
+  - blu
+  - limone
+  - cielo
+  - basilico
+  - terracotta
+  - oliva
+  - rosa
+  - pesca
+  - notte
+  - menta
+  - tricolore
+  auto_approve: true
+- slug: quiz-abc
+  name: Quiz A/B/C
+  format: quiz_abc
+  level: A1
+  topic: lessico, grammatica
+  description: Вопрос и три варианта, таймер 3 секунды, ответ с конфетти.
+  palettes:
+  - blu
+  - limone
+  - cielo
+  - notte
+  - menta
+  auto_approve: true
+- slug: trova-l-errore
+  name: Trova l'errore
+  format: spot_the_error
+  level: A2
+  topic: errori tipici degli stranieri
+  description: 'Фраза с типичной ошибкой иностранца: найди и исправь.'
+  palettes:
+  - notte
+  - terracotta
+  - rosa
+  - cielo
+  - oliva
+  second_lang: ru
+  auto_approve: true
+- slug: falsi-amici
+  name: Falsi amici
+  format: false_friends
+  level: A2
+  topic: falsi amici
+  description: Слова, похожие на английские/испанские/русские, но с другим значением.
+  palettes:
+  - pesca
+  - lavanda
+  - menta
+  - limone
+  - blu
+  auto_approve: true
+- slug: completa-la-frase
+  name: Completa la frase
+  format: fill_blank
+  level: A2
+  topic: preposizioni, articoli
+  description: 'Вставь пропущенное слово: предлоги и артикли.'
+  palettes:
+  - cielo
+  - basilico
+  - rosa
+  - pesca
+  - tricolore
+  second_lang: ru
+  auto_approve: true
+- slug: da-a1-a-c2
+  name: Da A1 a C2
+  format: level_ladder
+  level: B1
+  topic: registro, sinonimi
+  description: Одно понятие на шести уровнях. «Che livello sei?»
+  palettes:
+  - notte
+  - blu
+  - oliva
+  - terracotta
+  second_lang: ru
+  auto_approve: true
+- slug: scioglilingua
+  name: Scioglilingua
+  format: tongue_twister
+  level: B1
+  topic: pronuncia
+  description: 'Скороговорки: медленно по словам, потом быстро.'
+  palettes:
+  - limone
+  - rosa
+  - menta
+  - lavanda
+  auto_approve: true
+- slug: espressioni
+  name: Espressioni italiane
+  format: idiom
+  level: B1
+  topic: modi di dire
+  description: Буквальный смысл против настоящего.
+  palettes:
+  - terracotta
+  - tricolore
+  - pesca
+  - notte
+  second_lang: ru
+  auto_approve: true
+- slug: parola-del-giorno
+  name: Parola del giorno
+  format: daily_word
+  level: A2
+  topic: parole quotidiane
+  description: 'Parola del giorno #N: слово, произношение, пример.'
+  palettes:
+  - tricolore
+  - lavanda
+  - cielo
+  - basilico
+  second_lang: ru
+  auto_approve: true
+- slug: come-si-dice
+  name: Come si dice?
+  format: emoji_vocab
+  level: A1
+  topic: lessico con emoji
+  description: Эмодзи → слово, последнее спрятано.
+  palettes:
+  - menta
+  - limone
+  - rosa
+  - cielo
+  - pesca
+  auto_approve: true
+- slug: coniugazione
+  name: 'Coniugazione: sfida'
+  format: conjugation_challenge
+  level: A2
+  topic: coniugazione
+  description: Таблица спряжения, 1-2 формы спрятаны.
+  palettes:
+  - blu
+  - oliva
+  - lavanda
+  - notte
   auto_approve: true

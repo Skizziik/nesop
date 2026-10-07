@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "formats/false_friends.schema.json",
+  "title": "FalseFriendsBody",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "items"
+  ],
+  "properties": {
+    "lang": {
+      "type": "string",
+      "enum": [
+        "en",
+        "es",
+        "fr",
+        "ru"
+      ],
+      "default": "en",
+      "description": "Язык, с которым «ложная дружба»"
+    },
+    "items": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 6,
+      "items": {
+        "$ref": "#/$defs/FalseFriend"
+      }
+    }
+  },
+  "description": "Falsi amici: CAMERA ≠ camera. Последний пример спрятан.",
+  "$defs": {
+    "FalseFriend": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "it",
+        "looks_like",
+        "it_means",
+        "say_instead"
+      ],
+      "properties": {
+        "it": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 16,
+          "description": "Итальянское слово"
+        },
+        "looks_like": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 16,
+          "description": "Похожее иностранное слово"
+        },
+        "it_means": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 26,
+          "description": "Что на самом деле значит итальянское слово (на языке lang)"
+        },
+        "say_instead": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20,
+          "description": "Как по-итальянски сказать looks_like"
+        }
+      }
+    }
+  }
+}

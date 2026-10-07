@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "formats/level_ladder.schema.json",
+  "title": "LevelLadderBody",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "concept",
+    "steps"
+  ],
+  "properties": {
+    "concept": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 30,
+      "description": "Понятие, напр. «bello» или «Sono stanco»"
+    },
+    "concept_translation": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 0,
+      "maxLength": 30
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 6,
+      "items": {
+        "$ref": "#/$defs/Step"
+      }
+    }
+  },
+  "description": "Da A1 a C2: одно понятие на разных уровнях. Хук «Che livello sei?».",
+  "$defs": {
+    "Step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "level",
+        "text"
+      ],
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": [
+            "A1",
+            "A2",
+            "B1",
+            "B2",
+            "C1",
+            "C2"
+          ]
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 30
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 0,
+          "maxLength": 28,
+          "description": "Перевод/оттенок"
+        }
+      }
+    }
+  }
+}

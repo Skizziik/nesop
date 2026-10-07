@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "formats/quiz_abc.schema.json",
+  "title": "QuizAbcBody",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "question",
+    "options",
+    "correct"
+  ],
+  "properties": {
+    "question": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 90,
+      "description": "Вопрос, напр. «Come si dice \"cucchiaio\" in inglese?»"
+    },
+    "spoken_question": {
+      "type": "string",
+      "minLength": 0,
+      "maxLength": 120,
+      "description": "Что говорит голос (пусто = question)"
+    },
+    "options": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 28
+      }
+    },
+    "correct": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2
+    },
+    "timer_s": {
+      "type": "number",
+      "minimum": 2,
+      "maximum": 6,
+      "default": 3
+    },
+    "reveal": {
+      "type": "boolean",
+      "default": true,
+      "description": "Показать ответ в конце ролика"
+    },
+    "explanation": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 0,
+      "maxLength": 90,
+      "description": "Короткое пояснение после ответа"
+    },
+    "question_lang": {
+      "type": "string",
+      "enum": [
+        "it",
+        "en",
+        "ru",
+        "uk",
+        "es"
+      ],
+      "default": "it",
+      "description": "Язык вопроса"
+    },
+    "options_lang": {
+      "type": "string",
+      "enum": [
+        "it",
+        "en",
+        "ru",
+        "uk",
+        "es"
+      ],
+      "default": "it",
+      "description": "Язык вариантов"
+    }
+  },
+  "description": "Вопрос и три варианта A/B/C, кольцо-таймер, затем ответ с конфетти (или ответ только в комментах)."
+}

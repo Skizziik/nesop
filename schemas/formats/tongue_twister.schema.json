@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "formats/tongue_twister.schema.json",
+  "title": "TongueTwisterBody",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "text"
+  ],
+  "properties": {
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120,
+      "description": "Скороговорка"
+    },
+    "translation": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 0,
+      "maxLength": 120
+    },
+    "slow_speed": {
+      "type": "number",
+      "minimum": 0.6,
+      "maximum": 1.0,
+      "default": 0.8
+    },
+    "fast_speed": {
+      "type": "number",
+      "minimum": 1.0,
+      "maximum": 1.5,
+      "default": 1.25
+    }
+  },
+  "description": "Scioglilingua: медленно по словам с подсветкой, затем быстро. Челлендж «Riesci a dirlo 3 volte?»."
+}

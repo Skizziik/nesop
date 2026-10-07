@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "formats/spot_the_error.schema.json",
+  "title": "SpotTheErrorBody",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "sentence",
+    "wrong",
+    "right",
+    "category"
+  ],
+  "properties": {
+    "sentence": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "description": "Фраза с ОДНОЙ типичной ошибкой иностранца"
+    },
+    "wrong": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 30,
+      "description": "Ошибочный фрагмент ровно как в sentence"
+    },
+    "right": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 30,
+      "description": "Правильный вариант фрагмента"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "articoli",
+        "preposizioni",
+        "ausiliare",
+        "accordo",
+        "verbi",
+        "pronomi",
+        "altro"
+      ]
+    },
+    "explanation": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 0,
+      "maxLength": 90,
+      "description": "Почему так (коротко)"
+    },
+    "timer_s": {
+      "type": "number",
+      "minimum": 2,
+      "maximum": 6,
+      "default": 3
+    },
+    "reveal": {
+      "type": "boolean",
+      "default": true,
+      "description": "Показать ответ в конце ролика"
+    }
+  },
+  "description": "Trova l'errore: фраза с типичной ошибкой, таймер, затем зачёркивание и правильный вариант."
+}
