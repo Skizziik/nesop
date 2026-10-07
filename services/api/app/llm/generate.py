@@ -24,6 +24,47 @@ FORMAT_GUIDES: dict[str, str] = {
         "Limiti: sinistra ≤ 18 caratteri, destra ≤ 20 caratteri. Scrivi le forme alternative con lo slash senza spazi: «lui/lei», «andato/a». "
         "L'ultima riga deve essere la più interessante ma risolvibile da chi ha guardato le precedenti (stesso schema, un po' più difficile)."
     ),
+    "quiz_abc": (
+        "Formato «quiz_abc»: una domanda breve (≤ 90 caratteri) e ESATTAMENTE 3 opzioni (≤ 28 caratteri), una sola giusta (indice correct 0-2). "
+        "I distrattori devono essere errori plausibili che fanno davvero gli stranieri, non assurdi. question_lang/options_lang: lingua di domanda e opzioni."
+    ),
+    "fill_blank": (
+        "Formato «fill_blank»: una frase naturale con UN solo vuoto scritto «___», 2-4 opzioni brevi, una giusta (correct). "
+        "Ideale per preposizioni e articoli. translation: traduzione russa della frase completa."
+    ),
+    "spot_the_error": (
+        "Formato «spot_the_error»: una frase con UN SOLO errore tipico di uno straniero (articoli, preposizioni, ausiliare essere/avere nel passato prossimo, "
+        "accordo, congiuntivo), NON un refuso. wrong = il frammento sbagliato ESATTAMENTE come appare nella frase, right = la correzione. "
+        "La frase corretta (sentence con wrong→right) deve essere perfetta. explanation in russo, ≤ 90 caratteri."
+    ),
+    "false_friends": (
+        "Formato «false_friends»: 3-6 falsi amici veri e verificati. it = parola italiana, looks_like = parola straniera simile (lingua lang), "
+        "it_means = cosa significa davvero la parola italiana (nella lingua lang), say_instead = come si dice in italiano looks_like. L'ultimo è nascosto."
+    ),
+    "emoji_vocab": (
+        "Formato «emoji_vocab»: 4-9 coppie emoji → parola italiana con articolo corretto (il, lo, la, l', i, gli, le) o null per aggettivi. "
+        "Un'emoji standard e inequivocabile per ogni parola. L'ultima parola è nascosta."
+    ),
+    "level_ladder": (
+        "Formato «level_ladder»: un concetto e 4-6 modi di dirlo dal più semplice (A1) al più ricercato/idiomatico (C1-C2), livelli in ordine crescente "
+        "senza ripetizioni. Ogni gradino deve essere davvero usato dagli italiani. concept_translation in russo."
+    ),
+    "tongue_twister": (
+        "Formato «tongue_twister»: uno scioglilingua italiano TRADIZIONALE e realmente esistente (4-22 parole), testo esatto della versione più diffusa. "
+        "Non inventarne di nuovi. translation in russo opzionale."
+    ),
+    "idiom": (
+        "Formato «idiom»: un modo di dire italiano reale e comune. literal = traduzione letterale in russo, meaning = significato reale in russo, "
+        "example = frase d'esempio naturale. question/answer solo se esiste una risposta fissa (es. «In bocca al lupo» → «Crepi!»)."
+    ),
+    "conjugation_challenge": (
+        "Formato «conjugation_challenge»: verbo + tempo e le 6 forme nell'ordine io, tu, lui/lei, noi, voi, loro (solo la forma verbale, senza pronome; "
+        "nei tempi composti includi l'ausiliare, es. «ho fatto»). hidden: 1-2 indici da nascondere, preferibilmente le forme irregolari."
+    ),
+    "daily_word": (
+        "Formato «daily_word»: una parola o espressione italiana utile e frequente nel parlato. syllables con la sillaba tonica in MAIUSCOLO (es. «ma-GA-ri»), "
+        "translation e example_translation in russo, example = frase naturale che contiene la parola."
+    ),
 }
 
 SYSTEM_TEACHER = (

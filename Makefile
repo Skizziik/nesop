@@ -1,7 +1,7 @@
 # На Windows: make есть в Git Bash (через `winget install GnuWin32.Make`) или используй команды из README напрямую.
 COMPOSE ?= docker compose
 
-.PHONY: up down logs build smoke test test-api test-tts test-ts codegen codegen-check lint ps
+.PHONY: up down logs build smoke test test-api test-tts test-ts test-golden fixtures codegen lint ps
 
 up:
 	$(COMPOSE) up -d --build
@@ -33,6 +33,12 @@ test-tts:
 
 test-ts:
 	$(COMPOSE) run --rm --no-deps -T --entrypoint sh renderer -c "cd /repo && pnpm -r run typecheck && pnpm -r run test && pnpm codegen --check"
+
+test-golden:
+	$(COMPOSE) run --rm --no-deps -T --entrypoint sh renderer -c "cd /repo/apps/renderer && GOLDEN=1 UPDATE_GOLDEN=$${UPDATE_GOLDEN:-0} npx vitest run test/golden.test.ts"
+
+fixtures:
+	$(COMPOSE) run --rm --no-deps -T -v ./apps/renderer/test/fixtures:/out api python -m scripts.sample_props /out
 
 codegen:
 	pnpm codegen
