@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "script.schema.json",
+  "title": "Script",
+  "description": "Скрипт ролика: то, что генерирует LLM / лежит в банке / правится в редакторе. body проверяется схемой формата.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "title", "body"],
+  "properties": {
+    "format": {
+      "type": "string",
+      "enum": ["list_mystery", "quiz_abc", "spot_the_error", "false_friends", "fill_blank", "level_ladder", "tongue_twister", "idiom", "emoji_vocab", "conjugation_challenge", "daily_word"]
+    },
+    "title": { "type": "string", "minLength": 1, "maxLength": 60 },
+    "hook_text": { "type": "string", "maxLength": 60, "default": "" },
+    "spoken_hook": { "type": "string", "maxLength": 80, "default": "", "description": "Что голос говорит в первые 1.5 сек; пусто = hook_text" },
+    "comment_hook": { "$ref": "#/$defs/CommentHook" },
+    "level": { "type": "string", "enum": ["A1", "A2", "B1", "B2", "C1", "C2"], "default": "A1" },
+    "topic": { "type": "string", "default": "" },
+    "body": { "type": "object" }
+  },
+  "$defs": {
+    "CommentHook": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "text"],
+      "properties": {
+        "type": { "type": "string", "enum": ["hidden_answer", "abc", "level", "challenge", "native_language", "debate", "streak"] },
+        "text": { "type": "string", "maxLength": 80 },
+        "spoken": { "type": "string", "maxLength": 80, "default": "" }
+      }
+    }
+  }
+}

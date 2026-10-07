@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "formats/list_mystery.schema.json",
+  "title": "ListMysteryBody",
+  "description": "Классика канала: столбик пар, последовательная подсветка, последняя строка спрятана.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["items", "left_style", "speak", "hide"],
+  "properties": {
+    "left_style": { "type": "string", "enum": ["badge", "dark"], "description": "badge = бордовая плашка (числа), dark = чёрная (местоимения, EN-слова, артикли)" },
+    "speak": { "type": "string", "enum": ["right", "both"], "description": "Что озвучивать: только итальянское справа или пару целиком" },
+    "hide": { "type": "string", "enum": ["right", "left"], "description": "Что спрятать в последней строке (??? справа или ?? слева)" },
+    "reveal": { "type": "boolean", "default": false, "description": "Показать ответ в конце (по умолчанию нет: ответ уходит в комменты)" },
+    "items": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 12,
+      "items": { "$ref": "#/$defs/ListItem" }
+    }
+  },
+  "$defs": {
+    "ListItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["left", "right"],
+      "properties": {
+        "left": { "type": "string", "minLength": 1, "maxLength": 18 },
+        "right": { "type": "string", "minLength": 1, "maxLength": 20 },
+        "sub": { "type": ["string", "null"], "maxLength": 28, "description": "Подпись вторым языком" }
+      }
+    }
+  }
+}
