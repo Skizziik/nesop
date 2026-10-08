@@ -13,6 +13,7 @@ from .config import get_settings
 from .formats import FORMATS, get_format
 from .formats.base import content_hash
 from .models import Asset, HookPattern, Lesson, Series
+from .pipeline.music import ensure_music
 from .pipeline.sfx import GENERATORS, ensure_sfx
 
 log = logging.getLogger("farm.seeds")
@@ -56,6 +57,14 @@ async def seed_all(s: AsyncSession) -> dict[str, int]:
         if name not in existing_sfx:
             s.add(Asset(kind="sfx", name=name, path=f"/sfx/{name}.wav", license="CC0 (процедурная генерация)", source="app/pipeline/sfx.py"))
             stats["sfx"] += 1
+
+    # фоновая музыка — собственная процедурная генерация (CC0), владелец может добавить свои треки в «Ассетах»
+    existing_music = {a.path for a in (await s.scalars(select(Asset).where(Asset.kind == "music"))).all()}
+    for tr, rel in ensure_music(st.data_dir):
+        if rel not in existing_music:
+            s.add(Asset(kind="music", name=tr.name, path=rel, license="CC0 (собственная процедурная генерация)", source="app/pipeline/music.py",
+                        data={"bpm": tr.bpm, "key": tr.key}))
+            stats["music"] = stats.get("music", 0) + 1
 
     # хуки и CTA
     hk = load_yaml(root / "hooks.yaml")

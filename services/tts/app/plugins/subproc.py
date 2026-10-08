@@ -22,7 +22,7 @@ from .base import ProgressCb, Synthesis, TTSPlugin, Voice
 
 log = logging.getLogger("tts.subproc")
 TORCH_CPU = "https://download.pytorch.org/whl/cpu"
-TORCH_CUDA = "https://download.pytorch.org/whl/cu124"
+TORCH_CUDA = "https://download.pytorch.org/whl/cu126"
 
 
 class EngineError(RuntimeError):
@@ -66,8 +66,9 @@ class SubprocessPlugin(TTSPlugin):
     def install(self, progress_cb: ProgressCb, voice_id: str | None = None) -> None:
         self.site.mkdir(parents=True, exist_ok=True)
         if self.torch_spec:
-            self._pip([self.torch_spec, "--index-url", TORCH_CUDA if self.cuda else TORCH_CPU], progress_cb, "torch", (0.02, 0.45))
-        self._pip(self.packages(), progress_cb, "пакеты модели", (0.45, 0.7))
+            self._pip([*self.torch_spec.split(), "--index-url", TORCH_CUDA if self.cuda else TORCH_CPU], progress_cb, "torch", (0.02, 0.45))
+        # torch уже стоит из нужного индекса — pip не должен тянуть другую сборку
+        self._pip([*self.packages(), "--extra-index-url", TORCH_CUDA if self.cuda else TORCH_CPU], progress_cb, "пакеты модели", (0.45, 0.7))
         progress_cb(0.72, "веса модели")
         self.call({"cmd": "download"}, timeout=3600)
         self._marker().write_text("ok")

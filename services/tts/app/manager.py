@@ -13,7 +13,9 @@ import numpy as np
 import soundfile as sf
 
 from .plugins.base import TTSPlugin
+from .plugins.heavy import HEAVY
 from .plugins.piper_plugin import PiperPlugin
+from .plugins.subproc import SubprocessPlugin
 
 log = logging.getLogger("tts.manager")
 
@@ -57,9 +59,12 @@ class Manager:
         self.cache_dir = data_dir / "tts-cache"
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.data_dir = data_dir
-        self.plugins: dict[str, TTSPlugin] = {p.info.id: p for p in [PiperPlugin(models_dir)]}
+        self.plugins: dict[str, TTSPlugin] = {p.info.id: p for p in [PiperPlugin(models_dir), *(cls(models_dir) for cls in HEAVY)]}
         self.installs: dict[str, InstallState] = {}
         self.hardware = detect_hardware()
+        for p in self.plugins.values():
+            if isinstance(p, SubprocessPlugin):
+                p.cuda = self.hardware.cuda
         self._lock = threading.Lock()
 
     def plugin(self, pid: str) -> TTSPlugin:

@@ -3,11 +3,17 @@ from __future__ import annotations
 
 from typing import Any
 
+import asyncio
+import logging
+
 from arq import create_pool
 from arq.connections import ArqRedis, RedisSettings
+from sqlalchemy import select, text, update
 
 from .config import get_settings
+from .db import SessionLocal
 from .logging_setup import setup
+from .models import Video, VideoStatus
 from .pipeline.ideas import fill_bank, run_ideas
 from .pipeline.produce import plan_batch, produce_video
 
@@ -48,8 +54,40 @@ async def enqueue(fn: str, *args: Any) -> None:
         await pool.aclose()
 
 
+log = logging.getLogger("farm.worker")
+
+
+async def wait_for_db(timeout_s: int = 180) -> None:
+    """После перезапуска Docker Desktop все контейнеры стартуют одновременно: ждём, пока Postgres начнёт принимать запросы."""
+    for _ in range(timeout_s // 2):
+        try:
+            async with SessionLocal() as s:
+                await s.execute(text("SELECT 1"))
+            return
+        except Exception:  # noqa: BLE001 — «database is starting up» и обрыв соединения одинаково ждём
+            await asyncio.sleep(2)
+    raise RuntimeError("Postgres не поднялся за 3 минуты")
+
+
+async def recover_stuck(redis: ArqRedis) -> int:
+    """Ролики, застрявшие в approved/rendering (воркер умер посреди задачи), возвращаем в очередь, если их там нет."""
+    queued = {str(j.args[0]) for j in await redis.queued_jobs() if j.function == "run_video" and j.args}
+    async with SessionLocal() as s:
+        ids = [v for v in (await s.scalars(select(Video.id).where(Video.status.in_([VideoStatus.approved, VideoStatus.rendering])))).all() if v not in queued]
+        if ids:
+            await s.execute(update(Video).where(Video.id.in_(ids)).values(status=VideoStatus.approved, progress=0.0, stage=""))
+            await s.commit()
+    for vid in ids:
+        await redis.enqueue_job("run_video", vid)
+    return len(ids)
+
+
 async def startup(ctx: dict[str, Any]) -> None:
     setup("worker")
+    await wait_for_db()
+    n = await recover_stuck(ctx["redis"])
+    if n:
+        log.info("recovered %s stuck videos", n)
 
 
 class WorkerSettings:

@@ -157,7 +157,7 @@ def make_render_props(
         "canvas": {"w": 1080, "h": 1920, "fps": 30}, "theme": theme, "hook_text": script.get("hook_text", ""),
         "title": script["title"], "cta_text": (script.get("comment_hook") or {}).get("text", ""), "body": script["body"],
         "timeline": timeline,
-        "audio": {"voice_url": voice_url, "music_url": music_url, "music_volume": 0.07, "sfx": spec.sfx(timeline), "envelope": envelope(track.audio)},
+        "audio": {"voice_url": voice_url, "music_url": music_url, "music_volume": 0.1, "sfx": spec.sfx(timeline), "envelope": envelope(track.audio)},
         "avatar": avatar or {"mode": "none"},
         "loop_seamless": True, "duration_s": max(track.total, 3.0), "asset_base": "", "seed": seed, "show_yt_overlay": False,
         "prev_answer": prev_answer[:60] if prev_answer else None,
