@@ -136,6 +136,14 @@ async def test_llm(s: Session) -> dict[str, Any]:
     return {"ok": True, "answer": r.data, "model": r.model, "cost_usd": r.cost_usd}
 
 
+@router.get("/batches/{bid}/spell-report")
+async def spell_report(bid: str) -> dict[str, Any]:
+    """Орфография готовых роликов пачки: LanguageTool + Hunspell по итальянским фрагментам (приёмка этапа 3)."""
+    from scripts.spell_report import build
+
+    return await build(bid)
+
+
 @router.get("/llm/usage")
 async def usage(s: Session, days: int = 30) -> dict[str, Any]:
     since = utcnow() - timedelta(days=days)
