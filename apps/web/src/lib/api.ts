@@ -1,3 +1,4 @@
+import type { TimelineDoc } from "@ipt/templates";
 // Клиент FastAPI. Все запросы идут на тот же origin (/api проксируется Next rewrites).
 
 export type VideoStatus =
@@ -131,6 +132,49 @@ export interface Lesson {
 
 export type SeriesInput = Partial<Omit<Series, "id" | "slug" | "counts" | "implemented">> & { name: string; format: string };
 
+export interface Project {
+  id: string;
+  title: string;
+  kind: "lecture" | "short_edit" | "custom";
+  aspect: "16:9" | "9:16";
+  status: "generating" | "draft" | "rendering" | "ready" | "failed";
+  progress: number;
+  stage: string;
+  error: string | null;
+  series_id: string | null;
+  video_id: string | null;
+  params: Record<string, unknown>;
+  revision: number;
+  duration_s: number | null;
+  video_url: string | null;
+  cover_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectFull extends Project {
+  doc: TimelineDoc | Record<string, never>;
+  meta: { title?: string; description?: string; tags?: string[]; spell?: unknown } & Record<string, unknown>;
+}
+
+export interface ProjectVersion {
+  id: string;
+  revision: number;
+  note: string;
+  created_at: string;
+  duration_s: number | null;
+}
+
+export interface LectureInput {
+  topic: string;
+  level: "A1" | "A2" | "B1" | "B2" | "C1";
+  minutes: number;
+  mascot: string;
+  lang: "ru" | "en" | "uk" | "es";
+  aspect: "16:9" | "9:16";
+  series_id?: string | null;
+}
+
 export class ApiError extends Error {}
 
 const HUMAN: Record<number, string> = {
@@ -243,6 +287,18 @@ export const api = {
     request<{ left: { profile_id: string; url: string }; right: { profile_id: string; url: string } }>("/api/voices/ab", { method: "POST", body: JSON.stringify({ a, b, ...(text ? { text } : {}) }) }),
   voteVoice: (winner: string, loser: string) => request<unknown>("/api/voices/vote", { method: "POST", body: JSON.stringify({ winner, loser }) }),
   applyVoice: (id: string, series_ids: string[]) => request<{ updated: number }>(`/api/voices/${id}/apply`, { method: "POST", body: JSON.stringify({ series_ids }) }),
+  projects: (kind?: string) => request<Project[]>(`/api/projects${kind ? `?kind=${kind}` : ""}`),
+  project: (id: string) => request<ProjectFull>(`/api/projects/${id}`),
+  createProject: (body: { title: string; aspect: "16:9" | "9:16" }) => request<ProjectFull>("/api/projects", { method: "POST", body: JSON.stringify(body) }),
+  createLecture: (body: LectureInput) => request<Project>("/api/projects/lecture", { method: "POST", body: JSON.stringify(body) }),
+  saveProject: (id: string, body: { doc: TimelineDoc; title?: string; note?: string; base_revision?: number }) =>
+    request<Project>(`/api/projects/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  projectVersions: (id: string) => request<ProjectVersion[]>(`/api/projects/${id}/versions`),
+  restoreVersion: (id: string, vid: string) => request<Project>(`/api/projects/${id}/versions/${vid}/restore`, { method: "POST" }),
+  renderProject: (id: string) => request<Project>(`/api/projects/${id}/render`, { method: "POST" }),
+  deleteProject: (id: string) => request<{ ok: boolean }>(`/api/projects/${id}`, { method: "DELETE" }),
+  duplicateProject: (id: string) => request<Project>(`/api/projects/${id}/duplicate`, { method: "POST" }),
+  videoToProject: (videoId: string) => request<ProjectFull>(`/api/videos/${videoId}/to-project`, { method: "POST" }),
   llmUsage: (days = 30) => request<{ rows: { purpose: string; model: string; calls: number; input_tokens: number; output_tokens: number; usd: number }[] }>(`/api/llm/usage?days=${days}`),
 };
 

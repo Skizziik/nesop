@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, ExternalLink, RotateCcw, Trash2, X } from "lucide-react";
+import { Download, ExternalLink, RotateCcw, Scissors, Trash2, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -114,6 +114,8 @@ function VideoModal({ v, seriesName, onClose }: { v: Video; seriesName: string; 
     },
     onError: onErr,
   });
+  const router = useRouter();
+  const toEditor = useMutation({ mutationFn: () => api.videoToProject(v.id), onSuccess: (p) => router.push(`/studio/${p.id}`), onError: onErr });
   const rerender = useMutation({ mutationFn: () => api.rerender(v.id), onSuccess: () => (toast.success("Перерендер поставлен в очередь"), void refresh(), onClose()), onError: onErr });
   const del = useMutation({ mutationFn: () => api.deleteVideo(v.id), onSuccess: () => (toast.success("Удалено"), void refresh(), onClose()), onError: onErr });
   const m = v.meta;
@@ -185,6 +187,9 @@ function VideoModal({ v, seriesName, onClose }: { v: Video; seriesName: string; 
                 <ExternalLink size={18} />
               </a>
             ) : null}
+            <Button variant="outline" onClick={() => toEditor.mutate()} disabled={toEditor.isPending} title="Открыть в видеоредакторе: добавить текст, маскотов, субтитры, музыку">
+              <Scissors size={16} /> В редактор
+            </Button>
             <Button variant="ghost" onClick={() => rerender.mutate()} title="Перерендерить с тем же сидом">
               <RotateCcw size={16} />
             </Button>
