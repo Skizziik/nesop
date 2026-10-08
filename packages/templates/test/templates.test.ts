@@ -58,3 +58,19 @@ describe("color", async () => {
     expect(readableOn("#E9D5FA")).toBe("#141414");
   });
 });
+
+describe("mascot", async () => {
+  const { mouthState, blinking } = await import("../src/components/Avatar");
+  it("рот открывается по громкости голоса", () => {
+    const env = [0, 0.05, 0.3, 0.9, 0.9, 0.1, 0];
+    expect(mouthState(env, 0)).toBe(0);
+    expect(mouthState(env, 2)).toBe(1);
+    expect(mouthState(env, 3)).toBe(2);
+    expect(mouthState(env, 100)).toBe(0);
+  });
+  it("моргание редкое и детерминированное", () => {
+    const n = Array.from({ length: 300 }, (_, f) => blinking(f, 30)).filter(Boolean).length;
+    expect(n).toBeGreaterThan(0);
+    expect(n).toBeLessThan(20);
+  });
+});

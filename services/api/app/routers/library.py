@@ -164,8 +164,25 @@ async def upload_asset(
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_bytes(data)
     a.path = rel
+    if kind == "avatar" and ext in (".mp4", ".mov"):
+        a.path = await _chroma_to_webm(rel)  # зелёный фон → прозрачный webm
+        a.data = {**(a.data or {}), "original": rel, "chromakey": True}
     await s.commit()
     return asset_out(a)
+
+
+async def _chroma_to_webm(rel: str) -> str:
+    import httpx
+
+    out = rel.rsplit(".", 1)[0] + ".webm"
+    try:
+        async with httpx.AsyncClient(timeout=600) as c:
+            r = await c.post(f"{get_settings().renderer_url}/avatar/convert", json={"src": rel, "out": out})
+    except httpx.HTTPError as e:
+        raise HTTPException(503, "Рендер-сервис недоступен для обработки видео ведущей") from e
+    if r.status_code >= 400:
+        raise HTTPException(400, f"Не удалось вырезать зелёный фон: {r.text[:300]}")
+    return out
 
 
 class AssetPatch(BaseModel):

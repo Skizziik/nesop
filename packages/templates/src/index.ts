@@ -9,3 +9,4 @@ export { highlightedIndex, activeEvent, eventsOf, secToFrame } from "./lib/timel
 export { fitFontSize, requiredWidth } from "./lib/text";
 export { SAFE, SAFE_RECT, CANVAS } from "./lib/safe";
 export { STICKER_NAMES } from "./components/Sticker";
+export { mouthState, blinking } from "./components/Avatar";

@@ -21,7 +21,9 @@ def build_theme(seed: int, series: Any, palettes: dict[str, dict[str, Any]], avo
     palette = pick_palette(rng, list(series.palettes or []), palettes, avoid_palettes)
     fonts = [f for f in (series.fonts or ["Montserrat"]) if f in ("Montserrat", "Fredoka", "Nunito")] or ["Montserrat"]
     n_stickers = rng.choice([0, 1, 1, 2])
-    spots = rng.sample(STICKER_SPOTS, n_stickers)
+    avatar_on = (getattr(series, "avatar", None) or {}).get("mode", "none") != "none"
+    free = [s for s in STICKER_SPOTS if not (avatar_on and s[1] > 1500)]  # нижняя полоса занята ведущей
+    spots = rng.sample(free, min(n_stickers, len(free)))
     stickers = [{"name": rng.choice(STICKERS), "x": x, "y": y, "size": rng.choice([96, 110, 124]), "rotate": rng.randint(-18, 18)} for x, y in spots]
     return {
         "palette": palette,

@@ -73,6 +73,7 @@ export function SeriesPage() {
 
 function SeriesDrawer({ s, onClose }: { s: Series | null; onClose: () => void }) {
   const { data: palettes = [] } = useQuery({ queryKey: ["palettes"], queryFn: api.palettes });
+  const { data: avatars = [] } = useQuery({ queryKey: ["assets", "avatar"], queryFn: () => api.assets("avatar") });
   const [f, setF] = useState<SeriesInput>(
     s ?? { name: "", format: "list_mystery", level: "A1", topic: "", description: "", palettes: [], fonts: ["Montserrat", "Fredoka", "Nunito"], auto_approve: false, answer_mode: "hide", answer_delay_h: 24, hook_type: "hidden_answer", second_lang: null, voice: {} },
   );
@@ -80,8 +81,8 @@ function SeriesDrawer({ s, onClose }: { s: Series | null; onClose: () => void })
   const onErr = (e: unknown) => toast.error(e instanceof ApiError ? e.message : "Ошибка");
   const save = useMutation({
     mutationFn: () => {
-      const { name, format, level, topic, description, palettes: pal, fonts, auto_approve, answer_mode, answer_delay_h, hook_type, second_lang, voice, youtube_playlist_id } = f;
-      const body = { name, format, level, topic, description, palettes: pal, fonts, auto_approve, answer_mode, answer_delay_h, hook_type, second_lang, voice, youtube_playlist_id };
+      const { name, format, level, topic, description, palettes: pal, fonts, auto_approve, answer_mode, answer_delay_h, hook_type, second_lang, voice, youtube_playlist_id, avatar } = f;
+      const body = { name, format, level, topic, description, palettes: pal, fonts, auto_approve, answer_mode, answer_delay_h, hook_type, second_lang, voice, youtube_playlist_id, avatar };
       return s ? api.patchSeries(s.id, body) : api.createSeries(body);
     },
     onSuccess: () => (toast.success("Сохранено"), onClose()),
@@ -180,6 +181,24 @@ function SeriesDrawer({ s, onClose }: { s: Series | null; onClose: () => void })
             </Row>
             <Row label={`Скорость голоса: ${(f.voice?.speed ?? 0.92).toFixed(2)}`}>
               <input type="range" min={0.75} max={1.1} step={0.01} value={f.voice?.speed ?? 0.92} onChange={(e) => set({ voice: { ...f.voice, speed: Number(e.target.value) } })} className="accent-[var(--color-verde-2)]" />
+            </Row>
+            <Row label="Ведущая">
+              <select
+                className={inputCls()}
+                value={f.avatar?.mode === "loop" ? `loop:${(f.avatar as { src?: string }).src ?? ""}` : (f.avatar?.mode ?? "none")}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  set({ avatar: v.startsWith("loop:") ? ({ mode: "loop", src: v.slice(5), position: "bottom_right", height: 320 } as Series["avatar"]) : ({ mode: v, position: "bottom_right", height: 320 } as Series["avatar"]) });
+                }}
+              >
+                <option value="none">нет</option>
+                <option value="mascot">маскот-пицца (рот по голосу)</option>
+                {avatars.filter((a) => a.enabled && a.url).map((a) => (
+                  <option key={a.id} value={`loop:${a.url}`}>
+                    видео: {a.name}
+                  </option>
+                ))}
+              </select>
             </Row>
             <Row label="Плейлист YouTube (id)">
               <input className={inputCls()} value={f.youtube_playlist_id ?? ""} onChange={(e) => set({ youtube_playlist_id: e.target.value || null })} placeholder="PL…" />

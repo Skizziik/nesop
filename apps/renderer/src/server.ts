@@ -94,6 +94,23 @@ app.post("/render", (req, res) => {
   }
 });
 
+/** Видео ведущей на зелёном фоне → webm VP9 с альфа-каналом (Chromium в Remotion умеет прозрачный webm). */
+app.post("/avatar/convert", async (req, res) => {
+  const { src, out, color } = req.body as { src?: string; out?: string; color?: string };
+  if (!src || !out) {
+    res.status(400).json({ error: "нужны src и out" });
+    return;
+  }
+  try {
+    const key = /^#?[0-9a-f]{6}$/i.test(color ?? "") ? `0x${color!.replace("#", "")}` : "0x00FF00";
+    await ffmpeg(["-i", safeOutDir(src), "-vf", `chromakey=${key}:0.18:0.08,despill=type=green,scale=-2:720,format=yuva420p`, "-an",
+      "-c:v", "libvpx-vp9", "-pix_fmt", "yuva420p", "-b:v", "1.5M", "-auto-alt-ref", "0", safeOutDir(out)]);
+    res.json({ ok: true, out });
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : String(e) });
+  }
+});
+
 app.get("/render/:id", (req, res) => {
   const job = queue.get(req.params.id);
   if (!job) {

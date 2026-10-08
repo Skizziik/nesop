@@ -2,6 +2,7 @@ import { AbsoluteFill, Sequence, useCurrentFrame, useVideoConfig } from "remotio
 import { Audio } from "@remotion/media";
 import type { RenderProps } from "./generated";
 import { Background, Bookmark, CtaBubble, HookText, ProgressBar, TitleChip, Watermark } from "./components/Chrome";
+import { Avatar } from "./components/Avatar";
 import { Sticker } from "./components/Sticker";
 import { YtOverlay } from "./components/YtOverlay";
 import { resolveAsset } from "./lib/assets";
@@ -50,6 +51,7 @@ export const ShortVideo: React.FC<RenderProps> = (props) => {
           </Sequence>
         ) : null;
       })}
+      <Avatar props={props} />
       {props.show_yt_overlay ? <YtOverlay /> : null}
     </AbsoluteFill>
   );
