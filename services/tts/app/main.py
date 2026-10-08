@@ -1,6 +1,8 @@
 """TTS-сервис: синтез, менеджер моделей, кеш. Все пути ответов — относительно /data (api раздаёт их как /media/...)."""
 from __future__ import annotations
 
+from typing import Literal
+
 import json
 import logging
 import os
@@ -57,6 +59,7 @@ class SynthIn(BaseModel):
     ref_audio: str | None = Field(default=None, description="Путь относительно /data к референсу для клона")
     ref_text: str | None = None
     design: str | None = Field(default=None, max_length=500, description="Описание голоса для voice design")
+    language: Literal["it", "en"] = Field(default="it", description="Язык фразы: лекции для англоязычных объясняют по-английски")
 
 
 class InstallIn(BaseModel):
@@ -100,7 +103,7 @@ def uninstall(pid: str, voice: str | None = None) -> dict[str, bool]:
 @app.post("/synthesize")
 async def synthesize(body: SynthIn) -> dict[str, object]:
     try:
-        return await run_in_threadpool(manager.synthesize, body.model, body.voice, body.text, body.speed, body.variant, body.ref_audio, body.ref_text, body.design)
+        return await run_in_threadpool(manager.synthesize, body.model, body.voice, body.text, body.speed, body.variant, body.ref_audio, body.ref_text, body.design, body.language)
     except KeyError as e:
         raise HTTPException(404, str(e)) from e
     except FileNotFoundError as e:

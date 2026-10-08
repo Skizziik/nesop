@@ -107,7 +107,7 @@ class Manager:
 
     # ---------- синтез ----------
     def synthesize(self, model: str, voice: str | None, text: str, speed: float = 1.0, variant: int = 0,
-                   ref_audio: str | None = None, ref_text: str | None = None, design: str | None = None) -> dict[str, object]:
+                   ref_audio: str | None = None, ref_text: str | None = None, design: str | None = None, language: str = "it") -> dict[str, object]:
         plugin = self.plugin(model)
         vid = voice or plugin.default_voice()
         if not vid:
@@ -116,11 +116,13 @@ class Manager:
         if ref is not None and not ref.exists():
             raise FileNotFoundError(f"Нет референса {ref_audio}")
         extra = f"{ref_audio}:{ref.stat().st_mtime_ns}|{ref_text}" if ref else (f"design:{design}" if design else "")
+        if language != "it":
+            extra += f"|lang:{language}"
         key = cache_key(model, vid, speed, text, variant, extra)
         path = self.cache_dir / f"{key}.wav"
         cached = path.exists()
         if not cached:
-            res = plugin.synthesize(text, vid, speed=speed, seed=variant, ref_audio=ref, ref_text=ref_text, design=design)
+            res = plugin.synthesize(text, vid, speed=speed, seed=variant, ref_audio=ref, ref_text=ref_text, design=design, language=language)
             tmp = path.with_suffix(".tmp.wav")
             sf.write(str(tmp), np.clip(res.audio, -1, 1), res.sample_rate, subtype="PCM_16")
             tmp.replace(path)

@@ -35,6 +35,7 @@ BASE = f"Qwen/Qwen3-TTS-12Hz-{SIZE}-Base"
 DESIGN = "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign"
 DESIGN_REF_TEXT = "Ciao a tutti e benvenuti! Oggi impariamo insieme qualcosa di nuovo in italiano: ascoltate bene e ripetete con me."
 SR = 24000
+LANGS = {"it": "Italian", "en": "English"}
 
 
 def download() -> None:
@@ -84,6 +85,7 @@ class Engine:
 
     def synth(self, req: dict[str, Any]) -> tuple[np.ndarray, int]:
         text, speed = req["text"], float(req.get("speed") or 1.0)
+        lang = LANGS.get(req.get("language") or "it", "Italian")
         ref, ref_text = req.get("ref_audio"), req.get("ref_text") or None
         if req.get("design"):
             ref, ref_text = str(self.design_ref(req["design"])), DESIGN_REF_TEXT
@@ -94,10 +96,10 @@ class Engine:
             b = self.model(BASE)
             if key not in self.prompts:
                 self.prompts[key] = b.create_voice_clone_prompt(ref_audio=ref, ref_text=ref_text, x_vector_only_mode=ref_text is None)
-            wavs, sr = b.generate_voice_clone(text=text, language="Italian", voice_clone_prompt=self.prompts[key])
+            wavs, sr = b.generate_voice_clone(text=text, language=lang, voice_clone_prompt=self.prompts[key])
         else:
             m = self.model(CUSTOM)
-            wavs, sr = m.generate_custom_voice(text=text, language="Italian", speaker=req.get("voice") or "Serena")
+            wavs, sr = m.generate_custom_voice(text=text, language=lang, speaker=req.get("voice") or "Serena")
         return time_stretch(wavs[0].astype(np.float32), speed), int(sr)
 
 

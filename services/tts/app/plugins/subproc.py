@@ -115,11 +115,11 @@ class SubprocessPlugin(TTSPlugin):
         self._proc = None
 
     def synthesize(self, text: str, voice: str, speed: float = 1.0, emotion: str | None = None, ref_audio: Path | None = None, seed: int = 0,
-                   ref_text: str | None = None, design: str | None = None) -> Synthesis:
+                   ref_text: str | None = None, design: str | None = None, language: str = "it") -> Synthesis:
         out = Path(os.environ.get("DATA_DIR", "/data")) / "tmp" / f"{uuid.uuid4().hex}.wav"
         out.parent.mkdir(parents=True, exist_ok=True)
         self.call({"cmd": "synth", "text": text, "voice": voice, "speed": speed, "seed": seed, "out": str(out),
-                   "ref_audio": str(ref_audio) if ref_audio else None, "ref_text": ref_text, "design": design, "emotion": emotion})
+                   "ref_audio": str(ref_audio) if ref_audio else None, "ref_text": ref_text, "design": design, "emotion": emotion, "language": language})
         audio, sr = sf.read(str(out), dtype="float32", always_2d=True)
         out.unlink(missing_ok=True)
         return Synthesis(audio=np.asarray(audio.mean(axis=1), dtype=np.float32), sample_rate=int(sr))

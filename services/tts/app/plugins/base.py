@@ -68,7 +68,7 @@ class TTSPlugin(abc.ABC):
 
     @abc.abstractmethod
     def synthesize(self, text: str, voice: str, speed: float = 1.0, emotion: str | None = None, ref_audio: Path | None = None, seed: int = 0,
-                   ref_text: str | None = None, design: str | None = None) -> Synthesis:
+                   ref_text: str | None = None, design: str | None = None, language: str = "it") -> Synthesis:
         """seed — номер дубля; ref_audio/ref_text — клон голоса; design — описание голоса текстом (voice design)."""
         ...
 

@@ -37,7 +37,8 @@ OUTLINE_SCHEMA: dict[str, Any] = {
         "chapters": {"type": "array", "items": {"type": "object", "properties": {"title": {"type": "string"}, "goal": {"type": "string"}}}},
         "outro": {"type": "array", "items": {"$ref": "#/$defs/Sent"}, "description": "3-4 frasi finali: ripasso veloce, invito a commentare e iscriversi"},
     },
-    "$defs": {"Sent": {"type": "object", "properties": {"it": {"type": "string"}, "tr": {"type": "string"}}}},
+    "$defs": {"Sent": {"type": "object", "properties": {"it": {"type": "string", "description": "Testo detto dalla voce"}, "lang": {"type": "string", "enum": ["it", "en"]},
+                                                         "tr": {"type": "string", "description": "Traduzione inglese se lang=it, vuoto se lang=en"}}}},
 }
 
 SLIDE = {
@@ -57,8 +58,9 @@ SLIDE = {
             "items": {
                 "type": "object",
                 "properties": {
-                    "it": {"type": "string", "description": "Frase detta dalla voce, italiano semplice"},
-                    "tr": {"type": "string", "description": "Traduzione per i sottotitoli"},
+                    "it": {"type": "string", "description": "Frase detta dalla voce (nella lingua lang)"},
+                    "lang": {"type": "string", "enum": ["it", "en"], "description": "Lingua della frase: it = italiano, en = spiegazione in inglese"},
+                    "tr": {"type": "string", "description": "Traduzione inglese per i sottotitoli se lang=it; vuoto se lang=en"},
                     "mark": {"type": "integer", "description": "Indice del punto/riga che questa frase mette in evidenza (-1 nessuno)"},
                     "phase": {"type": "string", "enum": ["normal", "ask", "answer"]},
                 },
@@ -77,10 +79,25 @@ VERIFY_CH_SCHEMA: dict[str, Any] = {
 }
 
 
+# Сколько английского у преподавателя: новичкам объясняем по-английски, дальше — всё больше итальянского.
+VOICE_POLICY = {
+    "A1": "L'insegnante SPIEGA IN INGLESE (lang=en) regole e istruzioni, frasi brevi e amichevoli; tutti gli esempi, le parole nuove e le frasi da ripetere sono in ITALIANO (lang=it), "
+          "lenti e chiari, spesso con «Ripeti con me» / «Repeat after me». Circa 55% delle frasi in inglese, 45% in italiano.",
+    "A2": "Spiegazioni soprattutto in inglese (lang=en), ma saluti, istruzioni semplici e tutti gli esempi in italiano (lang=it). Circa 40% inglese, 60% italiano.",
+    "B1": "L'insegnante parla soprattutto in italiano semplice (lang=it); usa l'inglese (lang=en) solo per chiarire un punto difficile o una differenza con l'inglese. Circa 15% inglese.",
+    "B2": "Solo italiano (lang=it), chiaro e naturale; niente frasi in inglese (i sottotitoli traducono).",
+    "C1": "Solo italiano (lang=it), naturale e ricco; niente frasi in inglese (i sottotitoli traducono).",
+}
+
+
 def chapter_guide(level: str, lang: str, words: int, n_chapters: int) -> str:
     sentences = max(10, round(words / 13))
     return (
-        f"Lezione video YouTube 16:9 per studenti anglofoni di livello {level}. La voce parla SOLO italiano, lento e chiaro; i sottotitoli traducono in {LANG_NAME.get(lang, 'inglese')} (campo tr). Testi delle slide in italiano; traduzioni e note (tr, rows.tr, note) in inglese, mai in russo.\n"
+        f"Lezione video YouTube 16:9 per studenti ANGLOFONI di livello {level} (canale per chi parla inglese e impara l'italiano).\n"
+        f"Lingua della voce: {VOICE_POLICY.get(level, VOICE_POLICY['A2'])}\n"
+        "Ogni frase narrata ha lang = it oppure en, e una frase è in UNA sola lingua: non mescolare. Se una spiegazione inglese introduce una parola italiana, "
+        "dividi in due frasi: «In Italian, cat is…» (en) e poi «il gatto» (it). tr = traduzione inglese solo per le frasi italiane, vuoto per quelle inglesi.\n"
+        "Testi delle slide (titoli, punti, esempi) in italiano; note e traduzioni sulle slide (rows.tr, note) in inglese. Mai russo o altre lingue.\n"
         f"Questo capitolo deve durare circa {round(words / WPM, 1)} minuti: circa {words} parole di narrazione, cioè ~{sentences} frasi in totale, divise in 3-5 slide.\n"
         "Tipi di slide: explain (3-5 punti brevi in bullets), examples (4-8 righe rows: it + tr + note facoltativa), table (coniugazioni, articoli: table_header + table_rows), "
         "quiz (una domanda con ESATTAMENTE 3 quiz_options e quiz_correct 0-2: frasi phase=ask che leggono la domanda, poi phase=answer che spiegano la risposta), "
@@ -93,9 +110,10 @@ def chapter_guide(level: str, lang: str, words: int, n_chapters: int) -> str:
 
 @dataclass
 class Sent:
-    it: str
+    it: str  # произносимый текст (исторически «it»; язык — в lang)
     tr: str
     mark: int = -1
+    lang: str = "it"
     phase: str = "normal"
     key: str = ""
     clip: np.ndarray | None = None
@@ -120,9 +138,10 @@ def _sents(items: list[dict[str, Any]]) -> list[Sent]:
             out.append(
                 Sent(
                     it=it,
-                    tr=str(x.get("tr", "")).strip(),
+                    tr="" if x.get("lang") == "en" else str(x.get("tr", "")).strip(),
                     mark=int(x.get("mark", -1) if x.get("mark") is not None else -1),
                     phase=str(x.get("phase") or "normal"),
+                    lang="en" if x.get("lang") == "en" else "it",
                 )
             )
     return out
@@ -160,7 +179,7 @@ async def llm_outline(s: AsyncSession, topic: str, level: str, minutes: int, lan
     n = max(4, min(9, round(minutes / 2.6)))
     user = (
         f"Prepara la scaletta di una video-lezione di {minutes} minuti per il canale @ItalianoPerTe. Argomento: «{topic}». Livello {level}.\n"
-        f"Esattamente {n} capitoli, dal più semplice al più difficile, ognuno con un obiettivo concreto. Le frasi intro/outro in italiano semplice, tr = traduzione in {LANG_NAME.get(lang, 'inglese')}."
+        f"Esattamente {n} capitoli, dal più semplice al più difficile, ognuno con un obiettivo concreto. Pubblico: anglofoni che imparano l'italiano. Intro/outro: {VOICE_POLICY.get(level, VOICE_POLICY['A2'])} Ogni frase ha lang (it/en); tr = traduzione inglese delle frasi italiane, vuoto per quelle inglesi. Il saluto iniziale sempre in italiano («Ciao a tutti!»)."
     )
     r = await prov.complete_json(SYSTEM_TEACHER, user, OUTLINE_SCHEMA, purpose="lecture_outline", max_tokens=6000, effort="medium")
     return dict(r.data)
@@ -183,7 +202,8 @@ async def llm_verify_chapter(s: AsyncSession, chapter: dict[str, Any], level: st
     prov = await get_provider(s)
     user = (
         f"Capitolo di una video-lezione (livello {level}) in JSON. Controlla l'italiano di slide e narrazione (campo it): grammatica, accenti, apostrofi, "
-        "correttezza di traduzioni ed esempi, coniugazioni. Non cambiare la struttura né il numero di elementi; correggi solo gli errori.\n"
+        "correttezza di traduzioni ed esempi, coniugazioni. Le frasi con lang=en sono in inglese DI PROPOSITO (spiegazioni per anglofoni): non tradurle, "
+        "controlla solo che siano in inglese corretto e che le parole italiane citate siano giuste. Non cambiare la struttura né il numero di elementi; correggi solo gli errori.\n"
         + json.dumps(chapter, ensure_ascii=False)
     )
     r = await prov.complete_json(SYSTEM_VERIFIER, user, VERIFY_CH_SCHEMA, purpose="lecture_verify", max_tokens=16000, effort="high")
@@ -272,7 +292,7 @@ async def build_lecture(project_id: str) -> None:
             slides.append(
                 SlideBuild(
                     props={"kind": "title", "chapter": label, "title": str(c.get("title", ""))[:90]},
-                    sents=[Sent(it=f"Capitolo {i + 1}: {c.get('title', '')}.", tr="")],
+                    sents=[Sent(it=f"Capitolo {i + 1}: {c.get('title', '')}.", tr=f"Chapter {i + 1}")],
                     gap_after=GAP_CHAPTER,
                 )
             )
@@ -287,7 +307,7 @@ async def build_lecture(project_id: str) -> None:
 
         # ---- LanguageTool по всей речи (отчёт; правки уже сделал верификатор)
         all_sents = [x for sl in slides for x in sl.sents]
-        lt = await languagetool_check([(f"s{k}", x.it) for k, x in enumerate(all_sents)])
+        lt = await languagetool_check([(f"s{k}", x.it) for k, x in enumerate(all_sents) if x.lang == "it"])
         lt_errors = [i for i in lt if i["severity"] == "error"]
 
         # ---- озвучка по предложениям
@@ -302,7 +322,8 @@ async def build_lecture(project_id: str) -> None:
             nonlocal done
             async with sem:
                 r = await clients.tts_synthesize(
-                    x.it, vcfg["model"], vcfg.get("voice"), float(vcfg.get("speed", 0.92)), 0, vcfg.get("ref_audio"), vcfg.get("ref_text"), vcfg.get("design")
+                    x.it, vcfg["model"], vcfg.get("voice"), float(vcfg.get("speed", 0.92)), 0, vcfg.get("ref_audio"), vcfg.get("ref_text"), vcfg.get("design"),
+                    language=x.lang,
                 )
                 x.clip = trim_silence(load_mono(st.data_dir / r["path"].lstrip("/")))
                 done += 1

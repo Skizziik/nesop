@@ -113,7 +113,7 @@ class PiperPlugin(TTSPlugin):
             return self._loaded[voice_id]
 
     def synthesize(self, text: str, voice: str, speed: float = 1.0, emotion: str | None = None, ref_audio: Path | None = None, seed: int = 0,
-                   ref_text: str | None = None, design: str | None = None) -> Synthesis:
+                   ref_text: str | None = None, design: str | None = None, language: str = "it") -> Synthesis:
         from piper import SynthesisConfig
 
         pv = self._voice(voice)
