@@ -28,13 +28,13 @@
 - [x] Golden-кадры (SSIM) для renderer: `make test-golden`
 - [x] Прогон после пересборки образов
 
-## Этап 3. LLM: идеи, скрипты, проверка — 🟡 код готов, финальная e2e-проверка
+## Этап 3. LLM: идеи, скрипты, проверка — ✅
 - [x] LLMProvider: Anthropic (claude-sonnet-5-5, structured output, серверный fallback), OpenAI-совместимый, Ollama; лог токенов/стоимости
 - [x] Идеи (дедуп по сделанным темам), скрипты (3 ретрая с ошибкой валидации), метаданные A/B (с откатом на правила)
 - [x] Проверки: правила, LanguageTool (контейнер), Hunspell it_IT (spylls), LLM-верификатор с fixed_body, дедуп (хеш + fuzzy заголовков)
 - [x] Авто-аппрув серии; «сделать похожие»; «наполнить банк»
 - [x] Настройки LLM в UI, тест связи, расход
-- [ ] Выборка 20 LLM-роликов: 0 орфографических ошибок по LanguageTool (отчёт)
+- [x] Выборка 20 LLM-роликов (2026-10-08): 20/20 готовы, 162 итальянских фрагмента, 0 ошибок LanguageTool + Hunspell — `/api/batches/{id}/spell-report`
 
 ## Этап 4. Все форматы и хуки — ✅
 - [x] quiz_abc, spot_the_error, false_friends, fill_blank, level_ladder, tongue_twister, idiom, emoji_vocab, conjugation_challenge, daily_word (шаблоны, логика, 10 новых серий, 114 уроков); e2e: пачка из 17 роликов по всем форматам отрендерена
@@ -54,6 +54,13 @@
 - [ ] lipsync MuseTalk (опционально по ТЗ, GPU)
 
 ## Этап 7. Автозагрузка (по команде владельца)
-- [x] Таблицы publications, флаг YOUTUBE_UPLOAD_ENABLED
+- [x] Таблицы publications, флаг YOUTUBE_UPLOAD_ENABLED, вкладка в настройках
+- [x] Календарь: перетаскивание готовых роликов на дни, лимит публикаций в день
+- [ ] OAuth + videos.insert + publishAt + плейлист + квота — по команде владельца
 ## Этап 8. Обратная связь (по команде владельца)
 - [x] Таблицы analytics_snapshots, channel_titles (дедуп уже учитывает channel_titles)
+
+## Сквозное
+- [x] Golden-кадры (SSIM ≥ 0.985) для всех 11 форматов: 33 эталона в `apps/renderer/test/golden`, повторный рендер совпадает
+- [x] Экспорт/импорт базы (JSON)
+- [x] Надёжность: восстановление зависших роликов после перезапуска Docker, общий Chromium, повтор рендера
