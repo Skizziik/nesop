@@ -29,15 +29,17 @@ async def tts_synthesize(text: str, model: str, voice: str | None, speed: float,
     raise ServiceError("TTS: голос не установился за 5 минут")
 
 
-async def render(props: dict[str, Any], out_dir: str, on_progress: Callable[[float], Awaitable[None]]) -> dict[str, Any]:
+async def render(props: dict[str, Any], out_dir: str, on_progress: Callable[[float], Awaitable[None]], composition: str = "Short",
+                 timeout_s: int | None = None) -> dict[str, Any]:
     st = get_settings()
+    limit = timeout_s or st.render_timeout_s
     async with httpx.AsyncClient(timeout=30) as c:
-        r = await c.post(f"{st.renderer_url}/render", json={"props": props, "out_dir": out_dir})
+        r = await c.post(f"{st.renderer_url}/render", json={"props": props, "out_dir": out_dir, "composition": composition})
         if r.status_code >= 400:
             raise ServiceError(f"Renderer: {r.status_code} {r.text[:300]}")
         job_id = r.json()["job_id"]
         last = -1.0
-        for _ in range(st.render_timeout_s):
+        for _ in range(limit):
             await asyncio.sleep(1)
             s = (await c.get(f"{st.renderer_url}/render/{job_id}")).json()
             if s["status"] == "done":
@@ -47,7 +49,7 @@ async def render(props: dict[str, Any], out_dir: str, on_progress: Callable[[flo
             if s["progress"] - last >= 0.05:
                 last = s["progress"]
                 await on_progress(last)
-    raise ServiceError(f"Рендер не уложился в {st.render_timeout_s} сек")
+    raise ServiceError(f"Рендер не уложился в {limit} сек")
 
 
 async def probe(url: str) -> dict[str, Any]:

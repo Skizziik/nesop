@@ -26,3 +26,6 @@ exclude = ["alembic/"]
 [[tool.mypy.overrides]]
 module = ["app.formats.*", "app.pipeline.*", "app.schemas_gen.*"]
 strict = true
+
+[tool.ruff.lint.per-file-ignores]
+"app/pipeline/lecture.py" = ["E501"]  # длинные строки промптов

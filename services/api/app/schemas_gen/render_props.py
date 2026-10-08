@@ -7,6 +7,15 @@ from typing import Annotated, Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, RootModel
 
 
+class Caption(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    t_start: float
+    t_end: float
+    text: str
+
+
 class FormatId(
     RootModel[Literal["list_mystery", "quiz_abc", "spot_the_error", "false_friends", "fill_blank", "level_ladder", "tongue_twister", "idiom", "emoji_vocab", "conjugation_challenge", "daily_word"]]
 ):
@@ -177,3 +186,10 @@ class RenderProps(BaseModel):
             max_length=60,
         ),
     ] = None
+    captions: Annotated[
+        list[Caption] | None,
+        Field(
+            description="Реплики голоса с точным временем — для субтитров в редакторе",
+            validate_default=True,
+        ),
+    ] = []

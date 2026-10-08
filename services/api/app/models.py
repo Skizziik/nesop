@@ -198,6 +198,37 @@ class Setting(Base):
     value: Mapped[Any] = mapped_column(Json)
 
 
+class Project(IdMixin, TimestampMixin, Base):
+    """Проект видеоредактора: документ-таймлайн (schemas/timeline.schema.json). Длинные лекции 16:9 и отредактированные шортсы."""
+
+    __tablename__ = "projects"
+    title: Mapped[str] = mapped_column(String(200))
+    kind: Mapped[str] = mapped_column(String(20), default="custom")  # lecture | short_edit | custom
+    aspect: Mapped[str] = mapped_column(String(8), default="16:9")
+    doc: Mapped[dict[str, Any]] = mapped_column(Json, default=dict)
+    status: Mapped[str] = mapped_column(String(20), default="draft", index=True)  # generating | draft | rendering | ready | failed
+    progress: Mapped[float] = mapped_column(Float, default=0.0)
+    stage: Mapped[str] = mapped_column(String(40), default="")
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    out_dir: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    series_id: Mapped[str | None] = mapped_column(ForeignKey("series.id", ondelete="SET NULL"), nullable=True)
+    video_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    params: Mapped[dict[str, Any]] = mapped_column(Json, default=dict)  # тема, уровень, минуты, маскот...
+    meta: Mapped[dict[str, Any]] = mapped_column(Json, default=dict)  # метаданные YouTube, план лекции, отчёт проверки
+    revision: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class ProjectVersion(IdMixin, Base):
+    """История сохранений документа (последние 50 на проект)."""
+
+    __tablename__ = "project_versions"
+    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    revision: Mapped[int] = mapped_column(Integer)
+    doc: Mapped[dict[str, Any]] = mapped_column(Json)
+    note: Mapped[str] = mapped_column(String(200), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+
 class Publication(IdMixin, TimestampMixin, Base):
     """Этап 7: автозагрузка (YOUTUBE_UPLOAD_ENABLED)."""
 

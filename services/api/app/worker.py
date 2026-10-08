@@ -14,7 +14,9 @@ from .db import SessionLocal
 from .logging_setup import setup
 from .models import Video, VideoStatus
 from .pipeline.ideas import fill_bank, run_ideas
+from .pipeline.lecture import build_lecture
 from .pipeline.produce import plan_batch, produce_video
+from .pipeline.project_render import render_project
 
 
 async def run_batch(ctx: dict[str, Any], batch_id: str) -> int:
@@ -39,6 +41,14 @@ async def run_llm_ideas(ctx: dict[str, Any], batch_id: str, topic: str = "", lik
 
 async def run_fill_bank(ctx: dict[str, Any], series_id: str, count: int) -> dict[str, int]:
     return await fill_bank(series_id, count)
+
+
+async def run_lecture(ctx: dict[str, Any], project_id: str) -> None:
+    await build_lecture(project_id)
+
+
+async def run_project_render(ctx: dict[str, Any], project_id: str) -> None:
+    await render_project(project_id)
 
 
 def redis_settings() -> RedisSettings:
@@ -91,8 +101,8 @@ async def startup(ctx: dict[str, Any]) -> None:
 
 class WorkerSettings:
     on_startup = startup
-    functions = [run_batch, run_video, run_llm_ideas, run_fill_bank]
+    functions = [run_batch, run_video, run_llm_ideas, run_fill_bank, run_lecture, run_project_render]
     redis_settings = redis_settings()
     max_jobs = get_settings().worker_max_jobs
-    job_timeout = 60 * 30
+    job_timeout = 60 * 60 * 6  # длинные лекции: генерация + рендер 20 минут видео на CPU
     keep_result = 3600

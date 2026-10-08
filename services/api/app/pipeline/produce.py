@@ -164,6 +164,7 @@ def make_render_props(
         "avatar": avatar or {"mode": "none"},
         "loop_seamless": True, "duration_s": max(track.total, 3.0), "asset_base": "", "seed": seed, "show_yt_overlay": False,
         "prev_answer": prev_answer[:60] if prev_answer else None,
+        "captions": captions_of(script, track),
     }
     return RenderProps.model_validate(props).model_dump(mode="json", exclude_none=False)
 
@@ -237,6 +238,14 @@ async def llm_metadata(base: dict[str, Any], script: dict[str, Any], answer: str
     if answer_mode != "reveal" and answer.lower() not in cand["pinned_comment"].lower():
         cand["pinned_comment"] = base["pinned_comment"]  # закреп обязан содержать ответ
     return cand if not metadata.check(cand) else {**base, "source": "rules"}
+
+
+def captions_of(script: dict[str, Any], track: Track) -> list[dict[str, Any]]:
+    """Реплики голоса с точным временем (из раскладки сегментов) — субтитры для редактора."""
+    spec = get_format(script["format"])
+    ch = script.get("comment_hook") or {}
+    texts = {s.key: s.text for s in spec.segments(script, ch.get("spoken") or ch.get("text", ""), TimingConfig()) if s.text}
+    return [{"t_start": p.start, "t_end": p.end, "text": texts[p.key]} for p in track.placements if p.key in texts and p.end > p.start]
 
 
 def _rel(p: Path) -> str:

@@ -64,12 +64,14 @@ async function runJob(job: RenderJob): Promise<void> {
 
 async function renderOnce(job: RenderJob): Promise<void> {
   if (!serveUrl) throw new Error(bundleError ?? "бандл шаблонов ещё не готов");
-  const inputProps = { ...job.props, asset_base: ASSET_BASE, show_yt_overlay: false };
+  const { __composition, ...rest } = job.props as Record<string, unknown> & { __composition?: string };
+  const compId = __composition ?? COMPOSITION_ID;
+  const inputProps = { ...rest, asset_base: ASSET_BASE, show_yt_overlay: false, show_safe_area: false };
   await mkdir(job.outDir, { recursive: true });
   job.status = "rendering";
   const t0 = Date.now();
   const puppeteerInstance = await getBrowser();
-  const composition = await selectComposition({ serveUrl, id: COMPOSITION_ID, inputProps, puppeteerInstance, timeoutInMilliseconds: TIMEOUT_MS });
+  const composition = await selectComposition({ serveUrl, id: compId, inputProps, puppeteerInstance, timeoutInMilliseconds: TIMEOUT_MS });
   const raw = join(job.outDir, "raw.mp4");
   await renderMedia({
     serveUrl,
@@ -111,13 +113,13 @@ app.get("/health", (_req, res) => {
 });
 
 app.post("/render", (req, res) => {
-  const { props, out_dir } = req.body as { props?: Record<string, unknown>; out_dir?: string };
+  const { props, out_dir, composition } = req.body as { props?: Record<string, unknown>; out_dir?: string; composition?: string };
   if (!props || !out_dir) {
     res.status(400).json({ error: "нужны props и out_dir" });
     return;
   }
   try {
-    const job = queue.add(props, safeOutDir(out_dir));
+    const job = queue.add({ ...props, __composition: composition === "Timeline" ? "Timeline" : COMPOSITION_ID }, safeOutDir(out_dir));
     res.status(202).json({ job_id: job.id });
   } catch (e) {
     res.status(400).json({ error: e instanceof Error ? e.message : String(e) });

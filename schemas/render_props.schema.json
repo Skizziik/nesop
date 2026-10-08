@@ -108,6 +108,31 @@
       "maxLength": 60,
       "default": null,
       "description": "Режим answer_tomorrow: ответ на загадку предыдущего ролика серии («Risposta di ieri»)"
+    },
+    "captions": {
+      "type": "array",
+      "default": [],
+      "description": "Реплики голоса с точным временем — для субтитров в редакторе",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "t_start",
+          "t_end",
+          "text"
+        ],
+        "properties": {
+          "t_start": {
+            "type": "number"
+          },
+          "t_end": {
+            "type": "number"
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      }
     }
   },
   "$defs": {

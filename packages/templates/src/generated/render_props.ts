@@ -49,6 +49,14 @@ export interface RenderProps {
    * Режим answer_tomorrow: ответ на загадку предыдущего ролика серии («Risposta di ieri»)
    */
   prev_answer?: string | null;
+  /**
+   * Реплики голоса с точным временем — для субтитров в редакторе
+   */
+  captions?: {
+    t_start: number;
+    t_end: number;
+    text: string;
+  }[];
 }
 export interface Canvas {
   w: 1080;
