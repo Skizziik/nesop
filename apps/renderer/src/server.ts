@@ -1,7 +1,7 @@
 import express from "express";
 import { mkdir, rename, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { renderMedia, renderStill, selectComposition, ensureBrowser } from "@remotion/renderer";
+import { ensureBrowser, openBrowser, renderMedia, renderStill, selectComposition } from "@remotion/renderer";
 import { bundleTemplates } from "./bundle";
 import { ffmpeg } from "./ffmpeg";
 import { JobQueue, type RenderJob } from "./jobs";
@@ -35,13 +35,41 @@ function safeOutDir(rel: string): string {
   return abs;
 }
 
+// Один браузер на все задачи: не тратим время и не ловим таймаут запуска Chromium на каждом ролике.
+type Browser = Awaited<ReturnType<typeof openBrowser>>;
+let browser: Browser | null = null;
+const TIMEOUT_MS = 120_000;
+
+async function getBrowser(): Promise<Browser> {
+  if (!browser) browser = await openBrowser("chrome", { chromiumOptions: { gl: "swangle" } });
+  return browser;
+}
+
+async function resetBrowser(): Promise<void> {
+  const b = browser;
+  browser = null;
+  await b?.close({ silent: true }).catch(() => undefined);
+}
+
 async function runJob(job: RenderJob): Promise<void> {
+  try {
+    await renderOnce(job);
+  } catch (e) {
+    // сбой браузера (таймаут запуска, упавшая вкладка) — перезапускаем Chromium и пробуем ещё раз
+    log("warn", "render retry", { job: job.id, error: e instanceof Error ? e.message.slice(0, 300) : String(e) });
+    await resetBrowser();
+    await renderOnce(job);
+  }
+}
+
+async function renderOnce(job: RenderJob): Promise<void> {
   if (!serveUrl) throw new Error(bundleError ?? "бандл шаблонов ещё не готов");
   const inputProps = { ...job.props, asset_base: ASSET_BASE, show_yt_overlay: false };
   await mkdir(job.outDir, { recursive: true });
   job.status = "rendering";
   const t0 = Date.now();
-  const composition = await selectComposition({ serveUrl, id: COMPOSITION_ID, inputProps });
+  const puppeteerInstance = await getBrowser();
+  const composition = await selectComposition({ serveUrl, id: COMPOSITION_ID, inputProps, puppeteerInstance, timeoutInMilliseconds: TIMEOUT_MS });
   const raw = join(job.outDir, "raw.mp4");
   await renderMedia({
     serveUrl,
@@ -55,6 +83,8 @@ async function runJob(job: RenderJob): Promise<void> {
     outputLocation: raw,
     concurrency: CHROME_THREADS,
     chromiumOptions: { gl: "swangle" },
+    puppeteerInstance,
+    timeoutInMilliseconds: TIMEOUT_MS,
     onProgress: ({ progress }) => {
       job.progress = progress * 0.9;
     },
@@ -67,7 +97,7 @@ async function runJob(job: RenderJob): Promise<void> {
   await rename(tmp, video);
   await rm(raw, { force: true });
   const cover = join(job.outDir, "cover.png");
-  await renderStill({ serveUrl, composition, inputProps, frame: 0, output: cover, imageFormat: "png", chromiumOptions: { gl: "swangle" } });
+  await renderStill({ serveUrl, composition, inputProps, frame: 0, output: cover, imageFormat: "png", puppeteerInstance, timeoutInMilliseconds: TIMEOUT_MS });
   job.outputs = { video, cover };
   log("info", "render done", { job: job.id, ms: Date.now() - t0, frames: composition.durationInFrames });
 }
