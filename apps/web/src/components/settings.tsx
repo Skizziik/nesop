@@ -1,7 +1,8 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, PlugZap } from "lucide-react";
+import { Download, Loader2, MonitorPlay, PlugZap, Upload } from "lucide-react";
+import { useRef } from "react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { api, ApiError, type LlmSettings } from "@/lib/api";
@@ -92,6 +93,18 @@ export function SettingsPage() {
         </div>
       </Card>
       <Card>
+        <CardTitle extra={<Badge>скоро · этап 7</Badge>}>
+          <span className="inline-flex items-center gap-2">
+            <MonitorPlay size={18} /> YouTube
+          </span>
+        </CardTitle>
+        <p className="text-sm text-mute">
+          Автозагрузка выключена (YOUTUBE_UPLOAD_ENABLED=false). Сейчас: скачивай mp4 в «Библиотеке», копируй метаданные и отмечай «опубликовано вручную». Таблицы публикаций и
+          календарь уже работают; OAuth и загрузка через YouTube Data API включаются на этапе 7. Закрепить коммент через API нельзя — ферма напомнит закрепить вручную.
+        </p>
+      </Card>
+      <BackupCard />
+      <Card>
         <CardTitle extra={<Badge tone="green">${total.toFixed(2)} за 30 дней</Badge>}>Расход LLM</CardTitle>
         {usage?.rows.length ? (
           <table className="w-full text-sm">
@@ -123,6 +136,40 @@ export function SettingsPage() {
         )}
       </Card>
     </div>
+  );
+}
+
+function BackupCard() {
+  const file = useRef<HTMLInputElement>(null);
+  const imp = useMutation({
+    mutationFn: async () => {
+      const f = file.current?.files?.[0];
+      if (!f) throw new ApiError("Выбери файл экспорта");
+      const form = new FormData();
+      form.set("file", f);
+      const r = await fetch("/api/import", { method: "POST", body: form });
+      if (!r.ok) throw new ApiError("Импорт не удался");
+      return (await r.json()) as { added: Record<string, number> };
+    },
+    onSuccess: (r) => toast.success(`Импортировано: ${Object.entries(r.added).map(([k, v]) => `${k} ${v}`).join(", ")}`),
+    onError: (e) => toast.error(e instanceof ApiError ? e.message : "Ошибка"),
+  });
+  return (
+    <Card>
+      <CardTitle>Экспорт и импорт</CardTitle>
+      <p className="mb-3 text-sm text-mute">Серии, банк уроков, хуки, голоса, настройки и описание ассетов — в один JSON. Импорт добавляет недостающее и ничего не перезаписывает.</p>
+      <div className="flex flex-wrap items-center gap-3">
+        <a href="/api/export">
+          <Button variant="outline">
+            <Download size={16} /> Скачать экспорт
+          </Button>
+        </a>
+        <input ref={file} type="file" accept=".json" className="text-sm" />
+        <Button variant="outline" onClick={() => imp.mutate()} disabled={imp.isPending}>
+          <Upload size={16} /> Импортировать
+        </Button>
+      </div>
+    </Card>
   );
 }
 

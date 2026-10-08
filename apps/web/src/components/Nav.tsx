@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AudioLines, Clapperboard, Home, Image as ImageIcon, KanbanSquare, Layers, Magnet, Settings } from "lucide-react";
+import { AudioLines, CalendarDays, Clapperboard, Home, Image as ImageIcon, KanbanSquare, Layers, Magnet, Settings } from "lucide-react";
 import { cn } from "./ui";
 
 // Разделы появляются по мере реализации этапов (см. PLAN.md).
@@ -11,6 +11,7 @@ const LINKS = [
   { href: "/ideas", label: "Идеи", icon: KanbanSquare },
   { href: "/series", label: "Серии", icon: Layers },
   { href: "/library", label: "Библиотека", icon: Clapperboard },
+  { href: "/calendar", label: "Календарь", icon: CalendarDays },
   { href: "/voices", label: "Голоса", icon: AudioLines },
   { href: "/hooks", label: "Хуки", icon: Magnet },
   { href: "/assets", label: "Ассеты", icon: ImageIcon },
