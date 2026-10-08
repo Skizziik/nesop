@@ -54,7 +54,12 @@ def to_output_schema(schema: dict[str, Any]) -> dict[str, Any]:
                 return walk(copy.deepcopy(defs[node["$ref"][8:]]))
             if "const" in node and "enum" not in node:
                 node = {**node, "enum": [node["const"]]}
-            out = {k: walk(v) for k, v in node.items() if k not in _DROP and k != "$defs"}
+            out: dict[str, Any] = {}
+            for k, v in node.items():
+                if k == "properties" and isinstance(v, dict):
+                    out[k] = {name: walk(sub) for name, sub in v.items()}  # имена полей (в т.ч. «title») не ключевые слова — не трогаем
+                elif k not in _DROP and k != "$defs":
+                    out[k] = walk(v)
             if out.get("type") == "object" or "properties" in out:
                 out["additionalProperties"] = False
                 out["required"] = list(out.get("properties", {}).keys())  # строгий режим: все поля обязательны

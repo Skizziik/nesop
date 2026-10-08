@@ -54,6 +54,9 @@ def test_output_schema_inlines_refs_and_strips_limits() -> None:
     assert "maxItems" not in items and "maxLength" not in json.dumps(out)
     assert items["items"]["additionalProperties"] is False
     assert set(out["required"]) == set(out["properties"])
+    env = to_output_schema({"type": "object", "title": "Env", "properties": {"title": {"type": "string", "maxLength": 60}, "body": src}, "$defs": src.get("$defs", {})})
+    assert "title" in env["properties"] and "title" in env["required"]  # поле «title» не путаем с ключевым словом схемы
+    assert "title" not in env and "maxLength" not in env["properties"]["title"]
 
 
 def test_normalize_body() -> None:

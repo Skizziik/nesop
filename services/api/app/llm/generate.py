@@ -214,8 +214,12 @@ async def generate_script(s: AsyncSession, series: Series, idea: dict[str, Any],
         r = await prov.complete_json(SYSTEM_TEACHER, user, envelope, purpose="script", video_id=video_id, max_tokens=6000, effort="medium")
         data = r.data
         body = normalize_body(data.get("body", {}))
-        script = {"format": series.format, "title": str(data.get("title", idea.get("title", "")))[:60], "topic": data.get("topic", ""),
+        title = str(data.get("title") or idea.get("title") or "").strip()[:60]
+        script = {"format": series.format, "title": title, "topic": data.get("topic", ""),
                   "level": data.get("level", series.level), "body": body}
+        if not title:
+            err = "title пустой: нужен короткий заголовок на итальянском"
+            continue
         try:
             spec.body_model.model_validate(body)
         except ValidationError as e:
