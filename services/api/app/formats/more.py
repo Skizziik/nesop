@@ -471,6 +471,11 @@ class Idiom(_Base):
         b = IdiomBody.model_validate(script["body"])
         return [Issue("body.answer", "Есть скрытый ответ, но нет вопроса к нему")] if b.answer and not b.question else []
 
+    def cta_fits(self, script: dict[str, Any], cta: str) -> bool:
+        """«E cosa si risponde?» уместен только когда у идиомы есть фиксированный ответ (In bocca al lupo → Crepi!)."""
+        has_answer = bool(IdiomBody.model_validate(script["body"]).answer)
+        return has_answer or "rispond" not in cta.lower()
+
     def answer(self, script: dict[str, Any]) -> str:
         b = IdiomBody.model_validate(script["body"])
         return b.answer or b.meaning

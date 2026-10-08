@@ -10,6 +10,7 @@ import json
 import os
 import sys
 import traceback
+from typing import Any
 
 
 def main() -> None:
@@ -20,6 +21,7 @@ def main() -> None:
     device = os.environ.get("TTS_DEVICE", "cpu")
     model = None
     for line in sys.stdin:
+        resp: dict[str, Any]
         try:
             req = json.loads(line)
             if req["cmd"] == "download":

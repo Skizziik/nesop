@@ -26,10 +26,11 @@ def test_every_bank_lesson_passes_schema_and_rules() -> None:
 
 
 async def test_seed_idempotent(session) -> None:  # type: ignore[no-untyped-def]
-    first = await seed_all(session)
+    await seed_all(session)  # первый прогон мог уже случиться в другом тесте — проверяем итог, а не счётчик
     second = await seed_all(session)
-    assert first["lessons"] >= 100 and first["series"] >= 7
     assert second["lessons"] == 0 and second["series"] == 0 and second["hooks"] == 0
+    assert (await session.execute(select(func.count()).select_from(Lesson))).scalar_one() >= 200
+    assert (await session.execute(select(func.count()).select_from(Series))).scalar_one() >= 17
     assert (await session.execute(select(func.count()).select_from(HookPattern).where(HookPattern.kind == "cta"))).scalar_one() >= 20
 
 

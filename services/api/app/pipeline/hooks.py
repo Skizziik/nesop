@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import random
+from collections.abc import Callable
 
 from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -29,6 +30,7 @@ async def pick(
     exclude: set[str],
     answer_mode: str | None = None,
     window: int = DEFAULT_WINDOW,
+    fits: Callable[[str], bool] | None = None,
 ) -> HookPattern | None:
     q = select(HookPattern).where(HookPattern.kind == kind, HookPattern.enabled.is_(True))
     if kind == "cta":
@@ -36,6 +38,8 @@ async def pick(
     rows = list((await s.scalars(q.order_by(HookPattern.id))).all())
     # сначала паттерны именно этого формата, иначе — универсальные ([] = подходит любому)
     pool = [p for p in rows if fmt in (p.formats or [])] or [p for p in rows if not p.formats]
+    if fits:
+        pool = [p for p in pool if fits(p.spoken or p.text)] or pool
     if not pool:
         return None
     column = "hook_pattern_id" if kind == "hook" else "cta_pattern_id"

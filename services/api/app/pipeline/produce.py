@@ -71,7 +71,10 @@ class Presenter:
         self.prev_palette[series.id] = theme["palette"]["name"]
         vrng = random.Random(seed)
         hook = await hooks.pick(s, vrng, "hook", series.format, series.id, self.used_hooks)
-        cta = await hooks.pick(s, vrng, "cta", series.format, series.id, self.used_ctas, answer_mode=series.answer_mode.value)
+        spec = get_format(series.format)
+        cta_fits = getattr(spec, "cta_fits", None)
+        cta = await hooks.pick(s, vrng, "cta", series.format, series.id, self.used_ctas, answer_mode=series.answer_mode.value,
+                               fits=(lambda text: cta_fits(script, text)) if cta_fits else None)
         if hook:
             self.used_hooks.add(hook.id)
         if cta:

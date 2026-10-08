@@ -1,10 +1,9 @@
 """arq-воркер: `arq app.worker.WorkerSettings`."""
 from __future__ import annotations
 
-from typing import Any
-
 import asyncio
 import logging
+from typing import Any
 
 from arq import create_pool
 from arq.connections import ArqRedis, RedisSettings

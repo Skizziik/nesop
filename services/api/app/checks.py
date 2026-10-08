@@ -22,6 +22,9 @@ DIC = Path("/usr/share/hunspell/it_IT")
 # Правила LanguageTool, которые на коротких строках без контекста дают ложные срабатывания
 LT_IGNORE = {"UPPERCASE_SENTENCE_START", "PUNCTUATION_PARAGRAPH_END", "WHITESPACE_RULE", "ITALIAN_WORD_REPEAT_RULE", "COMMA_PARENTHESIS_WHITESPACE"}
 _WORD = re.compile(r"[A-Za-zÀ-ÖØ-öø-ÿ']+")
+# элизии: «dell'anno», «un'amica», «quell'uomo» — первая часть пишется только с апострофом
+ELISIONS = {"l'", "dell'", "nell'", "all'", "sull'", "dall'", "coll'", "un'", "quell'", "bell'", "sant'", "buon'", "c'", "d'", "m'", "t'", "s'", "v'", "n'",
+            "ch'", "com'", "dov'", "cos'", "quest'", "nessun'", "qualcun'", "po'"}
 
 
 def issue(field: str, message: str, source: str, severity: str = "error") -> dict[str, str]:
@@ -48,8 +51,15 @@ def hunspell_check(pairs: list[tuple[str, str]]) -> list[dict[str, str]]:
             w = w.strip("'")
             if len(w) < 2 or w.isupper() and len(w) <= 3:
                 continue
-            # элизии «l'acqua», «dell'anno»: проверяем часть после апострофа
-            parts = [p for p in w.split("'") if p]
+            # элизии «l'acqua», «dell'anno»: приставка проверяется вместе с апострофом
+            parts = []
+            if "'" in w[:-1]:
+                head, tail = w.split("'", 1)
+                if f"{head.lower()}'" not in ELISIONS and not d.lookup(f"{head}'"):
+                    parts.append(head + "'")
+                parts += [p for p in tail.split("'") if p]
+            else:
+                parts = [w]
             for p in parts:
                 if not (d.lookup(p) or d.lookup(p.lower())):
                     sugg = list(d.suggest(p))[:3]
