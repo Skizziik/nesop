@@ -43,4 +43,4 @@ async def render_project(pid: str) -> None:
         (st.data_dir / rel.lstrip("/") / "meta.json").write_text(json.dumps(meta.get("youtube", {"title": doc.get("title")}), ensure_ascii=False, indent=2), encoding="utf-8")
         await _set(pid, status="ready", stage="готово", progress=1.0, out_dir=rel)
     except Exception as e:  # noqa: BLE001 — ошибка видна в проекте
-        await _set(pid, status="failed", stage="ошибка рендера", error=str(e)[:2000])
+        await _set(pid, status="failed", stage="ошибка рендера", error=(str(e) or type(e).__name__)[:2000])

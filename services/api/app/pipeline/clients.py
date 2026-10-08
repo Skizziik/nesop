@@ -39,9 +39,18 @@ async def render(props: dict[str, Any], out_dir: str, on_progress: Callable[[flo
             raise ServiceError(f"Renderer: {r.status_code} {r.text[:300]}")
         job_id = r.json()["job_id"]
         last = -1.0
+        misses = 0
         for _ in range(limit):
             await asyncio.sleep(1)
-            s = (await c.get(f"{st.renderer_url}/render/{job_id}")).json()
+            try:
+                s = (await c.get(f"{st.renderer_url}/render/{job_id}")).json()
+                misses = 0
+            except (httpx.HTTPError, ValueError) as e:
+                # на склейке длинного видео рендерер может отвечать медленно — это не повод бросать задачу
+                misses += 1
+                if misses > 120:
+                    raise ServiceError(f"Рендерер не отвечает: {type(e).__name__}") from e
+                continue
             if s["status"] == "done":
                 return s  # type: ignore[no-any-return]
             if s["status"] == "error":

@@ -153,16 +153,18 @@ function Subtitle({ p, doc, t }: { p: SubtitleProps; doc: TimelineDoc; t: number
   const words = p.text.split(/\s+/).filter(Boolean);
   const karaoke = st.highlight_words !== false && p.words && p.words.length === words.length;
   return (
-    <div style={{ position: "absolute", left: W * 0.06, right: W * 0.06, top: (st.y ?? 0.88) * H, transform: "translateY(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: 6 * k }}>
+    <div style={{ position: "absolute", left: ((st.x ?? 0.5) - (st.max_w ?? 0.88) / 2) * W, width: (st.max_w ?? 0.88) * W, top: (st.y ?? 0.88) * H, transform: "translateY(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: 6 * k }}>
       <div style={{ background: st.bg ?? "rgba(0,0,0,0.6)", color: st.color ?? "#fff", fontFamily: doc.font ?? "Montserrat", fontWeight: 800, fontSize: size, padding: `${8 * k}px ${22 * k}px`, borderRadius: 16 * k, textAlign: "center", lineHeight: 1.25 }}>
         {karaoke
           ? words.map((wd, i) => {
               const [ws, wdur] = p.words![i]!;
               const on = t >= ws && t < ws + wdur;
               const done = t >= ws + wdur;
+              // обычные пробелы между словами: inline-block с масштабом съедал отступы («lavoro.Loro»)
               return (
-                <span key={i} style={{ color: on ? "#FFE600" : done ? (st.color ?? "#fff") : "rgba(255,255,255,0.75)", display: "inline-block", transform: `scale(${on ? 1.08 : 1})`, margin: `0 ${6 * k}px` }}>
-                  {wd}
+                <span key={i}>
+                  {i ? " " : null}
+                  <span style={{ color: on ? "#FFE600" : done ? (st.color ?? "#fff") : "rgba(255,255,255,0.75)", textShadow: on ? `0 0 ${10 * k}px rgba(255,230,0,0.55)` : undefined }}>{wd}</span>
                 </span>
               );
             })

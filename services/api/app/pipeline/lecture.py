@@ -378,7 +378,9 @@ async def build_lecture(project_id: str) -> None:
             "background": "#1B1035",
             "palette": palette or {},
             "font": "Montserrat",
-            "subtitle_style": {"size": 44, "y": 0.9 if land else 0.8, "show_translation": True, "highlight_words": True},
+            "subtitle_style": {"size": 44, "y": 0.9 if land else 0.8, "show_translation": True, "highlight_words": True,
+                               # 16:9: справа ведущий-маскот — субтитры в левой части кадра
+                               **({"x": 0.36, "max_w": 0.66} if land else {})},
             "envelope": envelope(buf),
             "asset_base": "",
             "seed": rng.randrange(1, 2**31 - 1),

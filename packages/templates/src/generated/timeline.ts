@@ -42,6 +42,14 @@ export interface SubtitleStyle {
    * Вертикаль центра субтитров (доля высоты)
    */
   y?: number;
+  /**
+   * Горизонталь центра субтитров (доля ширины) — чтобы не наезжать на маскота
+   */
+  x?: number;
+  /**
+   * Максимальная ширина блока субтитров (доля ширины)
+   */
+  max_w?: number;
   color?: string;
   bg?: string;
   show_translation?: boolean;

@@ -24,6 +24,16 @@ class SubtitleStyle(BaseModel):
     y: Annotated[
         float | None, Field(description="Вертикаль центра субтитров (доля высоты)")
     ] = 0.88
+    x: Annotated[
+        float | None,
+        Field(
+            description="Горизонталь центра субтитров (доля ширины) — чтобы не наезжать на маскота"
+        ),
+    ] = 0.5
+    max_w: Annotated[
+        float | None,
+        Field(description="Максимальная ширина блока субтитров (доля ширины)"),
+    ] = 0.88
     color: str | None = "#FFFFFF"
     bg: str | None = "rgba(0,0,0,0.6)"
     show_translation: bool | None = True

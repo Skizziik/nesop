@@ -62,6 +62,14 @@ export function Inspector() {
           </Field>
         </Row>
         <Row>
+          <Field label="Центр по X (0-1)">
+            <input type="number" step={0.01} className={inp} value={st.x ?? 0.5} onChange={(e) => setSub({ x: Number(e.target.value) })} />
+          </Field>
+          <Field label="Ширина (0-1)">
+            <input type="number" step={0.01} className={inp} value={st.max_w ?? 0.88} onChange={(e) => setSub({ max_w: Number(e.target.value) })} />
+          </Field>
+        </Row>
+        <Row>
           <Field label="Цвет">
             <input type="color" className="h-7 w-full" value={st.color ?? "#ffffff"} onChange={(e) => setSub({ color: e.target.value })} />
           </Field>

@@ -38,6 +38,8 @@
       "properties": {
         "size": { "type": "number", "default": 46 },
         "y": { "type": "number", "default": 0.88, "description": "Вертикаль центра субтитров (доля высоты)" },
+        "x": { "type": "number", "default": 0.5, "description": "Горизонталь центра субтитров (доля ширины) — чтобы не наезжать на маскота" },
+        "max_w": { "type": "number", "default": 0.88, "description": "Максимальная ширина блока субтитров (доля ширины)" },
         "color": { "type": "string", "default": "#FFFFFF" },
         "bg": { "type": "string", "default": "rgba(0,0,0,0.6)" },
         "show_translation": { "type": "boolean", "default": true },

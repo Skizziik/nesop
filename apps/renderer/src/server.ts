@@ -99,8 +99,15 @@ async function renderOnce(job: RenderJob): Promise<void> {
   await rename(tmp, video);
   await rm(raw, { force: true });
   const cover = join(job.outDir, "cover.png");
-  await renderStill({ serveUrl, composition, inputProps, frame: 0, output: cover, imageFormat: "png", puppeteerInstance, timeoutInMilliseconds: TIMEOUT_MS });
-  job.outputs = { video, cover };
+  // обложка: у таймлайна кадр 0 часто пустой (анимации появления) — берём ~2.5 с; сбой обложки не роняет готовое видео
+  const coverFrame = compId === "Timeline" ? Math.min(composition.durationInFrames - 1, Math.round(composition.fps * 2.5)) : 0;
+  try {
+    await renderStill({ serveUrl, composition, inputProps, frame: coverFrame, output: cover, imageFormat: "png", puppeteerInstance, timeoutInMilliseconds: 60_000 });
+    job.outputs = { video, cover };
+  } catch (e) {
+    log("warn", "cover failed", { job: job.id, error: String(e).slice(0, 300) });
+    job.outputs = { video };
+  }
   log("info", "render done", { job: job.id, ms: Date.now() - t0, frames: composition.durationInFrames });
 }
 

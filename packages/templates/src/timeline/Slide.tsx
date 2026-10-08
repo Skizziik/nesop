@@ -54,8 +54,13 @@ export function Slide({ p, pal, font, w, h }: { p: SlideProps; pal: Palette; fon
       </div>
     );
   } else if (p.kind === "examples") {
+    // плотность: 8 карточек должны влезть над зоной субтитров — чем больше строк, тем мельче
+    const n = p.rows?.length ?? 0;
+    const perCol = portrait ? n : Math.ceil(n / 2);
+    const d = perCol <= 2 ? 1 : perCol === 3 ? 0.9 : perCol === 4 ? 0.74 : 0.6;
+    const kk = k * d;
     body = (
-      <div style={{ display: "grid", gridTemplateColumns: portrait ? "1fr" : "1fr 1fr", gap: 18 * k }}>
+      <div style={{ display: "grid", gridTemplateColumns: portrait ? "1fr" : "1fr 1fr", gap: 16 * kk, alignContent: "start" }}>
         {(p.rows ?? []).map((r, i) => {
           const cur = i === act;
           const shown = !p.marks?.length || i <= act;
@@ -66,15 +71,15 @@ export function Slide({ p, pal, font, w, h }: { p: SlideProps; pal: Palette; fon
                 background: cur ? pal.highlight_bg : pal.right_bg,
                 color: cur ? pal.highlight_text : pal.right_text,
                 opacity: shown ? 1 : 0.35,
-                borderRadius: 26 * k,
-                padding: `${18 * k}px ${26 * k}px`,
-                boxShadow: `0 ${8 * k}px 0 rgba(0,0,0,0.25)`,
+                borderRadius: 24 * kk,
+                padding: `${14 * kk}px ${24 * kk}px`,
+                boxShadow: `0 ${6 * kk}px 0 rgba(0,0,0,0.25)`,
                 transform: `scale(${cur ? 1 + 0.04 * Math.sin(pop(t - (p.marks?.[i] ?? 0)) * Math.PI) : 1})`,
               }}
             >
-              <div style={{ fontSize: 46 * k, fontWeight: 800 }}>{r.it}</div>
-              {r.tr ? <div style={{ fontSize: 30 * k, fontWeight: 700, opacity: 0.7, marginTop: 4 * k }}>{r.tr}</div> : null}
-              {r.note ? <div style={{ fontSize: 26 * k, fontWeight: 700, marginTop: 6 * k, color: cur ? undefined : pal.accent }}>💡 {r.note}</div> : null}
+              <div style={{ fontSize: 46 * kk, lineHeight: 1.12, fontWeight: 800 }}>{r.it}</div>
+              {r.tr ? <div style={{ fontSize: 30 * kk, fontWeight: 700, opacity: 0.7, marginTop: 4 * kk }}>{r.tr}</div> : null}
+              {r.note ? <div style={{ fontSize: 26 * kk, fontWeight: 700, marginTop: 4 * kk, color: cur ? undefined : pal.accent }}>💡 {r.note}</div> : null}
             </div>
           );
         })}
@@ -153,7 +158,7 @@ export function Slide({ p, pal, font, w, h }: { p: SlideProps; pal: Palette; fon
           left: (portrait ? 60 : 110) * k,
           right: (portrait ? 60 : 520) * k,
           top: (p.kind === "title" ? (portrait ? 520 : 300) : 110) * k,
-          bottom: 190 * k,
+          bottom: 200 * k, // ниже — зона субтитров
           display: "flex",
           flexDirection: "column",
         }}
