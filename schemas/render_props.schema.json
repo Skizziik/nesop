@@ -466,6 +466,11 @@
         "height": {
           "type": "integer",
           "default": 620
+        },
+        "character": {
+          "type": "string",
+          "default": "pizza",
+          "description": "Маскот: pizza, espresso, gelato, colosseo, limone, vespa, gondoliere"
         }
       }
     }

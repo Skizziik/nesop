@@ -13,3 +13,4 @@ export type * from "./spot_the_error";
 export type * from "./tongue_twister";
 export type * from "./render_props";
 export type * from "./script";
+export type * from "./timeline";

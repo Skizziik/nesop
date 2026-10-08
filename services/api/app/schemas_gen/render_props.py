@@ -103,6 +103,12 @@ class Avatar(BaseModel):
     src: str | None = None
     position: Literal["bottom_right", "bottom_left"] | None = "bottom_right"
     height: int | None = 620
+    character: Annotated[
+        str | None,
+        Field(
+            description="Маскот: pizza, espresso, gelato, colosseo, limone, vespa, gondoliere"
+        ),
+    ] = "pizza"
 
 
 class Theme(BaseModel):

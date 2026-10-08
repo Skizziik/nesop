@@ -124,4 +124,8 @@ export interface Avatar {
   src?: string | null;
   position?: "bottom_right" | "bottom_left";
   height?: number;
+  /**
+   * Маскот: pizza, espresso, gelato, colosseo, limone, vespa, gondoliere
+   */
+  character?: string;
 }

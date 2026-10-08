@@ -2,6 +2,7 @@ import { Composition, type CalculateMetadataFunction } from "remotion";
 import type { RenderProps } from "./generated";
 import { ShortVideo } from "./Video";
 import { SAMPLE_PROPS } from "./sample";
+import { MascotGallery } from "./components/MascotGallery";
 
 export const COMPOSITION_ID = "Short";
 
@@ -15,6 +16,8 @@ const calculateMetadata: CalculateMetadataFunction<AnyProps> = ({ props }) => {
 };
 
 export const RemotionRoot: React.FC = () => (
+  <>
+  <Composition id="MascotGallery" component={MascotGallery} durationInFrames={90} fps={30} width={1920} height={1080} />
   <Composition
     id={COMPOSITION_ID}
     component={ShortVideo as unknown as React.FC<AnyProps>}
@@ -25,4 +28,5 @@ export const RemotionRoot: React.FC = () => (
     defaultProps={SAMPLE_PROPS as unknown as AnyProps}
     calculateMetadata={calculateMetadata}
   />
+  </>
 );
