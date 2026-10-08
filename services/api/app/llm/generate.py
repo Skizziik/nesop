@@ -22,7 +22,8 @@ FORMAT_GUIDES: dict[str, str] = {
         "speak: 'right' se a sinistra c'è inglese o un numero (la voce legge solo l'italiano a destra); 'both' se entrambe le colonne sono in italiano "
         "(pronome + verbo, articolo + nome, singolare + plurale, contrari). hide: 'right' di solito; 'left' quando la sfida è indovinare la parte sinistra (es. l'articolo). "
         "Limiti: sinistra ≤ 18 caratteri, destra ≤ 20 caratteri. Scrivi le forme alternative con lo slash senza spazi: «lui/lei», «andato/a». "
-        "L'ultima riga deve essere la più interessante ma risolvibile da chi ha guardato le precedenti (stesso schema, un po' più difficile)."
+        "L'ultima riga deve essere la più interessante ma risolvibile da chi ha guardato le precedenti (stesso schema, un po' più difficile). "
+        "IMPORTANTE: scrivi anche nell'ultima riga la risposta VERA (mai «???»): è il video a nasconderla, e la risposta serve per il commento fissato."
     ),
     "quiz_abc": (
         "Formato «quiz_abc»: una domanda breve (≤ 90 caratteri) e ESATTAMENTE 3 opzioni (≤ 28 caratteri), una sola giusta (indice correct 0-2). "
@@ -39,11 +40,12 @@ FORMAT_GUIDES: dict[str, str] = {
     ),
     "false_friends": (
         "Formato «false_friends»: 3-6 falsi amici veri e verificati. it = parola italiana, looks_like = parola straniera simile (lingua lang), "
-        "it_means = cosa significa davvero la parola italiana (nella lingua lang), say_instead = come si dice in italiano looks_like. L'ultimo è nascosto."
+        "it_means = cosa significa davvero la parola italiana (nella lingua lang), say_instead = come si dice in italiano looks_like. "
+        "L'ultimo viene nascosto dal video: scrivilo comunque per intero, mai «???»."
     ),
     "emoji_vocab": (
         "Formato «emoji_vocab»: 4-9 coppie emoji → parola italiana con articolo corretto (il, lo, la, l', i, gli, le) o null per aggettivi. "
-        "Un'emoji standard e inequivocabile per ogni parola. L'ultima parola è nascosta."
+        "Un'emoji standard e inequivocabile per ogni parola. L'ultima parola viene nascosta dal video: scrivila comunque per intero, mai «???»."
     ),
     "level_ladder": (
         "Formato «level_ladder»: un concetto e 4-6 modi di dirlo dal più semplice (A1) al più ricercato/idiomatico (C1-C2), livelli in ordine crescente "

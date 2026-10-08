@@ -76,6 +76,8 @@ class ListMystery:
             for side in ("left", "right"):
                 val: str = getattr(it, side)
                 path = f"body.items.{i}.{side}"
+                if val.strip().strip("?").strip() == "":
+                    issues.append(Issue(path, "Вместо ответа стоят «?» — нужно настоящее слово, видео само спрячет последнюю строку"))
                 if val != val.strip() or "  " in val:
                     issues.append(Issue(path, "Лишние пробелы"))
                 if _APOS_BAD.search(val):

@@ -18,7 +18,7 @@ from app.models import Video, VideoStatus
 async def build(batch_id: str) -> dict[str, Any]:
     async with SessionLocal() as s:
         vids = list((await s.scalars(select(Video).where(Video.batch_id == batch_id, Video.status.in_([VideoStatus.ready, VideoStatus.published])))).all())
-    rows = []
+    rows: list[dict[str, Any]] = []
     total_err = 0
     for v in vids:
         if not v.script:

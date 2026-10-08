@@ -59,9 +59,10 @@ def test_rules_catch_apostrophe_accent_and_dupes() -> None:
     spec = get_format("list_mystery")
     bad = {**SCRIPT, "body": {**SCRIPT["body"], "items": [
         {"left": "io", "right": "sono"}, {"left": "lui", "right": "e'"}, {"left": "x", "right": "l 'acqua"},
-        {"left": "io", "right": "sono"},
+        {"left": "io", "right": "sono"}, {"left": "noi", "right": "???"},
     ]}}
     msgs = [i.message for i in spec.rules(bad)]
+    assert any("настоящее слово" in m for m in msgs)
     assert any("акцент" in m for m in msgs)
     assert any("апостроф" in m for m in msgs)
     assert any("Дубль" in m for m in msgs)
