@@ -2,7 +2,7 @@
   title: «Sono stanco» da A1 a C2
   body:
     concept: Sono stanco
-    concept_translation: Я устал
+    concept_translation: I am tired
     steps:
     - level: A1
       text: Sono stanco
@@ -20,7 +20,7 @@
   title: «bello» da A1 a C2
   body:
     concept: bello
-    concept_translation: красивый
+    concept_translation: beautiful
     steps:
     - level: A1
       text: bello
@@ -38,7 +38,7 @@
   title: «Mi piace» da A1 a C2
   body:
     concept: Mi piace
-    concept_translation: Мне нравится
+    concept_translation: I like it
     steps:
     - level: A1
       text: Mi piace
@@ -54,7 +54,7 @@
   title: «Non capisco» da A1 a C2
   body:
     concept: Non capisco
-    concept_translation: Не понимаю
+    concept_translation: I don't understand
     steps:
     - level: A1
       text: Non capisco
@@ -72,7 +72,7 @@
   title: «Ho fame» da A1 a C2
   body:
     concept: Ho fame
-    concept_translation: Я голоден
+    concept_translation: I am hungry
     steps:
     - level: A1
       text: Ho fame
@@ -88,7 +88,7 @@
   title: «arrabbiato» da A1 a C2
   body:
     concept: arrabbiato
-    concept_translation: сердитый
+    concept_translation: angry
     steps:
     - level: A1
       text: arrabbiato
@@ -106,7 +106,7 @@
   title: «facile» da A1 a C2
   body:
     concept: facile
-    concept_translation: лёгкий
+    concept_translation: easy
     steps:
     - level: A1
       text: facile
@@ -124,7 +124,7 @@
   title: «Ho paura» da A1 a C2
   body:
     concept: Ho paura
-    concept_translation: Мне страшно
+    concept_translation: I am scared
     steps:
     - level: A1
       text: Ho paura
@@ -140,7 +140,7 @@
   title: «È caro» da A1 a C2
   body:
     concept: È caro
-    concept_translation: Это дорого
+    concept_translation: It's expensive
     steps:
     - level: A1
       text: È caro
@@ -158,7 +158,7 @@
   title: «Ciao» da A1 a C2
   body:
     concept: Ciao
-    concept_translation: Привет
+    concept_translation: Hi
     steps:
     - level: A1
       text: Ciao

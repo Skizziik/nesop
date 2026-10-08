@@ -8,7 +8,7 @@ export interface FalseFriendsBody {
   /**
    * Язык, с которым «ложная дружба»
    */
-  lang?: "en" | "es" | "fr" | "ru";
+  lang?: "en";
   /**
    * @minItems 3
    * @maxItems 6

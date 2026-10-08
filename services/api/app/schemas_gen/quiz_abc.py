@@ -48,9 +48,8 @@ class QuizAbcBody(BaseModel):
         ),
     ] = None
     question_lang: Annotated[
-        Literal["it", "en", "ru", "uk", "es"] | None, Field(description="Язык вопроса")
+        Literal["it", "en"] | None, Field(description="Язык вопроса")
     ] = "it"
     options_lang: Annotated[
-        Literal["it", "en", "ru", "uk", "es"] | None,
-        Field(description="Язык вариантов"),
+        Literal["it", "en"] | None, Field(description="Язык вариантов")
     ] = "it"

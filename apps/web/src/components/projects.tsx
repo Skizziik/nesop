@@ -1,6 +1,7 @@
 "use client";
 
-import { MASCOT_IDS, MASCOTS, Mascot } from "@ipt/templates";
+import { docFrames, MASCOT_IDS, MASCOTS, Mascot, TimelineVideo, type TimelineDoc } from "@ipt/templates";
+import { Thumbnail } from "@remotion/player";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Copy, Film, GraduationCap, Loader2, Monitor, Plus, Smartphone, Trash2 } from "lucide-react";
 import Link from "next/link";
@@ -84,10 +85,9 @@ export function Projects() {
             {data.map((p) => (
               <div key={p.id} className="group overflow-hidden rounded-2xl border border-line bg-panel-2">
                 <Link href={`/studio/${p.id}`} className="block">
-                  <div className={cn("relative flex items-center justify-center bg-black/40", p.aspect === "9:16" ? "aspect-[16/12]" : "aspect-video")}>
-                    {p.cover_url && p.status !== "generating" ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={p.cover_url} alt="" className="h-full w-full object-contain" onError={(e) => (e.currentTarget.style.display = "none")} />
+                  <div className={cn("relative flex items-center justify-center bg-black/40", "aspect-video")}>
+                    {p.status !== "generating" ? (
+                      <ProjectThumb id={p.id} />
                     ) : p.status === "generating" ? (
                       <Loader2 className="animate-spin text-verde-2" />
                     ) : (
@@ -137,7 +137,7 @@ export function Projects() {
 
 function LectureForm({ onCreated }: { onCreated: (p: Project) => void }) {
   const { data: series = [] } = useQuery({ queryKey: ["series"], queryFn: api.series });
-  const [f, setF] = useState<LectureInput>({ topic: "", level: "A2", minutes: 15, mascot: "espresso", lang: "ru", aspect: "16:9", series_id: null });
+  const [f, setF] = useState<LectureInput>({ topic: "", level: "A2", minutes: 15, mascot: "espresso", lang: "en", aspect: "16:9", series_id: null });
   const set = (patch: Partial<LectureInput>) => setF((x) => ({ ...x, ...patch }));
   const create = useMutation({ mutationFn: () => api.createLecture(f), onSuccess: (p) => (toast.success("Лекция генерируется — обычно 3–8 минут"), onCreated(p)), onError: onErr });
   return (
@@ -173,13 +173,8 @@ function LectureForm({ onCreated }: { onCreated: (p: Project) => void }) {
             <input type="range" min={3} max={25} value={f.minutes} onChange={(e) => set({ minutes: Number(e.target.value) })} className="mt-2 accent-[var(--color-verde-2)]" />
           </label>
           <label className="grid gap-1">
-            <span className="text-xs font-bold text-mute">Перевод субтитров</span>
-            <select className={inputCls()} value={f.lang} onChange={(e) => set({ lang: e.target.value as LectureInput["lang"] })}>
-              <option value="ru">русский</option>
-              <option value="uk">украинский</option>
-              <option value="en">английский</option>
-              <option value="es">испанский</option>
-            </select>
+            <span className="text-xs font-bold text-mute">Перевод в субтитрах</span>
+            <div className={cn(inputCls(), "flex items-center text-mute")}>English</div>
           </label>
           <label className="grid gap-1">
             <span className="text-xs font-bold text-mute">Формат</span>
@@ -216,7 +211,7 @@ function LectureForm({ onCreated }: { onCreated: (p: Project) => void }) {
           </label>
         ) : null}
         <div className="flex items-center gap-3">
-          <Button onClick={() => create.mutate()} disabled={f.topic.trim().length < 3 || create.isPending}>
+          <Button className="shrink-0 whitespace-nowrap" onClick={() => create.mutate()} disabled={f.topic.trim().length < 3 || create.isPending}>
             {create.isPending ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />} Сгенерировать лекцию
           </Button>
           <span className="text-xs text-mute">план → главы → проверка → озвучка → таймлайн. Потом правишь в редакторе и жмёшь «Рендер».</span>
@@ -227,3 +222,23 @@ function LectureForm({ onCreated }: { onCreated: (p: Project) => void }) {
 }
 
 const fmtDur = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
+
+/** Живая обложка из документа проекта: кадр через ~2.5 с (после анимаций появления). */
+function ProjectThumb({ id }: { id: string }) {
+  const { data } = useQuery({ queryKey: ["project", id], queryFn: () => api.project(id), staleTime: 30_000 });
+  const doc = data?.doc && "tracks" in data.doc ? (data.doc as TimelineDoc) : null;
+  if (!doc) return <Film className="text-mute" />;
+  const frames = docFrames(doc);
+  return (
+    <Thumbnail
+      component={TimelineVideo as unknown as React.FC<Record<string, unknown>>}
+      inputProps={doc as unknown as Record<string, unknown>}
+      compositionWidth={doc.canvas.w}
+      compositionHeight={doc.canvas.h}
+      durationInFrames={frames}
+      fps={doc.canvas.fps}
+      frameToDisplay={Math.min(frames - 1, Math.round(doc.canvas.fps * 2.5))}
+      style={{ width: "100%", height: "100%" }}
+    />
+  );
+}

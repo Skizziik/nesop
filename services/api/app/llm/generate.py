@@ -27,19 +27,19 @@ FORMAT_GUIDES: dict[str, str] = {
     ),
     "quiz_abc": (
         "Formato «quiz_abc»: una domanda breve (≤ 90 caratteri) e ESATTAMENTE 3 opzioni (≤ 28 caratteri), una sola giusta (indice correct 0-2). "
-        "I distrattori devono essere errori plausibili che fanno davvero gli stranieri, non assurdi. question_lang/options_lang: lingua di domanda e opzioni."
+        "I distrattori devono essere errori plausibili che fanno davvero gli stranieri, non assurdi. La domanda è in italiano o in inglese (question_lang it/en), le opzioni in italiano (o en se si chiede il significato)."
     ),
     "fill_blank": (
         "Formato «fill_blank»: una frase naturale con UN solo vuoto scritto «___», 2-4 opzioni brevi, una giusta (correct). "
-        "Ideale per preposizioni e articoli. translation: traduzione russa della frase completa."
+        "Ideale per preposizioni e articoli. translation: traduzione inglese della frase completa."
     ),
     "spot_the_error": (
         "Formato «spot_the_error»: una frase con UN SOLO errore tipico di uno straniero (articoli, preposizioni, ausiliare essere/avere nel passato prossimo, "
         "accordo, congiuntivo), NON un refuso. wrong = il frammento sbagliato ESATTAMENTE come appare nella frase, right = la correzione. "
-        "La frase corretta (sentence con wrong→right) deve essere perfetta. explanation in russo, ≤ 90 caratteri."
+        "La frase corretta (sentence con wrong→right) deve essere perfetta. explanation in inglese, ≤ 90 caratteri."
     ),
     "false_friends": (
-        "Formato «false_friends»: 3-6 falsi amici veri e verificati. it = parola italiana, looks_like = parola straniera simile (lingua lang), "
+        "Formato «false_friends»: 3-6 falsi amici veri e verificati. it = parola italiana, looks_like = parola INGLESE simile (lang = en), "
         "it_means = cosa significa davvero la parola italiana (nella lingua lang), say_instead = come si dice in italiano looks_like. "
         "L'ultimo viene nascosto dal video: scrivilo comunque per intero, mai «???»."
     ),
@@ -49,14 +49,14 @@ FORMAT_GUIDES: dict[str, str] = {
     ),
     "level_ladder": (
         "Formato «level_ladder»: un concetto e 4-6 modi di dirlo dal più semplice (A1) al più ricercato/idiomatico (C1-C2), livelli in ordine crescente "
-        "senza ripetizioni. Ogni gradino deve essere davvero usato dagli italiani. concept_translation in russo."
+        "senza ripetizioni. Ogni gradino deve essere davvero usato dagli italiani. concept_translation in inglese."
     ),
     "tongue_twister": (
         "Formato «tongue_twister»: uno scioglilingua italiano TRADIZIONALE e realmente esistente (4-22 parole), testo esatto della versione più diffusa. "
-        "Non inventarne di nuovi. translation in russo opzionale."
+        "Non inventarne di nuovi. translation in inglese opzionale."
     ),
     "idiom": (
-        "Formato «idiom»: un modo di dire italiano reale e comune. literal = traduzione letterale in russo, meaning = significato reale in russo, "
+        "Formato «idiom»: un modo di dire italiano reale e comune. literal = traduzione letterale in inglese, meaning = significato reale in inglese, "
         "example = frase d'esempio naturale. question/answer solo se esiste una risposta fissa (es. «In bocca al lupo» → «Crepi!»)."
     ),
     "conjugation_challenge": (
@@ -65,12 +65,12 @@ FORMAT_GUIDES: dict[str, str] = {
     ),
     "daily_word": (
         "Formato «daily_word»: una parola o espressione italiana utile e frequente nel parlato. syllables con la sillaba tonica in MAIUSCOLO (es. «ma-GA-ri»), "
-        "translation e example_translation in russo, example = frase naturale che contiene la parola."
+        "translation e example_translation in inglese, example = frase naturale che contiene la parola."
     ),
 }
 
 SYSTEM_TEACHER = (
-    "Sei un insegnante madrelingua di italiano e autore del canale YouTube @ItalianoPerTe (34k iscritti, Shorts didattici per stranieri). "
+    "Sei un insegnante madrelingua di italiano e autore del canale YouTube @ItalianoPerTe (34k iscritti, Shorts didattici per chi impara l'italiano partendo dall'INGLESE). Tutto ciò che non è italiano (traduzioni, spiegazioni, domande) va scritto in inglese; mai in russo o altre lingue. "
     "Scrivi contenuti corretti al 100%: ortografia, accenti (è, perché, più, città), apostrofi (l'acqua, dell'anno), articoli, generi e coniugazioni. "
     "Niente regionalismi, niente forme rare spacciate per standard. Se una forma ha varianti accettate, scegli quella più comune."
 )
@@ -263,9 +263,9 @@ async def generate_metadata(s: AsyncSession, script: dict[str, Any], answer: str
               "answer_tomorrow": "la risposta arriva domani nel commento fissato"}[answer_mode]
     user = (
         f"Script: {json.dumps(script, ensure_ascii=False)}\nRisposta nascosta: {answer}\nSerie: {series_name}\nHook sullo schermo: {hook_text}\nModalità: {reveal}\n\n"
-        "Scrivi i metadati YouTube Shorts in italiano: title_a e title_b (due varianti A/B, ≤ 70 caratteri, hook + tema + 1-2 emoji, senza clickbait "
-        "e senza promettere cose che non ci sono), description (2-3 righe, invito a commentare, poi hashtag), tags (8-12), hashtags (3-5, con #), "
-        "pinned_comment (viene pubblicato più tardi come commento fissato: DEVE contenere la risposta esatta «" + answer + "» e una domanda di continuazione)."
+        "Scrivi i metadati YouTube Shorts per un pubblico anglofono che impara l'italiano: title_a e title_b (due varianti A/B, ≤ 70 caratteri, misto inglese + la parola/frase italiana, hook + tema + 1-2 emoji, senza clickbait "
+        "e senza promettere cose che non ci sono), description (2-3 righe in inglese con gli esempi italiani, invito a commentare, poi hashtag), tags (8-12), hashtags (3-5, con #), "
+        "pinned_comment (viene pubblicato più tardi come commento fissato: DEVE contenere la risposta esatta «" + answer + "» e una domanda di continuazione, in inglese)."
     )
     r = await prov.complete_json(SYSTEM_TEACHER, user, META_SCHEMA, purpose="metadata", video_id=video_id, max_tokens=3000, effort="low")
     return dict(r.data)

@@ -7,7 +7,7 @@
     - al
     - in
     correct: 1
-    translation: Я иду в ресторан.
+    translation: I am going to the restaurant.
     timer_s: 3
     reveal: true
 - slug: a-roma
@@ -19,7 +19,7 @@
     - in
     - da
     correct: 0
-    translation: Я живу в Риме.
+    translation: I live in Rome.
     timer_s: 3
     reveal: true
 - slug: in-italia
@@ -31,7 +31,7 @@
     - in
     - per
     correct: 1
-    translation: Я еду в Италию.
+    translation: I am going to Italy.
     timer_s: 3
     reveal: true
 - slug: dal-medico
@@ -43,7 +43,7 @@
     - al
     - in
     correct: 0
-    translation: Завтра я иду к врачу.
+    translation: Tomorrow I am going to the doctor.
     timer_s: 3
     reveal: true
 - slug: sul-tavolo
@@ -55,7 +55,7 @@
     - nel
     - al
     correct: 0
-    translation: Книга на столе.
+    translation: The book is on the table.
     timer_s: 3
     reveal: true
 - slug: da-due-anni
@@ -67,7 +67,7 @@
     - da
     - fa
     correct: 1
-    translation: Я учу итальянский уже два года.
+    translation: I have been studying Italian for two years.
     timer_s: 3
     reveal: true
 - slug: a-casa
@@ -79,7 +79,7 @@
     - in
     - alla
     correct: 0
-    translation: Я возвращаюсь домой в восемь.
+    translation: I get home at eight.
     timer_s: 3
     reveal: true
 - slug: in-treno
@@ -91,7 +91,7 @@
     - con il
     - a
     correct: 0
-    translation: Я уезжаю на поезде.
+    translation: I am leaving by train.
     timer_s: 3
     reveal: true
 - slug: uno-zaino
@@ -103,7 +103,7 @@
     - uno
     - una
     correct: 1
-    translation: Я купил новый рюкзак.
+    translation: I bought a new backpack.
     timer_s: 3
     reveal: true
 - slug: nel-1995
@@ -115,7 +115,7 @@
     - in
     - al
     correct: 0
-    translation: Я родилась в 1995 году.
+    translation: I was born in 1995.
     timer_s: 3
     reveal: true
 - slug: penso-a-te
@@ -127,7 +127,7 @@
     - a
     - per
     correct: 1
-    translation: Я думаю о тебе.
+    translation: I am thinking of you.
     timer_s: 3
     reveal: true
 - slug: la-pizza
@@ -139,6 +139,6 @@
     - la
     - lo
     correct: 1
-    translation: Я люблю пиццу.
+    translation: I love pizza.
     timer_s: 3
     reveal: true

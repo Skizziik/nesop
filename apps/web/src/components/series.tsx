@@ -170,13 +170,10 @@ function SeriesDrawer({ s, onClose }: { s: Series | null; onClose: () => void })
                 <input type="number" className={inputCls()} min={1} max={168} value={f.answer_delay_h ?? 24} onChange={(e) => set({ answer_delay_h: Number(e.target.value) })} />
               </Row>
             ) : null}
-            <Row label="Второй язык подписей">
+            <Row label="Второй язык подписей (канал — на английском)">
               <select className={inputCls()} value={f.second_lang ?? ""} onChange={(e) => set({ second_lang: e.target.value || null })}>
                 <option value="">нет</option>
                 <option value="en">английский</option>
-                <option value="ru">русский</option>
-                <option value="uk">украинский</option>
-                <option value="es">испанский</option>
               </select>
             </Row>
             <Row label={`Скорость голоса: ${(f.voice?.speed ?? 0.92).toFixed(2)}`}>

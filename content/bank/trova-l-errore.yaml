@@ -5,7 +5,7 @@
     wrong: ho andato
     right: sono andato
     category: ausiliare
-    explanation: «Andare» образует passato prossimo с essere.
+    explanation: «Andare» forms the passato prossimo with essere.
     timer_s: 3
     reveal: true
 - slug: a-italia
@@ -15,7 +15,7 @@
     wrong: a Italia
     right: in Italia
     category: preposizioni
-    explanation: 'Со странами — «in»: in Italia, in Francia.'
+    explanation: 'With countries — «in»: in Italia, in Francia.'
     timer_s: 3
     reveal: true
 - slug: in-milano
@@ -25,7 +25,7 @@
     wrong: in Milano
     right: a Milano
     category: preposizioni
-    explanation: 'С городами — «a»: a Milano, a Roma.'
+    explanation: 'With cities — «a»: a Milano, a Roma.'
     timer_s: 3
     reveal: true
 - slug: al-casa
@@ -35,7 +35,7 @@
     wrong: al casa
     right: a casa
     category: preposizioni
-    explanation: «A casa» — без артикля.
+    explanation: «A casa» — no article.
     timer_s: 3
     reveal: true
 - slug: la-problema
@@ -45,7 +45,7 @@
     wrong: La problema
     right: Il problema
     category: articoli
-    explanation: «Problema» — мужского рода.
+    explanation: «Problema» is masculine.
     timer_s: 3
     reveal: true
 - slug: stanco
@@ -55,7 +55,7 @@
     wrong: stanco
     right: stanca
     category: accordo
-    explanation: Прилагательное согласуется с «lei».
+    explanation: The adjective agrees with «lei».
     timer_s: 3
     reveal: true
 - slug: piacciono
@@ -65,7 +65,7 @@
     wrong: piacciono
     right: piace
     category: verbi
-    explanation: Один предмет — «piace».
+    explanation: One thing — «piace».
     timer_s: 3
     reveal: true
 - slug: salutato
@@ -75,7 +75,7 @@
     wrong: salutato
     right: salutata
     category: accordo
-    explanation: 'После «l''» (= la) причастие согласуется: salutata.'
+    explanation: 'After «l''» (= la) the participle agrees: salutata.'
     timer_s: 3
     reveal: true
 - slug: cresciuto
@@ -85,7 +85,7 @@
     wrong: ho cresciuto
     right: sono cresciuto
     category: ausiliare
-    explanation: «Crescere» (вырасти) — с essere.
+    explanation: «Crescere» (to grow up) takes essere.
     timer_s: 3
     reveal: true
 - slug: congiuntivo
@@ -95,7 +95,7 @@
     wrong: ha ragione
     right: abbia ragione
     category: verbi
-    explanation: После «penso che» — congiuntivo.
+    explanation: After «penso che» — congiuntivo.
     timer_s: 3
     reveal: true
 - slug: un-aiuto
@@ -105,7 +105,7 @@
     wrong: un'aiuto
     right: un aiuto
     category: articoli
-    explanation: '«Aiuto» мужского рода: апостроф не нужен.'
+    explanation: '«Aiuto» is masculine: no apostrophe needed.'
     timer_s: 3
     reveal: true
 - slug: simpatichi
@@ -135,6 +135,6 @@
     wrong: sono 25 anni
     right: ho 25 anni
     category: verbi
-    explanation: Возраст — с глаголом «avere».
+    explanation: Age takes the verb «avere».
     timer_s: 3
     reveal: true

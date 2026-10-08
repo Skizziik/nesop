@@ -31,9 +31,9 @@ export interface QuizAbcBody {
   /**
    * Язык вопроса
    */
-  question_lang?: "it" | "en" | "ru" | "uk" | "es";
+  question_lang?: "it" | "en";
   /**
    * Язык вариантов
    */
-  options_lang?: "it" | "en" | "ru" | "uk" | "es";
+  options_lang?: "it" | "en";
 }

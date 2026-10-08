@@ -5,9 +5,9 @@
     article: null
     syllables: ma-GA-ri
     part_of_speech: avverbio
-    translation: может быть; хотелось бы!
+    translation: maybe; I wish!
     example: Vieni stasera? Magari!
-    example_translation: Придёшь вечером? Хотелось бы!
+    example_translation: Coming tonight? I wish!
 - slug: boh
   title: Parola del giorno
   body:
@@ -15,9 +15,9 @@
     article: null
     syllables: BOH
     part_of_speech: altro
-    translation: без понятия
+    translation: no idea
     example: Dov'è Luca? Boh, non lo so.
-    example_translation: Где Лука? Без понятия.
+    example_translation: Where's Luca? No idea.
 - slug: allora
   title: Parola del giorno
   body:
@@ -25,9 +25,9 @@
     article: null
     syllables: al-LO-ra
     part_of_speech: avverbio
-    translation: итак; тогда
+    translation: so; then
     example: Allora, andiamo?
-    example_translation: Итак, идём?
+    example_translation: So, shall we go?
 - slug: dai
   title: Parola del giorno
   body:
@@ -35,9 +35,9 @@
     article: null
     syllables: DAI
     part_of_speech: espressione
-    translation: давай!; да ладно!
+    translation: come on!; no way!
     example: Dai, non è niente!
-    example_translation: Да ладно, это ерунда!
+    example_translation: Come on, it's nothing!
 - slug: figurati
   title: Parola del giorno
   body:
@@ -45,9 +45,9 @@
     article: null
     syllables: FI-gu-ra-ti
     part_of_speech: espressione
-    translation: не за что; да что ты
+    translation: you're welcome; not at all
     example: Grazie mille! – Figurati!
-    example_translation: Спасибо! – Не за что!
+    example_translation: Thanks! – You're welcome!
 - slug: ecco
   title: Parola del giorno
   body:
@@ -55,9 +55,9 @@
     article: null
     syllables: EC-co
     part_of_speech: avverbio
-    translation: вот
+    translation: here is; there you go
     example: Ecco il tuo caffè.
-    example_translation: Вот твой кофе.
+    example_translation: Here's your coffee.
 - slug: un-sacco
   title: Parola del giorno
   body:
@@ -65,9 +65,9 @@
     article: null
     syllables: un SAC-co
     part_of_speech: espressione
-    translation: очень много
+    translation: a lot; so much
     example: Mi piace un sacco!
-    example_translation: Мне ужасно нравится!
+    example_translation: I like it so much!
 - slug: comunque
   title: Parola del giorno
   body:
@@ -75,9 +75,9 @@
     article: null
     syllables: co-MUN-que
     part_of_speech: avverbio
-    translation: всё равно; в любом случае
+    translation: anyway; all the same
     example: Fa freddo, ma esco comunque.
-    example_translation: Холодно, но я всё равно выйду.
+    example_translation: It's cold, but I'm going out anyway.
 - slug: insomma
   title: Parola del giorno
   body:
@@ -85,9 +85,9 @@
     article: null
     syllables: in-SOM-ma
     part_of_speech: espressione
-    translation: короче; так себе
+    translation: in short; so-so
     example: Com'è il film? Insomma…
-    example_translation: Как фильм? Так себе…
+    example_translation: How was the movie? So-so…
 - slug: merenda
   title: Parola del giorno
   body:
@@ -95,9 +95,9 @@
     article: la
     syllables: me-REN-da
     part_of_speech: nome
-    translation: полдник, перекус
+    translation: afternoon snack
     example: Alle quattro faccio merenda.
-    example_translation: В четыре у меня полдник.
+    example_translation: At four I have my snack.
 - slug: colpo-di-fulmine
   title: Parola del giorno
   body:
@@ -105,9 +105,9 @@
     article: il
     syllables: COL-po di FUL-mi-ne
     part_of_speech: espressione
-    translation: любовь с первого взгляда
+    translation: love at first sight
     example: È stato un colpo di fulmine!
-    example_translation: Это была любовь с первого взгляда!
+    example_translation: It was love at first sight!
 - slug: abbiocco
   title: Parola del giorno
   body:
@@ -115,6 +115,6 @@
     article: l'
     syllables: ab-BIOC-co
     part_of_speech: nome
-    translation: сонливость после еды
+    translation: after-meal sleepiness
     example: Dopo pranzo mi viene l'abbiocco.
-    example_translation: После обеда меня клонит в сон.
+    example_translation: After lunch I get sleepy.

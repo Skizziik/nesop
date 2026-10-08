@@ -67,7 +67,7 @@ class SeriesIn(BaseModel):
     hook_type: str = "hidden_answer"
     answer_mode: AnswerMode = AnswerMode.hide
     answer_delay_h: int = Field(default=24, ge=1, le=168)
-    second_lang: Literal["en", "ru", "uk", "es"] | None = None
+    second_lang: Literal["en"] | None = None  # контент только итальянский + английский
     auto_approve: bool = False  # ТЗ: ручной аппрув по умолчанию для новых серий
     youtube_playlist_id: str | None = None
 

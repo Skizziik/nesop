@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +18,7 @@ from .pipeline.music import ensure_music
 from .pipeline.sfx import GENERATORS, ensure_sfx
 
 log = logging.getLogger("farm.seeds")
+CYR = re.compile("[А-Яа-яЁё]")
 
 
 def lesson_to_script(raw: dict[str, Any], fmt: str, level: str) -> dict[str, Any]:
@@ -92,19 +94,40 @@ async def seed_all(s: AsyncSession) -> dict[str, int]:
             s.add(series)
             await s.flush()
             stats["series"] += 1
+        else:
+            # контент только итальянский + английский: старые сиды с русским переводом/описанием подтягиваем к новым
+            if series.second_lang not in (None, "en"):
+                series.second_lang = sd.get("second_lang") or "en"
+            if CYR.search(series.description or ""):
+                series.description = sd.get("description", "")
         bank = root / "bank" / f"{sd['slug']}.yaml"
         if not bank.exists() or sd["format"] not in FORMATS:
             continue
-        have = {x.slug for x in (await s.scalars(select(Lesson).where(Lesson.series_id == series.id))).all()}
+        have = {x.slug: x for x in (await s.scalars(select(Lesson).where(Lesson.series_id == series.id))).all()}
         spec = get_format(sd["format"])
-        for raw in load_yaml(bank):
+        raws = load_yaml(bank)
+        for raw in raws:
             if raw["slug"] in have:
+                old = have[raw["slug"]]
+                if old.source == "seed":  # сид — источник истины для своих уроков (правки владельца живут в source=manual/llm)
+                    script = lesson_to_script(raw, sd["format"], sd.get("level", "A1"))
+                    if old.script != script:
+                        spec.body_model.model_validate(script["body"])
+                        old.script, old.title = script, raw["title"]
+                        old.content_hash = content_hash(spec.content_words(script))
+                        stats["lessons_updated"] = stats.get("lessons_updated", 0) + 1
                 continue
             script = lesson_to_script(raw, sd["format"], sd.get("level", "A1"))
             spec.body_model.model_validate(script["body"])  # сиды обязаны проходить схему
             s.add(Lesson(series_id=series.id, slug=raw["slug"], title=raw["title"], script=script, source=raw.get("source", "seed"),
                          content_hash=content_hash(spec.content_words(script))))
             stats["lessons"] += 1
+        # уроки, убранные из сида (например, ложные друзья не с английским), удаляем; ролики остаются (lesson_id → NULL)
+        slugs = {r["slug"] for r in raws}
+        for slug, old in have.items():
+            if old.source == "seed" and slug not in slugs:
+                await s.delete(old)
+                stats["lessons_removed"] = stats.get("lessons_removed", 0) + 1
     await s.commit()
     log.info("seeded %s", stats)
     return stats

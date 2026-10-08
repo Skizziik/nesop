@@ -102,7 +102,7 @@ class LectureIn(BaseModel):
     level: Literal["A1", "A2", "B1", "B2", "C1"] = "A2"
     minutes: int = Field(default=15, ge=3, le=25)
     mascot: str = "espresso"
-    lang: Literal["ru", "en", "uk", "es"] = "ru"
+    lang: Literal["en"] = "en"  # субтитры-перевод только на английском
     aspect: Literal["16:9", "9:16"] = "16:9"
     series_id: str | None = None
     voice: dict[str, Any] | None = None

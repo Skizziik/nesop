@@ -22,7 +22,7 @@ from . import clients
 from .audio import SR, envelope, load_mono, trim_silence, write_wav
 from .music import TRACKS
 
-LANG_NAME = {"ru": "russo", "en": "inglese", "uk": "ucraino", "es": "spagnolo"}
+LANG_NAME = {"en": "inglese"}  # канал учит итальянскому на английском: второй язык только en
 WPM = 140  # замер: лекция 1446 слов = 10:03 вместе с паузами, титулами и квизами (~144 сл/мин)
 UNDERSHOOT = 1.1  # LLM пишет ~90% от запрошенного числа слов
 GAP_SENT, GAP_SLIDE, GAP_CHAPTER = 0.35, 0.9, 0.7
@@ -80,7 +80,7 @@ VERIFY_CH_SCHEMA: dict[str, Any] = {
 def chapter_guide(level: str, lang: str, words: int, n_chapters: int) -> str:
     sentences = max(10, round(words / 13))
     return (
-        f"Lezione video YouTube 16:9 per studenti stranieri di livello {level}. La voce parla SOLO italiano, lento e chiaro; i sottotitoli traducono in {LANG_NAME.get(lang, 'russo')} (campo tr).\n"
+        f"Lezione video YouTube 16:9 per studenti anglofoni di livello {level}. La voce parla SOLO italiano, lento e chiaro; i sottotitoli traducono in {LANG_NAME.get(lang, 'inglese')} (campo tr). Testi delle slide in italiano; traduzioni e note (tr, rows.tr, note) in inglese, mai in russo.\n"
         f"Questo capitolo deve durare circa {round(words / WPM, 1)} minuti: circa {words} parole di narrazione, cioè ~{sentences} frasi in totale, divise in 3-5 slide.\n"
         "Tipi di slide: explain (3-5 punti brevi in bullets), examples (4-8 righe rows: it + tr + note facoltativa), table (coniugazioni, articoli: table_header + table_rows), "
         "quiz (una domanda con ESATTAMENTE 3 quiz_options e quiz_correct 0-2: frasi phase=ask che leggono la domanda, poi phase=answer che spiegano la risposta), "
@@ -160,7 +160,7 @@ async def llm_outline(s: AsyncSession, topic: str, level: str, minutes: int, lan
     n = max(4, min(9, round(minutes / 2.6)))
     user = (
         f"Prepara la scaletta di una video-lezione di {minutes} minuti per il canale @ItalianoPerTe. Argomento: «{topic}». Livello {level}.\n"
-        f"Esattamente {n} capitoli, dal più semplice al più difficile, ognuno con un obiettivo concreto. Le frasi intro/outro in italiano semplice, tr = traduzione in {LANG_NAME.get(lang, 'russo')}."
+        f"Esattamente {n} capitoli, dal più semplice al più difficile, ognuno con un obiettivo concreto. Le frasi intro/outro in italiano semplice, tr = traduzione in {LANG_NAME.get(lang, 'inglese')}."
     )
     r = await prov.complete_json(SYSTEM_TEACHER, user, OUTLINE_SCHEMA, purpose="lecture_outline", max_tokens=6000, effort="medium")
     return dict(r.data)
@@ -239,7 +239,7 @@ async def build_lecture(project_id: str) -> None:
             params = dict(pr.params)
             series = await s.get(Series, pr.series_id) if pr.series_id else None
             topic, level, minutes = params["topic"], params.get("level", "A2"), int(params.get("minutes", 15))
-            lang = params.get("lang") or (series.second_lang if series and series.second_lang else "ru")
+            lang = params.get("lang") or "en"
             await progress("план", 0.02)
             outline = await llm_outline(s, topic, level, minutes, lang)
         chapters = outline.get("chapters", [])
@@ -469,7 +469,7 @@ async def build_lecture(project_id: str) -> None:
             ],
         }
         # главы YouTube: таймкоды в описании
-        chapter_marks = ["00:00 Introduzione"] + [
+        chapter_marks = ["00:00 Intro"] + [
             f"{_mmss(sl.start)} {sl.props.get('title', '')}"
             for sl in slides
             if sl.props["kind"] == "title" and sl.props.get("chapter", "").startswith("Capitolo")
@@ -478,10 +478,10 @@ async def build_lecture(project_id: str) -> None:
             "outline": outline,
             "report": {"llm_fixes": report, "languagetool_errors": lt_errors, "sentences": len(all_sents)},
             "youtube": {
-                "title": f"{outline.get('title', topic)[:80]} 🇮🇹 Lezione di italiano ({level})",
-                "description": f"{outline.get('subtitle', '')}\n\nCapitoli:\n"
+                "title": f"{outline.get('title', topic)[:70]} 🇮🇹 Learn Italian ({level})",
+                "description": f"{outline.get('subtitle', '')}\n\nChapters:\n"
                 + "\n".join(chapter_marks)
-                + "\n\nScrivi nei commenti cosa vuoi imparare nella prossima lezione! 👇\n\n#italiano #imparareitaliano #learnitalian #lezionediitaliano",
+                + "\n\nTell me in the comments what you want to learn next! 👇\n\n#learnitalian #italianlesson #italiano #italianforbeginners",
                 "chapters": chapter_marks,
             },
         }

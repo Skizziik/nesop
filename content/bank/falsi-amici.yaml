@@ -186,49 +186,24 @@
       looks_like: gentle
       it_means: kind
       say_instead: delicato
-- slug: ff-9
-  title: Falsi amici
-  body:
-    lang: es
-    items:
-    - it: burro
-      looks_like: burro
-      it_means: mantequilla
-      say_instead: asino
-    - it: aceto
-      looks_like: aceite
-      it_means: vinagre
-      say_instead: olio
-    - it: salire
-      looks_like: salir
-      it_means: subir
-      say_instead: uscire
-    - it: guardare
-      looks_like: guardar
-      it_means: mirar
-      say_instead: conservare
-    - it: imbarazzata
-      looks_like: embarazada
-      it_means: avergonzada
-      say_instead: incinta
 - slug: ff-10
   title: Falsi amici
   body:
-    lang: ru
+    lang: en
     items:
-    - it: magazzino
-      looks_like: магазин
-      it_means: склад
-      say_instead: negozio
-    - it: artista
-      looks_like: артист
-      it_means: художник, творец
-      say_instead: attore
-    - it: camera
-      looks_like: камера
-      it_means: комната
-      say_instead: fotocamera
     - it: simpatico
-      looks_like: симпатичный
-      it_means: приятный в общении
-      say_instead: carino
+      looks_like: sympathetic
+      it_means: nice, likeable
+      say_instead: comprensivo
+    - it: pavimento
+      looks_like: pavement
+      it_means: floor
+      say_instead: marciapiede
+    - it: lettura
+      looks_like: lecture
+      it_means: reading
+      say_instead: lezione
+    - it: ultimamente
+      looks_like: ultimately
+      it_means: lately
+      say_instead: alla fine

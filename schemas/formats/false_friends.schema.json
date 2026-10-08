@@ -11,10 +11,7 @@
     "lang": {
       "type": "string",
       "enum": [
-        "en",
-        "es",
-        "fr",
-        "ru"
+        "en"
       ],
       "default": "en",
       "description": "Язык, с которым «ложная дружба»"

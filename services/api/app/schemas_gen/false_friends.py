@@ -44,7 +44,6 @@ class FalseFriendsBody(BaseModel):
         extra="forbid",
     )
     lang: Annotated[
-        Literal["en", "es", "fr", "ru"] | None,
-        Field(description="Язык, с которым «ложная дружба»"),
+        Literal["en"] | None, Field(description="Язык, с которым «ложная дружба»")
     ] = "en"
     items: Annotated[list[FalseFriend], Field(max_length=6, min_length=3)]

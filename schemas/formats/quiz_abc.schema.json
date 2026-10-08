@@ -61,10 +61,7 @@
       "type": "string",
       "enum": [
         "it",
-        "en",
-        "ru",
-        "uk",
-        "es"
+        "en"
       ],
       "default": "it",
       "description": "Язык вопроса"
@@ -73,10 +70,7 @@
       "type": "string",
       "enum": [
         "it",
-        "en",
-        "ru",
-        "uk",
-        "es"
+        "en"
       ],
       "default": "it",
       "description": "Язык вариантов"

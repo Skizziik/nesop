@@ -71,8 +71,8 @@ export const Idiom: React.FC<{ props: RenderProps }> = ({ props }) => {
   return (
     <div style={{ position: "absolute", left: CONTENT_X, width: CONTENT_W, top: CONTENT_TOP - 20 }}>
       {block("card", "🇮🇹", b.idiom, true)}
-      {block("literal", "Буквально / Literally", b.literal)}
-      {block("meaning", "На самом деле / Meaning", b.meaning)}
+      {block("literal", "Literally", b.literal)}
+      {block("meaning", "Meaning", b.meaning)}
       {b.example ? block("example", "Esempio", b.example) : null}
       {b.question ? (
         <div style={{ marginTop: 30, textAlign: "center", fontFamily: font, fontWeight: 800, fontSize: 52, color: "#fff", WebkitTextStroke: `8px ${pal.accent}`, paintOrder: "stroke fill", transform: `scale(${on("question") ? pulse(T.t) : 1})` }}>

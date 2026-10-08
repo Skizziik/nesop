@@ -170,7 +170,7 @@ export interface LectureInput {
   level: "A1" | "A2" | "B1" | "B2" | "C1";
   minutes: number;
   mascot: string;
-  lang: "ru" | "en" | "uk" | "es";
+  lang: "en";
   aspect: "16:9" | "9:16";
   series_id?: string | null;
 }
