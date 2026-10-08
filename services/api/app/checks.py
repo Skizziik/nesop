@@ -83,6 +83,10 @@ async def languagetool_check(pairs: list[tuple[str, str]]) -> list[dict[str, str
                     cat = rule.get("category", {}).get("id", "")
                     if rule.get("id") in LT_IGNORE or cat in {"TYPOGRAPHY", "CASING"}:
                         continue
+                    off = int(m.get("offset", 0))
+                    # окончания в объяснениях грамматики («-are», «-ato») — не опечатки
+                    if cat == "TYPOS" and off > 0 and text[off - 1] in "-‑–":
+                        continue
                     repl = ", ".join(x["value"] for x in m.get("replacements", [])[:3])
                     sev = "error" if cat in {"TYPOS", "GRAMMAR", "CONFUSED_WORDS"} else "warning"
                     out.append(issue(path, f"LanguageTool: {m.get('message', '')}" + (f" → {repl}" if repl else ""), "languagetool", sev))

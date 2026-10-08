@@ -23,7 +23,8 @@ from .audio import SR, envelope, load_mono, trim_silence, write_wav
 from .music import TRACKS
 
 LANG_NAME = {"ru": "russo", "en": "inglese", "uk": "ucraino", "es": "spagnolo"}
-WPM = 120  # итальянский TTS на скорости ~0.92 с паузами между фразами
+WPM = 140  # замер: лекция 1446 слов = 10:03 вместе с паузами, титулами и квизами (~144 сл/мин)
+UNDERSHOOT = 1.1  # LLM пишет ~90% от запрошенного числа слов
 GAP_SENT, GAP_SLIDE, GAP_CHAPTER = 0.35, 0.9, 0.7
 QUIZ_TIMER = 5.0
 
@@ -242,7 +243,7 @@ async def build_lecture(project_id: str) -> None:
             await progress("план", 0.02)
             outline = await llm_outline(s, topic, level, minutes, lang)
         chapters = outline.get("chapters", [])
-        words_per = int(minutes * WPM * 0.88 / max(len(chapters), 1))  # ~12% времени уходит на титулы, квизы, паузы
+        words_per = int(minutes * WPM * UNDERSHOOT / max(len(chapters), 1))
         built: list[dict[str, Any]] = []
         report: list[dict[str, str]] = []
         for i in range(len(chapters)):
