@@ -169,9 +169,19 @@ def make_render_props(
     return RenderProps.model_validate(props).model_dump(mode="json", exclude_none=False)
 
 
-def voice_config(video_voice: dict[str, Any] | None, series_voice: dict[str, Any] | None = None) -> dict[str, Any]:
+def voice_config(video_voice: dict[str, Any] | None, series_voice: dict[str, Any] | None = None, default: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Порядок: .env по умолчанию → голос канала (настройка «основной голос») → голос серии → голос ролика."""
     st = get_settings()
-    return {"model": st.default_tts_model, "voice": st.default_tts_voice, "speed": st.default_tts_speed, **(series_voice or {}), **(video_voice or {})}
+    base = {"model": st.default_tts_model, "voice": st.default_tts_voice, "speed": st.default_tts_speed}
+    series_voice = series_voice if series_voice and series_voice.get("model") else None
+    return {**base, **(default or {}), **(series_voice or {}), **(video_voice or {})}
+
+
+async def default_voice(s: AsyncSession) -> dict[str, Any] | None:
+    from ..models import Setting
+
+    row = await s.get(Setting, "default_voice")
+    return dict(row.value) if row and row.value else None
 
 
 async def synth_track(script: dict[str, Any], voice_cfg: dict[str, Any], timing: TimingConfig | None = None) -> tuple[Track, dict[str, Any]]:
@@ -262,7 +272,7 @@ async def produce_video(video_id: str) -> None:
         script = copy.deepcopy(v.script or {})
         theme = (v.render_props or {}).get("theme")
         batch_id, seed, episode_no = v.batch_id, v.seed, v.episode_no
-        voice_cfg = voice_config(v.voice, series.voice if series else None)
+        voice_cfg = voice_config(v.voice, series.voice if series else None, await default_voice(s))
         if not theme:
             theme = variation.build_theme(seed, series, await load_palettes(s), set())
     await set_video(video_id, status=VideoStatus.rendering, error=None, progress=0.0)

@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .config import get_settings
 from .formats import FORMATS, get_format
 from .formats.base import content_hash
-from .models import Asset, HookPattern, Lesson, Series
+from .models import Asset, HookPattern, Lesson, Series, VoiceProfile
 from .pipeline.music import ensure_music
 from .pipeline.sfx import GENERATORS, ensure_sfx
 
@@ -67,6 +67,16 @@ async def seed_all(s: AsyncSession) -> dict[str, int]:
             s.add(Asset(kind="music", name=tr.name, path=rel, license="CC0 (собственная процедурная генерация)", source="app/pipeline/music.py",
                         data={"bpm": tr.bpm, "key": tr.key}))
             stats["music"] = stats.get("music", 0) + 1
+
+    # фирменные голоса (Qwen3 voice design); владелец может удалить — тогда сид не возвращает (метка в votes)
+    vfile = root / "voices.yaml"
+    if vfile.exists():
+        have_v = {p.name for p in (await s.scalars(select(VoiceProfile))).all()}
+        for v in load_yaml(vfile):
+            if v["name"] not in have_v:
+                s.add(VoiceProfile(name=v["name"], kind="design", model="qwen3", voice="", speed=float(v.get("speed", 0.95)),
+                                   description=" ".join(v["description"].split()), votes={"_seed": True}))
+                stats["voices"] = stats.get("voices", 0) + 1
 
     # хуки и CTA
     hk = load_yaml(root / "hooks.yaml")

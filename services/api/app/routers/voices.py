@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import get_settings
 from ..db import get_session, new_id
-from ..models import Series, VoiceProfile
+from ..models import Series, Setting, VoiceProfile
 from ..pipeline.clients import ServiceError, tts_synthesize
 
 router = APIRouter(prefix="/api")
@@ -75,7 +75,27 @@ def voice_cfg(p: VoiceProfile) -> dict[str, Any]:
 
 @router.get("/voices")
 async def list_profiles(s: Session) -> list[dict[str, Any]]:
-    return [profile_out(p) for p in (await s.scalars(select(VoiceProfile).order_by(VoiceProfile.created_at))).all()]
+    row = await s.get(Setting, "default_voice")
+    cur = (row.value or {}).get("profile_id") if row else None
+    return [profile_out(p) | {"is_default": p.id == cur} for p in (await s.scalars(select(VoiceProfile).order_by(VoiceProfile.created_at))).all()]
+
+
+@router.post("/voices/{vid}/default")
+async def make_default(vid: str, s: Session) -> dict[str, Any]:
+    """Основной голос канала: им озвучиваются все серии и лекции, где голос не выбран отдельно."""
+    p = await s.get(VoiceProfile, vid)
+    if p is None:
+        raise HTTPException(404, "Голос не найден")
+    row = await s.get(Setting, "default_voice")
+    if row is None:
+        s.add(Setting(key="default_voice", value=voice_cfg(p)))
+    else:
+        row.value = voice_cfg(p)
+    # серии начинают наследовать основной голос (свой голос серии можно задать снова кнопкой «Применить к сериям»)
+    for ser in (await s.scalars(select(Series))).all():
+        ser.voice = {}
+    await s.commit()
+    return profile_out(p) | {"is_default": True}
 
 
 class ProfileIn(BaseModel):

@@ -292,9 +292,9 @@ async def build_lecture(project_id: str) -> None:
 
         # ---- озвучка по предложениям
         async with SessionLocal() as s:
-            from .produce import voice_config
+            from .produce import default_voice, voice_config
 
-            vcfg = voice_config(params.get("voice"), series.voice if series else None)
+            vcfg = voice_config(params.get("voice"), series.voice if series else None, await default_voice(s))
         sem = asyncio.Semaphore(4)
         done = 0
 

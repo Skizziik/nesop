@@ -14,8 +14,24 @@ import numpy as np
 
 from . import time_stretch
 
-CUSTOM = "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice"
-BASE = "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
+def _size() -> str:
+    """1.7B заметно чище звучит; на GPU от 7 GB влезает (держим в памяти одну модель). QWEN3_SIZE=0.6B — принудительно лёгкая."""
+    forced = os.environ.get("QWEN3_SIZE")
+    if forced in ("0.6B", "1.7B"):
+        return forced
+    try:
+        import torch
+
+        if torch.cuda.is_available() and torch.cuda.get_device_properties(0).total_memory >= 7 * 1024**3:
+            return "1.7B"
+    except Exception:  # noqa: BLE001 — нет torch/GPU → лёгкая модель
+        pass
+    return "0.6B"
+
+
+SIZE = _size()
+CUSTOM = f"Qwen/Qwen3-TTS-12Hz-{SIZE}-CustomVoice"
+BASE = f"Qwen/Qwen3-TTS-12Hz-{SIZE}-Base"
 DESIGN = "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign"
 DESIGN_REF_TEXT = "Ciao a tutti e benvenuti! Oggi impariamo insieme qualcosa di nuovo in italiano: ascoltate bene e ripetete con me."
 SR = 24000
@@ -44,6 +60,9 @@ class Engine:
         from qwen_tts import Qwen3TTSModel
 
         if repo not in self.models:
+            # в 8 GB двум моделям 1.7B тесно: перед загрузкой выгружаем остальные
+            for other in list(self.models):
+                self.unload(other)
             self.models[repo] = Qwen3TTSModel.from_pretrained(repo, **self.kw)
         return self.models[repo]
 

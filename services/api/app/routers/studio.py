@@ -23,7 +23,7 @@ from ..models import AnswerMode, Asset, Lesson, Series, Video, VideoStatus
 from ..pipeline import variation
 from ..pipeline.audio import SR, write_wav
 from ..pipeline.clients import ServiceError
-from ..pipeline.produce import load_palettes, make_render_props, synth_track, validate_script, voice_config
+from ..pipeline.produce import default_voice, load_palettes, make_render_props, synth_track, validate_script, voice_config
 from ..serializers import lesson_out, series_out, video_out
 from ..worker import enqueue
 
@@ -255,7 +255,7 @@ async def preview(vid: str, body: EditIn, s: Session) -> dict[str, Any]:
     if any(i["source"] == "schema" for i in issues):
         return {"props": None, "issues": issues}
     theme = body.theme or await _theme(s, v, ser)
-    vcfg = voice_config({**(v.voice or {}), **(body.voice or {})}, ser.voice if ser else None)
+    vcfg = voice_config({**(v.voice or {}), **(body.voice or {})}, ser.voice if ser else None, await default_voice(s))
     try:
         track, stats = await synth_track(script, vcfg)
     except ServiceError as e:

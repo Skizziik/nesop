@@ -168,6 +168,7 @@ function Profiles({ models, profiles, onChange }: { models: TtsModel[]; profiles
     onError: onErr,
   });
   const del = useMutation({ mutationFn: (id: string) => api.deleteVoice(id), onSuccess: onChange, onError: onErr });
+  const makeDefault = useMutation({ mutationFn: (id: string) => api.defaultVoice(id), onSuccess: () => (toast.success("Основной голос канала обновлён"), onChange()), onError: onErr });
   const apply = useMutation({
     mutationFn: (id: string) => api.applyVoice(id, series.map((s) => s.id)),
     onSuccess: (r) => toast.success(`Голос назначен ${r.updated} сериям`),
@@ -227,7 +228,7 @@ function Profiles({ models, profiles, onChange }: { models: TtsModel[]; profiles
       <div className="mt-5 grid gap-2">
         {profiles.length ? (
           profiles.map((p) => (
-            <div key={p.id} className="flex items-center gap-3 rounded-lg bg-panel-2 px-3 py-2 text-sm">
+            <div key={p.id} className={`flex items-center gap-3 rounded-lg bg-panel-2 px-3 py-2 text-sm ${p.is_default ? "ring-1 ring-verde-2" : ""}`}>
               <div className="min-w-0 flex-1">
                 <div className="font-bold">{p.name}</div>
                 <div className="truncate text-xs text-mute">
@@ -239,9 +240,13 @@ function Profiles({ models, profiles, onChange }: { models: TtsModel[]; profiles
               <button className="text-verde-2" title="Тест" onClick={() => api.testVoice({ profile_id: p.id }).then((r) => play(r.url), (e) => toast.error(String(e.message)))}>
                 <Play size={16} />
               </button>
-              <Button variant="outline" onClick={() => confirm("Сделать голосом по умолчанию для ВСЕХ серий?") && apply.mutate(p.id)}>
-                Всем сериям
-              </Button>
+              {p.is_default ? (
+                <Badge tone="green">★ основной голос канала</Badge>
+              ) : (
+                <Button onClick={() => confirm(`«${p.name}» станет голосом всех серий и лекций. Продолжить?`) && makeDefault.mutate(p.id)} disabled={makeDefault.isPending}>
+                  Сделать основным
+                </Button>
+              )}
               <button className="text-mute hover:text-rosso" onClick={() => confirm("Удалить голос?") && del.mutate(p.id)} aria-label="Удалить">
                 <Trash2 size={14} />
               </button>

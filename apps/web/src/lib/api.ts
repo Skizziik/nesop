@@ -280,6 +280,7 @@ export const api = {
     }
     return (await r.json()) as VoiceProfile;
   },
+  defaultVoice: (id: string) => request<VoiceProfile>(`/api/voices/${id}/default`, { method: "POST" }),
   deleteVoice: (id: string) => request<{ ok: boolean }>(`/api/voices/${id}`, { method: "DELETE" }),
   testVoice: (body: { text?: string; profile_id?: string; model?: string; voice?: string; speed?: number }) =>
     request<{ url: string; duration: number }>("/api/voices/test", { method: "POST", body: JSON.stringify(body) }),
@@ -372,6 +373,7 @@ export interface VoiceProfile {
   consent: boolean;
   wins: number;
   losses: number;
+  is_default?: boolean;
 }
 
 export interface LlmSettings {

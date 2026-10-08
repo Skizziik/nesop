@@ -1,0 +1,23 @@
+# Фирменные голоса канала: Qwen3-TTS Voice Design. Описание голоса (на английском — так модель понимает лучше)
+# один раз превращается в эталонную фразу, дальше все строки озвучиваются клоном с неё — голос стабилен во всех роликах.
+- name: Giulia — insegnante
+  description: >-
+    A warm, friendly Italian woman in her late twenties from Milan, a native Italian language teacher.
+    Clear standard Italian pronunciation, bright smiling tone, calm moderate pace, crisp articulation of every syllable,
+    engaging like a popular YouTube teacher.
+  speed: 0.95
+- name: Marco — conduttore
+  description: >-
+    A cheerful Italian man in his thirties from Rome, native speaker, warm baritone voice, energetic and expressive
+    like a TV host, clear standard Italian diction, moderate pace.
+  speed: 0.95
+- name: Sofia — principianti
+  description: >-
+    A gentle, patient Italian woman in her forties from Florence, native speaker, soft warm voice,
+    slow and very clear pronunciation, perfect for beginners.
+  speed: 0.92
+- name: Luca — energico
+  description: >-
+    A young energetic Italian man in his twenties from Bologna, native speaker, bright friendly voice,
+    upbeat and playful, clear articulation, lively but easy to understand.
+  speed: 0.97
