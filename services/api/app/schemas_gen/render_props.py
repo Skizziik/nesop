@@ -132,7 +132,7 @@ class Theme(BaseModel):
         list[StickerPlacement] | None, Field(validate_default=True)
     ] = []
     bookmark: Bookmark | None = None
-    watermark: str | None = "@ItalianoPerTe"
+    watermark: str | None = "@SipOfItalian"
     show_progress_bar: bool | None = True
     second_lang: Annotated[
         str | None,

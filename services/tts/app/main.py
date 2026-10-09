@@ -46,7 +46,7 @@ async def lifespan(_: FastAPI):  # type: ignore[no-untyped-def]
     yield
 
 
-app = FastAPI(title="ItalianoPerTe TTS", lifespan=lifespan)
+app = FastAPI(title="Sip of Italian — TTS", lifespan=lifespan)
 
 
 class SynthIn(BaseModel):

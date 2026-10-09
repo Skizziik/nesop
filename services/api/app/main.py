@@ -27,7 +27,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     yield
 
 
-app = FastAPI(title="ItalianoPerTe Farm API", lifespan=lifespan)
+app = FastAPI(title="Sip of Italian — Farm API", lifespan=lifespan)
 # Chromium в renderer грузит /media с другого origin (бандл Remotion) — нужен CORS на чтение
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET", "HEAD"], allow_headers=["*"])
 app.include_router(core.router)

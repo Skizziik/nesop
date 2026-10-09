@@ -5,8 +5,8 @@ import { Nav } from "@/components/Nav";
 import { Providers } from "@/components/Providers";
 
 export const metadata: Metadata = {
-  title: "ItalianoPerTe · Ферма шортсов",
-  description: "Генерация обучающих шортсов для @ItalianoPerTe",
+  title: "Sip of Italian · Ферма роликов",
+  description: "Генерация уроков итальянского для @SipOfItalian",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

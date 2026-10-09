@@ -10,7 +10,7 @@ export const YtOverlay: React.FC = () => {
       <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: SAFE.bottom, background: "rgba(0,0,0,0.45)" }}>
         <div style={{ position: "absolute", left: 40, top: 60, display: "flex", alignItems: "center", gap: 20, color: "#fff", fontSize: 38, fontFamily: "sans-serif" }}>
           <div style={{ width: 72, height: 72, borderRadius: 36, background: "#c33" }} />
-          <b>@ItalianoPerTe</b>
+          <b>@SipOfItalian</b>
           <span style={{ background: "#fff", color: "#000", borderRadius: 30, padding: "10px 26px", fontSize: 32 }}>Iscriviti</span>
         </div>
         <div style={{ position: "absolute", left: 40, top: 160, color: "#fff", fontSize: 32, fontFamily: "sans-serif", opacity: 0.9 }}>Titolo del video… #shorts</div>

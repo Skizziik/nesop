@@ -186,7 +186,8 @@ async def llm_outline(s: AsyncSession, topic: str, level: str, minutes: int, lan
     prov = await get_provider(s)
     n = max(4, min(10, round(minutes / 2.2)))
     user = (
-        f"Prepara la scaletta di una video-lezione di {minutes} minuti per il canale @ItalianoPerTe. Argomento: «{topic}». Livello {level}.\n"
+        f"Prepara la scaletta di una video-lezione di {minutes} minuti per il canale YouTube «{get_settings().channel_name}». Argomento: «{topic}». Livello {level}.\n"
+        f"Nell'intro il saluto nomina il canale così: «Benvenuti su {get_settings().channel_name}!».\n"
         f"Esattamente {n} capitoli, dal più semplice al più difficile, ognuno con un obiettivo concreto. Pubblico: anglofoni che imparano l'italiano. Intro/outro: {VOICE_POLICY.get(level, VOICE_POLICY['A2'])} Ogni frase ha lang (it/en); tr = traduzione inglese delle frasi italiane, vuoto per quelle inglesi. Il saluto iniziale sempre in italiano («Ciao a tutti!»)."
     )
     r = await prov.complete_json(SYSTEM_TEACHER, user, OUTLINE_SCHEMA, purpose="lecture_outline", max_tokens=6000, effort="medium")

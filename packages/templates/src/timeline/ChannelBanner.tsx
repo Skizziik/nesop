@@ -8,7 +8,7 @@ export const BANNER_H = 1440;
 const SAFE_W = 1546;
 const SAFE_H = 423;
 
-export function ChannelBanner({ title = "Italiano Per Te", tagline = "Learn Italian the fun way", note = "New lessons every week" }: { title?: string; tagline?: string; note?: string }) {
+export function ChannelBanner({ title = "Sip of Italian", tagline = "Learn Italian, one sip at a time", note = "New lessons every week · @SipOfItalian" }: { title?: string; tagline?: string; note?: string }) {
   const sx = (BANNER_W - SAFE_W) / 2;
   const sy = (BANNER_H - SAFE_H) / 2;
   const face = (emotion: "happy" | "surprised" | "neutral") => ({ mouth: 0 as const, blink: false, emotion, t: 0 });

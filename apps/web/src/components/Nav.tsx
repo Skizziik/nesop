@@ -26,10 +26,9 @@ export function Nav() {
       <div className="tricolore h-1 w-full" />
       <div className="px-5 py-5">
         <div className="font-display text-xl font-bold">
-          Italiano<span className="text-verde-2">Per</span>
-          <span className="text-rosso">Te</span>
+          ☕ Sip <span className="text-verde-2">of</span> <span className="text-rosso">Italian</span>
         </div>
-        <div className="text-xs text-mute">ферма шортсов</div>
+        <div className="text-xs text-mute">ферма роликов · @SipOfItalian</div>
       </div>
       <nav className="flex flex-col gap-1 px-3">
         {LINKS.map(({ href, label, icon: Icon }) => {

@@ -5,6 +5,8 @@ from __future__ import annotations
 import random
 from typing import Any
 
+from ..config import get_settings
+
 STICKERS = ["heart", "star", "flower", "pizza", "italy"]
 # Места для наклеек вне списка и вне кнопок YouTube (см. SAFE в packages/templates/src/lib/safe.ts)
 STICKER_SPOTS = [(944, 420), (950, 600), (10, 1590), (860, 1600), (40, 1640)]
@@ -32,7 +34,7 @@ def build_theme(seed: int, series: Any, palettes: dict[str, dict[str, Any]], avo
         "layout": rng.choice(["center", "center", "left"]),
         "stickers": stickers,
         "bookmark": {"enabled": rng.random() > 0.1, "position": rng.choice(["top_right", "top_right", "top_left", "mid_right"])},
-        "watermark": "@ItalianoPerTe",
+        "watermark": get_settings().channel_handle,
         "show_progress_bar": True,
         "second_lang": series.second_lang,
     }

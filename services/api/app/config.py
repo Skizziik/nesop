@@ -29,6 +29,11 @@ class Settings(BaseSettings):
     ollama_url: str = "http://host.docker.internal:11434"
     ollama_model: str = "qwen2.5:14b"
 
+    # Канал (подставляется в промпты LLM, водяной знак, описания)
+    channel_name: str = "Sip of Italian"
+    channel_handle: str = "@SipOfItalian"
+    channel_tagline: str = "Learn Italian, one sip at a time"
+
     # Пайплайн
     worker_max_jobs: int = 2
     render_timeout_s: int = 900

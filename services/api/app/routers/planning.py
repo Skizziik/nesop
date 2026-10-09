@@ -100,7 +100,7 @@ async def export_db(s: Session) -> Response:
     for name, model in EXPORT:
         data[name] = [_row(o) for o in (await s.scalars(select(model))).all()]
     body = json.dumps(data, ensure_ascii=False, indent=1)
-    return Response(body, media_type="application/json", headers={"Content-Disposition": 'attachment; filename="italianoperte-export.json"'})
+    return Response(body, media_type="application/json", headers={"Content-Disposition": 'attachment; filename="sipofitalian-export.json"'})
 
 
 @router.post("/import")

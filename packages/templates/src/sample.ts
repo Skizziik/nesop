@@ -28,7 +28,7 @@ export const SAMPLE_PROPS: RenderProps = {
     layout: "center",
     stickers: [{ name: "heart", x: 820, y: 1420, size: 120, rotate: 12 }],
     bookmark: { enabled: true, position: "top_right" },
-    watermark: "@ItalianoPerTe",
+    watermark: "@SipOfItalian",
     show_progress_bar: true,
     second_lang: null,
   },

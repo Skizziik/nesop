@@ -39,7 +39,7 @@ export const ShortVideo: React.FC<RenderProps> = (props) => {
       <TitleChip text={props.title} palette={theme.palette} font={theme.font} y={TITLE_Y} />
       {Body ? <Body props={props} /> : <Unsupported format={props.format} />}
       <CtaBubble text={props.cta_text ?? ""} palette={theme.palette} font={theme.font} since={ctaEv ? t - ctaEv.t_start : null} endsIn={endsIn} y={CTA_Y} />
-      <Watermark text={theme.watermark ?? "@ItalianoPerTe"} color={readableOn(theme.palette.bg)} font={theme.font} />
+      <Watermark text={theme.watermark ?? "@SipOfItalian"} color={readableOn(theme.palette.bg)} font={theme.font} />
       {props.prev_answer ? <PrevAnswer text={props.prev_answer} font={theme.font} /> : null}
       {voice ? <Audio src={voice} /> : null}
       {music ? <Audio src={music} volume={audio.music_volume ?? 0.08} loop /> : null}

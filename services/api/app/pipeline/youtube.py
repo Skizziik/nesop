@@ -8,6 +8,7 @@ import logging
 import time
 from typing import Any
 
+from ..config import get_settings
 from ..db import SessionLocal
 from ..llm.generate import get_provider
 from ..llm.providers import LLMError
@@ -17,7 +18,7 @@ from . import clients
 log = logging.getLogger("farm.youtube")
 
 SYSTEM_YT = (
-    "You are a YouTube growth strategist for @ItalianoPerTe, a channel that teaches Italian to ENGLISH-speaking learners. "
+    f"You are a YouTube growth strategist for «{get_settings().channel_name}» ({get_settings().channel_handle}), a channel that teaches Italian to ENGLISH-speaking learners. "
     "You write click-worthy but honest packaging: no fake promises, no clickbait the video doesn't deliver. "
     "Everything is in English, with the Italian key words of the lesson kept in Italian. Never use Russian."
 )
@@ -125,6 +126,8 @@ async def build_youtube(project_id: str) -> dict[str, Any]:
     if chapters:
         parts.append("⏱ Chapters:\n" + "\n".join(chapters))
     parts.append(str(pack.get("cta", "")).strip())
+    st = get_settings()
+    parts.append(f"☕ {st.channel_name} — {st.channel_tagline}. Subscribe: https://www.youtube.com/{st.channel_handle}?sub_confirmation=1")
     parts.append(" ".join(hashtags))
     titles = [t[:100] for t in (pack.get("titles") or [])][:3] or _fallback(title, level)["titles"]
     yt = {
