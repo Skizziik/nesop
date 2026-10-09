@@ -8,6 +8,7 @@ import { TimelineVideo } from "./timeline/Timeline";
 import { SAMPLE_TIMELINE } from "./timeline/sample";
 import { docFrames } from "./timeline/types";
 import { Thumbnail, THUMBNAIL_ID, THUMB_H, THUMB_W } from "./timeline/Thumbnail";
+import { ChannelBanner, BANNER_ID, BANNER_H, BANNER_W } from "./timeline/ChannelBanner";
 
 export const TIMELINE_ID = "Timeline";
 
@@ -30,6 +31,7 @@ const calculateMetadata: CalculateMetadataFunction<AnyProps> = ({ props }) => {
 export const RemotionRoot: React.FC = () => (
   <>
   <Composition id="MascotGallery" component={MascotGallery} durationInFrames={90} fps={30} width={1920} height={1080} />
+  <Composition id={BANNER_ID} component={ChannelBanner as unknown as React.FC<AnyProps>} durationInFrames={1} fps={30} width={BANNER_W} height={BANNER_H} defaultProps={{}} />
   <Composition
     id={THUMBNAIL_ID}
     component={Thumbnail as unknown as React.FC<AnyProps>}
