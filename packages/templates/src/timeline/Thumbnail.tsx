@@ -35,7 +35,7 @@ export function Thumbnail({ text, highlight, sub, badge, mascot = "espresso", em
   }
   const longest = lines.reduce((m, l) => Math.max(m, l.length), 1);
   // Montserrat 900 в верхнем регистре ≈ 0.7 em на символ; высота — до 3 строк в 540 px
-  const size = Math.max(70, Math.min(210, Math.floor(780 / (longest * 0.7)), Math.floor(540 / Math.max(lines.length, 1) / 1.04)));
+  const size = Math.max(70, Math.min(210, Math.floor(690 / (longest * 0.76)), Math.floor(540 / Math.max(lines.length, 1) / 1.04)));
   const hi = (highlight ?? "").toLocaleUpperCase("it-IT").replace(/[^\p{L}\p{N}']/gu, "");
   const textSide: React.CSSProperties = mirror ? { right: 56, alignItems: "flex-end", textAlign: "right" } : { left: 56, alignItems: "flex-start" };
   return (
@@ -66,7 +66,7 @@ export function Thumbnail({ text, highlight, sub, badge, mascot = "espresso", em
       </div>
 
       {/* текст */}
-      <div style={{ position: "absolute", top: 70, bottom: 120, display: "flex", flexDirection: "column", justifyContent: "center", gap: 6, width: 800, ...textSide }}>
+      <div style={{ position: "absolute", top: 70, bottom: 120, display: "flex", flexDirection: "column", justifyContent: "center", gap: 6, width: 720, ...textSide }}>
         {lines.map((l, i) => (
           <div key={i} style={{ fontSize: size, fontWeight: 900, lineHeight: 1.02, letterSpacing: -2, transform: `rotate(${i % 2 ? 1.2 : -1.5}deg)` }}>
             {l.split(" ").map((w, j) => {
