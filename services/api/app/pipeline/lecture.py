@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import random
 from dataclasses import dataclass, field
 from typing import Any
@@ -21,6 +22,8 @@ from ..models import Asset, Project, Series
 from . import clients
 from .audio import SR, envelope, load_mono, trim_silence, write_wav
 from .music import TRACKS
+
+log = logging.getLogger("farm.lecture")
 
 LANG_NAME = {"en": "inglese"}  # канал учит итальянскому на английском: второй язык только en
 ASR_OK = 0.8  # совпадение слов текста и распознанного Whisper; ниже — переозвучиваем
@@ -558,7 +561,14 @@ async def build_lecture(project_id: str) -> None:
                 "chapters": chapter_marks,
             },
         }
-        await progress("готов к редактированию", 1.0, doc=doc, meta=meta, status="draft", title=doc["title"][:200], error=None, revision=1)
+        await progress("обложки и описание для YouTube", 0.97, doc=doc, meta=meta, title=doc["title"][:200])
+        from .youtube import build_youtube
+
+        try:
+            await build_youtube(project_id)
+        except Exception as e:  # noqa: BLE001 — пакет YouTube не должен ронять готовую лекцию
+            log.warning("youtube pack failed: %s", e)
+        await progress("готов к редактированию", 1.0, status="draft", error=None, revision=1)
     except (LLMError, clients.ServiceError, KeyError, ValueError) as e:
         await progress("ошибка", 0.0, status="failed", error=str(e)[:2000])
     except Exception as e:  # noqa: BLE001 — любой сбой виден в проекте

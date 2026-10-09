@@ -2,12 +2,12 @@
 
 import type { TimelineDoc } from "@ipt/templates";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Copy, Download, History, Loader2, Plus, Redo2, Scissors, Trash2, Undo2, Wand2 } from "lucide-react";
+import { ArrowLeft, Copy, Download, History, Loader2, Plus, Redo2, RefreshCw, Scissors, Trash2, Undo2, Wand2, MonitorPlay } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api, ApiError, type ProjectFull } from "@/lib/api";
-import { Badge, Button, Progress, cn } from "../ui";
+import { Badge, Button, CopyButton, Progress, cn } from "../ui";
 import { AddPanel } from "./AddPanel";
 import { Inspector } from "./Inspector";
 import { Stage, type StageHandle } from "./Stage";
@@ -58,7 +58,9 @@ function Editor({ project, onReload }: { project: ProjectFull; onReload: () => P
   const stage = useRef<StageHandle>(null);
   const s = useStudio();
   const { doc, dirty, saving, revision, past, future } = s;
-  const [showVersions, setShowVersions] = useState(false);
+  const [panel, setPanel] = useState<"inspector" | "versions" | "youtube">("inspector");
+  const showVersions = panel === "versions";
+  const setShowVersions = (f: (v: boolean) => boolean) => setPanel(f(showVersions) ? "versions" : "inspector");
   const busy = project.status === "rendering";
 
   // ---------- автосохранение
@@ -165,6 +167,9 @@ function Editor({ project, onReload }: { project: ProjectFull; onReload: () => P
           <Tool onClick={s.removeSelected} disabled={!s.selected.length} title="Удалить (Del)">
             <Trash2 size={16} />
           </Tool>
+          <Tool onClick={() => setPanel((v) => (v === "youtube" ? "inspector" : "youtube"))} title="YouTube: обложки, название, описание, теги" active={panel === "youtube"}>
+            <MonitorPlay size={16} />
+          </Tool>
           <Tool onClick={() => setShowVersions((v) => !v)} title="Версии" active={showVersions}>
             <History size={16} />
           </Tool>
@@ -201,7 +206,13 @@ function Editor({ project, onReload }: { project: ProjectFull; onReload: () => P
           <Stage ref={stage} />
         </div>
         <div className="w-72 shrink-0 border-l border-line bg-panel">
-          {showVersions ? <Versions projectId={project.id} onRestored={onReload} onClose={() => setShowVersions(false)} /> : <Inspector />}
+          {panel === "versions" ? (
+            <Versions projectId={project.id} onRestored={onReload} onClose={() => setPanel("inspector")} />
+          ) : panel === "youtube" ? (
+            <YoutubePanel project={project} onClose={() => setPanel("inspector")} />
+          ) : (
+            <Inspector />
+          )}
         </div>
       </div>
 
@@ -305,5 +316,69 @@ function Tool({ children, onClick, title, disabled, active }: { children: React.
     <button onClick={onClick} title={title} disabled={disabled} className={cn("rounded-lg p-1.5 hover:bg-panel-2 disabled:opacity-30", active ? "text-verde-2" : "text-mute hover:text-ink")}>
       {children}
     </button>
+  );
+}
+
+/** Пакет для YouTube: 3 обложки (для «Test & Compare»), варианты названия, описание с главами, теги, хештеги. */
+function YoutubePanel({ project, onClose }: { project: ProjectFull; onClose: () => void }) {
+  const qc = useQueryClient();
+  const yt = project.meta?.youtube ?? {};
+  const regen = useMutation({
+    mutationFn: () => api.regenYoutube(project.id),
+    onSuccess: () => (toast.success("Обложки и тексты обновлены"), void qc.invalidateQueries({ queryKey: ["project", project.id] })),
+    onError: onErr,
+  });
+  const block = (label: string, text: string, rows = 1) =>
+    text ? (
+      <div className="grid gap-1">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-bold text-mute">{label}</span>
+          <CopyButton text={text} label="копировать" />
+        </div>
+        {rows > 1 ? (
+          <textarea readOnly rows={rows} value={text} className="w-full rounded-md border border-line bg-panel-2 px-2 py-1 text-[11px]" />
+        ) : (
+          <div className="rounded-md bg-panel-2 px-2 py-1 text-xs">{text}</div>
+        )}
+      </div>
+    ) : null;
+  return (
+    <div className="h-full overflow-auto p-3">
+      <div className="mb-3 flex items-center justify-between">
+        <span className="font-display text-sm font-semibold">YouTube</span>
+        <button onClick={onClose} className="text-xs text-mute hover:text-ink">
+          закрыть
+        </button>
+      </div>
+      <button
+        onClick={() => regen.mutate()}
+        disabled={regen.isPending}
+        className="mb-3 flex w-full items-center justify-center gap-1.5 rounded-md bg-verde px-2 py-1.5 text-xs font-bold text-white hover:bg-verde-2 disabled:opacity-60"
+      >
+        {regen.isPending ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} {regen.isPending ? "Генерирую… (~1 мин)" : yt.title ? "Перегенерировать" : "Сгенерировать"}
+      </button>
+      {yt.thumbnails?.length ? (
+        <div className="mb-3 grid gap-2">
+          <span className="text-[10px] font-bold text-mute">Обложки — загрузи все три в YouTube Studio → «Test & Compare», YouTube сам выберет лучшую</span>
+          {yt.thumbnails.map((u, i) => (
+            <a key={u} href={u} download={`thumbnail-${i + 1}.png`} className="group relative block overflow-hidden rounded-lg border border-line" title="Скачать png 1280×720">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={u} alt={`обложка ${i + 1}`} className="w-full" />
+              <span className="absolute right-1 bottom-1 hidden rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-bold group-hover:block">
+                <Download size={10} className="mr-0.5 inline" />
+                скачать
+              </span>
+            </a>
+          ))}
+        </div>
+      ) : null}
+      <div className="grid gap-3">
+        {(yt.titles ?? (yt.title ? [yt.title] : [])).map((t, i) => block(`Название${(yt.titles?.length ?? 0) > 1 ? ` · вариант ${i + 1}` : ""}`, t))}
+        {block("Описание (с главами)", yt.description ?? "", 10)}
+        {block("Теги (через запятую)", (yt.tags ?? []).join(", "), 3)}
+        {block("Хештеги", (yt.hashtags ?? []).join(" "))}
+        {!yt.title ? <p className="text-[11px] text-mute">Пакет ещё не создан — нажми «Сгенерировать».</p> : null}
+      </div>
+    </div>
   );
 }

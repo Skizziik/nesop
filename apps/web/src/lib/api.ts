@@ -155,7 +155,17 @@ export interface Project {
 
 export interface ProjectFull extends Project {
   doc: TimelineDoc | Record<string, never>;
-  meta: { title?: string; description?: string; tags?: string[]; spell?: unknown } & Record<string, unknown>;
+  meta: { title?: string; description?: string; tags?: string[]; spell?: unknown; youtube?: Partial<YoutubePack> } & Record<string, unknown>;
+}
+
+export interface YoutubePack {
+  title: string;
+  titles: string[];
+  description: string;
+  tags: string[];
+  hashtags: string[];
+  chapters: string[];
+  thumbnails: string[];
 }
 
 export interface ProjectVersion {
@@ -301,6 +311,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ clip_id, base_revision }),
     }),
+  regenYoutube: (id: string) => request<{ youtube: YoutubePack }>(`/api/projects/${id}/youtube`, { method: "POST" }),
   projectVersions: (id: string) => request<ProjectVersion[]>(`/api/projects/${id}/versions`),
   restoreVersion: (id: string, vid: string) => request<Project>(`/api/projects/${id}/versions/${vid}/restore`, { method: "POST" }),
   renderProject: (id: string) => request<Project>(`/api/projects/${id}/render`, { method: "POST" }),

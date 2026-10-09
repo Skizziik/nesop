@@ -228,6 +228,9 @@ const fmtDur = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)
 function ProjectThumb({ id }: { id: string }) {
   const { data } = useQuery({ queryKey: ["project", id], queryFn: () => api.project(id), staleTime: 30_000 });
   const doc = data?.doc && "tracks" in data.doc ? (data.doc as TimelineDoc) : null;
+  const cover = data?.meta?.youtube?.thumbnails?.[0];
+  // eslint-disable-next-line @next/next/no-img-element
+  if (cover) return <img src={cover} alt="" className="h-full w-full object-cover" />;
   if (!doc) return <Film className="text-mute" />;
   const frames = docFrames(doc);
   return (

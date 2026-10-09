@@ -7,6 +7,7 @@ import type { TimelineDoc } from "./generated";
 import { TimelineVideo } from "./timeline/Timeline";
 import { SAMPLE_TIMELINE } from "./timeline/sample";
 import { docFrames } from "./timeline/types";
+import { Thumbnail, THUMBNAIL_ID, THUMB_H, THUMB_W } from "./timeline/Thumbnail";
 
 export const TIMELINE_ID = "Timeline";
 
@@ -29,6 +30,15 @@ const calculateMetadata: CalculateMetadataFunction<AnyProps> = ({ props }) => {
 export const RemotionRoot: React.FC = () => (
   <>
   <Composition id="MascotGallery" component={MascotGallery} durationInFrames={90} fps={30} width={1920} height={1080} />
+  <Composition
+    id={THUMBNAIL_ID}
+    component={Thumbnail as unknown as React.FC<AnyProps>}
+    durationInFrames={1}
+    fps={30}
+    width={THUMB_W}
+    height={THUMB_H}
+    defaultProps={{ text: "Essere o avere?", highlight: "avere", sub: "Learn Italian", badge: "A2", mascot: "espresso", emotion: "surprised", variant: 0 }}
+  />
   <Composition
     id={TIMELINE_ID}
     component={TimelineVideo as unknown as React.FC<AnyProps>}

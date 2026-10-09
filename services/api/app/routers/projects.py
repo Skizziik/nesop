@@ -218,6 +218,20 @@ async def revoice(pid: str, body: RevoiceIn, s: Session) -> dict[str, Any]:
     return out | {"doc": (await s.get(Project, pid)).doc, "revoice": {k: res[k] for k in ("score", "heard", "take", "duration")}}  # type: ignore[union-attr]
 
 
+@router.post("/projects/{pid}/youtube")
+async def regen_youtube(pid: str, s: Session) -> dict[str, Any]:
+    """Пересобрать обложки и тексты для YouTube (после правок лекции: новые главы, другой маскот)."""
+    from ..pipeline.youtube import build_youtube
+
+    p = await s.get(Project, pid)
+    if p is None:
+        raise HTTPException(404, "Проект не найден")
+    if not p.doc:
+        raise HTTPException(409, "Проект ещё генерируется")
+    yt = await build_youtube(pid)
+    return {"youtube": yt}
+
+
 @router.get("/projects/{pid}/versions")
 async def versions(pid: str, s: Session) -> list[dict[str, Any]]:
     rows = (await s.scalars(select(ProjectVersion).where(ProjectVersion.project_id == pid).order_by(ProjectVersion.revision.desc()))).all()

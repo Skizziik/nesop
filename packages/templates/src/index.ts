@@ -12,6 +12,7 @@ export { STICKER_NAMES } from "./components/Sticker";
 export { mouthState, blinking } from "./components/Avatar";
 export { TIMELINE_ID } from "./Root";
 export { TimelineVideo } from "./timeline/Timeline";
+export { Thumbnail, THUMBNAIL_ID, THUMB_W, THUMB_H, type ThumbnailProps } from "./timeline/Thumbnail";
 export { SAMPLE_TIMELINE } from "./timeline/sample";
 export { MASCOTS, MASCOT_IDS, Mascot } from "./components/Mascots";
 export type { Emotion } from "./components/Mascots";

@@ -133,6 +133,32 @@ app.post("/render", (req, res) => {
   }
 });
 
+/** Один кадр в png (обложки YouTube): синхронно, без очереди видео — рендер кадра занимает секунды. */
+const STILLS = new Set(["Thumbnail", "Timeline", COMPOSITION_ID]);
+app.post("/still", async (req, res) => {
+  const { props, out, composition, frame } = req.body as { props?: Record<string, unknown>; out?: string; composition?: string; frame?: number };
+  if (!props || !out || !composition || !STILLS.has(composition)) {
+    res.status(400).json({ error: "нужны props, out и composition (Thumbnail | Timeline | Short)" });
+    return;
+  }
+  if (!serveUrl) {
+    res.status(503).json({ error: bundleError ?? "бандл шаблонов ещё не готов" });
+    return;
+  }
+  try {
+    const output = safeOutDir(out);
+    await mkdir(join(output, ".."), { recursive: true });
+    const inputProps = { ...props, asset_base: ASSET_BASE };
+    const puppeteerInstance = await getBrowser();
+    const comp = await selectComposition({ serveUrl, id: composition, inputProps, puppeteerInstance, timeoutInMilliseconds: TIMEOUT_MS });
+    await renderStill({ serveUrl, composition: comp, inputProps, frame: Math.min(comp.durationInFrames - 1, Math.max(0, frame ?? 0)), output, imageFormat: "png", puppeteerInstance, timeoutInMilliseconds: 60_000 });
+    res.json({ ok: true, out });
+  } catch (e) {
+    log("warn", "still failed", { error: String(e).slice(0, 300) });
+    res.status(500).json({ error: e instanceof Error ? e.message : String(e) });
+  }
+});
+
 /** Видео ведущей на зелёном фоне → webm VP9 с альфа-каналом (Chromium в Remotion умеет прозрачный webm). */
 app.post("/avatar/convert", async (req, res) => {
   const { src, out, color } = req.body as { src?: string; out?: string; color?: string };

@@ -29,6 +29,19 @@ async def tts_synthesize(text: str, model: str, voice: str | None, speed: float,
     raise ServiceError("TTS: голос не установился за 5 минут")
 
 
+async def still(props: dict[str, Any], out_rel: str, composition: str = "Thumbnail", frame: int = 0) -> str:
+    """Один кадр через рендерер (обложки). out_rel — путь относительно /data."""
+    st = get_settings()
+    try:
+        async with httpx.AsyncClient(timeout=180) as c:
+            r = await c.post(f"{st.renderer_url}/still", json={"props": props, "out": out_rel, "composition": composition, "frame": frame})
+    except httpx.HTTPError as e:
+        raise ServiceError(f"Renderer недоступен: {type(e).__name__}") from e
+    if r.status_code >= 400:
+        raise ServiceError(f"Renderer: {r.status_code} {r.text[:300]}")
+    return out_rel
+
+
 async def tts_transcribe(path: str, language: str = "it") -> str | None:
     """Whisper в TTS-сервисе. None — проверка недоступна (Qwen3 не установлен) — тогда просто пропускаем."""
     st = get_settings()
