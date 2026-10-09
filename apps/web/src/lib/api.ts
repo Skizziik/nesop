@@ -66,7 +66,6 @@ export interface Video {
   meta: Partial<VideoMeta>;
   hook_text: string;
   video_url: string | null;
-  video_stale?: boolean; // есть правки после последнего рендера
   cover_url: string | null;
   published_manually: boolean;
   published_url: string | null;
@@ -148,6 +147,7 @@ export interface Project {
   revision: number;
   duration_s: number | null;
   video_url: string | null;
+  video_stale?: boolean; // есть правки после последнего рендера
   cover_url: string | null;
   created_at: string;
   updated_at: string;
