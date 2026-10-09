@@ -295,6 +295,11 @@ export const api = {
   createLecture: (body: LectureInput) => request<Project>("/api/projects/lecture", { method: "POST", body: JSON.stringify(body) }),
   saveProject: (id: string, body: { doc: TimelineDoc; title?: string; note?: string; base_revision?: number }) =>
     request<Project>(`/api/projects/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  revoiceSentence: (id: string, clip_id: string, base_revision: number) =>
+    request<ProjectFull & { revoice: { score: number; heard: string; take: number; duration: number } }>(`/api/projects/${id}/revoice`, {
+      method: "POST",
+      body: JSON.stringify({ clip_id, base_revision }),
+    }),
   projectVersions: (id: string) => request<ProjectVersion[]>(`/api/projects/${id}/versions`),
   restoreVersion: (id: string, vid: string) => request<Project>(`/api/projects/${id}/versions/${vid}/restore`, { method: "POST" }),
   renderProject: (id: string) => request<Project>(`/api/projects/${id}/render`, { method: "POST" }),

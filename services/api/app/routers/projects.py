@@ -14,6 +14,8 @@ from ..db import get_session, new_id
 from ..llm.generate import get_provider
 from ..llm.providers import LLMError
 from ..models import Project, ProjectVersion, Video
+from ..pipeline.clients import ServiceError
+from ..pipeline.revoice import RevoiceError, revoice_sentence
 from ..schemas_gen.timeline import TimelineDoc
 from ..worker import enqueue
 
@@ -180,6 +182,32 @@ async def save_project(pid: str, body: SaveIn, s: Session) -> dict[str, Any]:
         await s.execute(delete(ProjectVersion).where(ProjectVersion.id.in_(old)))
     await s.commit()
     return project_out(p)
+
+
+class RevoiceIn(BaseModel):
+    clip_id: str
+    base_revision: int | None = None
+
+
+@router.post("/projects/{pid}/revoice")
+async def revoice(pid: str, body: RevoiceIn, s: Session) -> dict[str, Any]:
+    """Переозвучить одну фразу (клип субтитров): новый дубль голоса вклеивается на место старого, сохраняется новой ревизией."""
+    p = await s.get(Project, pid)
+    if p is None:
+        raise HTTPException(404, "Проект не найден")
+    if p.status in ("generating", "rendering"):
+        raise HTTPException(409, "Проект сейчас генерируется или рендерится — дождись окончания")
+    if body.base_revision is not None and body.base_revision != p.revision:
+        raise HTTPException(409, "Проект изменился — сначала сохрани правки")
+    try:
+        res = await revoice_sentence(s, p, body.clip_id)
+    except RevoiceError as e:
+        raise HTTPException(400, str(e)) from e
+    except ServiceError as e:
+        raise HTTPException(502, f"Озвучка не удалась: {e}") from e
+    text = next((c["props"].get("text", "") for t in res["doc"]["tracks"] for c in t["clips"] if c["id"] == body.clip_id), "")
+    out = await save_project(pid, SaveIn(doc=res["doc"], note=f"переозвучка: {text[:60]}", base_revision=p.revision), s)
+    return out | {"doc": (await s.get(Project, pid)).doc, "revoice": {k: res[k] for k in ("score", "heard", "take", "duration")}}  # type: ignore[union-attr]
 
 
 @router.get("/projects/{pid}/versions")

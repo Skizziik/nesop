@@ -184,7 +184,7 @@ async def default_voice(s: AsyncSession) -> dict[str, Any] | None:
     return dict(row.value) if row and row.value else None
 
 
-async def synth_track(script: dict[str, Any], voice_cfg: dict[str, Any], timing: TimingConfig | None = None) -> tuple[Track, dict[str, Any]]:
+async def synth_track(script: dict[str, Any], voice_cfg: dict[str, Any], timing: TimingConfig | None = None, verify: bool = True) -> tuple[Track, dict[str, Any]]:
     """Озвучка построчно (кеш на стороне tts) → обрезка тишины → сборка дорожки по таймлайну.
     voice_cfg["variants"] = {"item:3": 2} — номер дубля для отдельных строк."""
     st = get_settings()
@@ -195,16 +195,36 @@ async def synth_track(script: dict[str, Any], voice_cfg: dict[str, Any], timing:
     variants: dict[str, int] = voice_cfg.get("variants") or {}
     clips = {}
     cached = 0
+    # проверка произношения (Whisper в движке Qwen): фразы от 2 слов, дубль не выбран вручную; одиночные слова Whisper распознаёт ненадёжно
+    check = verify and voice_cfg.get("model") == "qwen3"
+    redone, still_bad = 0, []
     for seg in segs:
         if not seg.text:
             continue
         speed = min(max(float(voice_cfg.get("speed", 1.0)) * seg.speed, 0.5), 1.5)
-        r = await clients.tts_synthesize(seg.text, voice_cfg["model"], voice_cfg.get("voice"), round(speed, 3), int(variants.get(seg.key, 0)),
-                                         voice_cfg.get("ref_audio"), voice_cfg.get("ref_text"), voice_cfg.get("design"))
-        cached += bool(r["cached"])
-        clips[seg.key] = trim_silence(load_mono(st.data_dir / r["path"].lstrip("/")))
+        manual = seg.key in variants
+        tries = 3 if check and not manual and len(seg.text.split()) >= 2 else 1
+        best: tuple[float, dict[str, Any]] | None = None
+        for k in range(tries):
+            r = await clients.tts_synthesize(seg.text, voice_cfg["model"], voice_cfg.get("voice"), round(speed, 3), int(variants.get(seg.key, 0)) + k,
+                                             voice_cfg.get("ref_audio"), voice_cfg.get("ref_text"), voice_cfg.get("design"))
+            if tries == 1:
+                best = (1.0, r)
+                break
+            heard = await clients.tts_transcribe(r["path"], "it")
+            score = clients.speech_match(seg.text, heard, "it") if heard is not None else 1.0
+            redone += k > 0
+            if best is None or score > best[0]:
+                best = (score, r)
+            if heard is None or score >= 0.8:
+                break
+        assert best is not None
+        if best[0] < 0.8:
+            still_bad.append({"key": seg.key, "text": seg.text, "score": round(best[0], 2)})
+        cached += bool(best[1]["cached"])
+        clips[seg.key] = trim_silence(load_mono(st.data_dir / best[1]["path"].lstrip("/")))
     track = assemble(segs, clips, timing.lead_in)
-    return track, {"segments": len(segs), "synthesized": len(clips), "cached": cached}
+    return track, {"segments": len(segs), "synthesized": len(clips), "cached": cached, "redone": redone, "still_bad": still_bad}
 
 
 async def pick_music(s: AsyncSession, seed: int, series: Series | None) -> str | None:

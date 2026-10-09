@@ -1,6 +1,6 @@
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import type { Palette } from "../generated";
-import { activeMark, type SlideProps } from "./types";
+import { activeMark, type SlideElement, type SlideProps } from "./types";
 
 /** Слайд лекции. Размеры — от высоты бокса (k = h/1080), поэтому слайд работает и в 16:9, и в 9:16. */
 export function Slide({ p, pal, font, w, h }: { p: SlideProps; pal: Palette; font: string; w: number; h: number }) {
@@ -12,12 +12,22 @@ export function Slide({ p, pal, font, w, h }: { p: SlideProps; pal: Palette; fon
   const act = activeMark(p.marks, t);
   const pop = (since: number) => spring({ frame: Math.round(since * fps), fps, config: { damping: 12, stiffness: 160 } });
   const enter = pop(t);
+  // элементы слайда можно двигать и масштабировать в редакторе: props.layout[имя] = {dx, dy — доли бокса; s — масштаб}
+  const el = (name: SlideElement, node: React.ReactNode, style?: React.CSSProperties) => {
+    const l = p.layout?.[name];
+    const tr = l ? `translate(${(l.dx ?? 0) * w}px, ${(l.dy ?? 0) * h}px) scale(${l.s ?? 1})` : undefined;
+    return (
+      <div data-el={name} style={{ ...style, transform: tr, transformOrigin: "top left" }}>
+        {node}
+      </div>
+    );
+  };
 
   const header = (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 * k, marginBottom: 34 * k, transform: `translateY(${(1 - enter) * 30 * k}px)`, opacity: enter }}>
-      {p.chapter ? <div style={{ fontSize: 30 * k, fontWeight: 800, color: pal.accent, letterSpacing: 3 * k, textTransform: "uppercase" }}>{p.chapter}</div> : null}
-      <div style={{ fontSize: (p.kind === "title" ? 96 : 64) * k, fontWeight: 800, lineHeight: 1.08, color: "#fff" }}>{p.title}</div>
-      {p.subtitle ? <div style={{ fontSize: 36 * k, fontWeight: 700, color: "rgba(255,255,255,0.75)" }}>{p.subtitle}</div> : null}
+      {p.chapter ? el("chapter", <div style={{ fontSize: 30 * k, fontWeight: 800, color: pal.accent, letterSpacing: 3 * k, textTransform: "uppercase" }}>{p.chapter}</div>) : null}
+      {el("title", <div style={{ fontSize: (p.kind === "title" ? 96 : 64) * k, fontWeight: 800, lineHeight: 1.08, color: "#fff" }}>{p.title}</div>)}
+      {p.subtitle ? el("subtitle", <div style={{ fontSize: 36 * k, fontWeight: 700, color: "rgba(255,255,255,0.75)" }}>{p.subtitle}</div>) : null}
     </div>
   );
 
@@ -164,7 +174,7 @@ export function Slide({ p, pal, font, w, h }: { p: SlideProps; pal: Palette; fon
         }}
       >
         {header}
-        {body}
+        {body ? el("body", body) : null}
       </div>
     </div>
   );

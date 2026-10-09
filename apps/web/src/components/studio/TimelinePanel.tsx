@@ -42,6 +42,26 @@ export function TimelinePanel({ onSeek }: { onSeek: (t: number) => void }) {
     if (x < el.scrollLeft || x > el.scrollLeft + el.clientWidth - HEAD_W - 40) el.scrollLeft = Math.max(0, x - 80);
   }, [playhead, playing, zoom]);
 
+  // Ctrl+колесо — зум таймлайна вокруг курсора. Нативный слушатель с passive:false: у React onWheel пассивный,
+  // preventDefault не срабатывает и браузер масштабирует всю страницу.
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      const st = useStudio.getState();
+      const r = el.getBoundingClientRect();
+      const px = Math.max(0, e.clientX - r.left - HEAD_W);
+      const t = (px + el.scrollLeft) / st.zoom;
+      const next = Math.min(400, Math.max(4, st.zoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15)));
+      st.setZoom(next);
+      requestAnimationFrame(() => (el.scrollLeft = Math.max(0, t * next - px)));
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
   const timeAt = (clientX: number) => {
     const el = scroller.current!;
     const r = el.getBoundingClientRect();
@@ -116,17 +136,11 @@ export function TimelinePanel({ onSeek }: { onSeek: (t: number) => void }) {
         ref={scroller}
         data-scroller
         className="relative min-h-0 flex-1 overflow-auto"
-        onWheel={(e) => {
-          if (e.ctrlKey || e.metaKey) {
-            e.preventDefault();
-            setZoom(zoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15));
-          }
-        }}
       >
         <div style={{ width: width + HEAD_W }} className="relative">
           {/* линейка */}
-          <div className="sticky top-0 z-20 flex h-7 border-b border-line bg-panel-2">
-            <div className="sticky left-0 z-30 shrink-0 border-r border-line bg-panel-2" style={{ width: HEAD_W }} />
+          <div className="sticky top-0 z-30 flex h-7 border-b border-line bg-panel-2">
+            <div className="sticky left-0 z-40 shrink-0 border-r border-line bg-panel-2" style={{ width: HEAD_W }} />
             <div data-ruler data-zoom={zoom} className="relative flex-1 cursor-pointer" onPointerDown={(e) => (onSeek(timeAt(e.clientX)), setDrag({ mode: "playhead" }))}>
               {ticks.map((t) => (
                 <div key={t} className="absolute top-0 h-full border-l border-line/70 pl-1 text-[10px] text-mute" style={{ left: t * zoom }}>
@@ -138,7 +152,7 @@ export function TimelinePanel({ onSeek }: { onSeek: (t: number) => void }) {
           {/* дорожки: в документе первая — нижняя, на экране показываем верхнюю сверху */}
           {[...doc.tracks].reverse().map((tr) => (
             <div key={tr.id} data-track={tr.id} className={cn("flex border-b border-line/60", tr.hidden && "opacity-50")} style={{ height: ROW_H[tr.kind] }}>
-              <div className="sticky left-0 z-10 flex shrink-0 items-center gap-1 border-r border-line bg-panel px-2 text-xs" style={{ width: HEAD_W }}>
+              <div className="sticky left-0 z-20 flex shrink-0 items-center gap-1 border-r border-line bg-panel px-2 text-xs" style={{ width: HEAD_W }}>
                 <input
                   value={tr.name}
                   onChange={(e) => updateTrack(tr.id, { name: e.target.value })}
@@ -207,7 +221,7 @@ export function TimelinePanel({ onSeek }: { onSeek: (t: number) => void }) {
             </div>
           ))}
           {/* плейхед */}
-          <div className="pointer-events-none absolute top-0 bottom-0 z-30 w-px bg-rosso" style={{ left: HEAD_W + playhead * zoom }}>
+          <div className="pointer-events-none absolute top-0 bottom-0 z-[15] w-px bg-rosso" style={{ left: HEAD_W + playhead * zoom }}>
             <div className="pointer-events-auto absolute -top-0 -left-1.5 h-3 w-3 cursor-ew-resize rounded-sm bg-rosso" onPointerDown={() => setDrag({ mode: "playhead" })} />
           </div>
           {/* конец ролика */}

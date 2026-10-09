@@ -534,7 +534,7 @@ async def build_lecture(project_id: str) -> None:
                             "start": round(x.start, 3),
                             "duration": round(max(x.end - x.start, 0.4) + 0.15, 3),
                             "label": x.it[:30],
-                            "props": {"text": x.it, "tr": x.tr, "words": _word_times(x.it, x.end - x.start)},
+                            "props": {"text": x.it, "tr": x.tr, "lang": x.lang, "words": _word_times(x.it, x.end - x.start)},
                         }
                         for k, x in enumerate(all_sents)
                     ],

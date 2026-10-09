@@ -1,9 +1,9 @@
 "use client";
 
 import { Player, type PlayerRef } from "@remotion/player";
-import { clipsAt, docFrames, TimelineVideo, type Clip } from "@ipt/templates";
+import { clipsAt, docFrames, SLIDE_ELEMENT_LABEL, TimelineVideo, type Clip, type SlideElement, type SlideProps } from "@ipt/templates";
 import { ChevronLeft, ChevronRight, Grid3x3, Pause, Play, SkipBack, SkipForward } from "lucide-react";
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { cn } from "../ui";
 import { fmtTime, useStudio } from "./store";
 
@@ -16,7 +16,7 @@ const NO_BOX: Clip["type"][] = ["audio", "subtitle"];
 
 export const Stage = forwardRef<StageHandle>(function Stage(_, ref) {
   const doc = useStudio((s) => s.doc)!;
-  const { playhead, setPlayhead, setPlaying, playing, selected, select, updateClip } = useStudio();
+  const { playhead, setPlayhead, setPlaying, playing, selected, select, updateClip, updateProps, commit } = useStudio();
   const player = useRef<PlayerRef>(null);
   const box = useRef<HTMLDivElement>(null);
   const [safe, setSafe] = useState(false);
@@ -55,6 +55,73 @@ export const Stage = forwardRef<StageHandle>(function Stage(_, ref) {
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  // элементы внутри выделенного слайда и блок субтитров — меряем по DOM плеера (он рендерится в той же странице)
+  const [els, setEls] = useState<{ name: string; x: number; y: number; w: number; h: number }[]>([]);
+  const [subBox, setSubBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const selSlide = selected.length === 1 ? doc.tracks.flatMap((t) => t.clips).find((c) => c.id === selected[0] && c.type === "slide") : undefined;
+  useLayoutEffect(() => {
+    const root = box.current;
+    if (!root) return;
+    const measure = () => {
+      const R = root.getBoundingClientRect();
+      const rel = (n: Element) => {
+        const r = n.getBoundingClientRect();
+        return { x: r.left - R.left, y: r.top - R.top, w: r.width, h: r.height };
+      };
+      setEls(selSlide ? Array.from(root.querySelectorAll(`[data-clip-id="${selSlide.id}"] [data-el]`)).map((n) => ({ name: (n as HTMLElement).dataset.el!, ...rel(n) })) : []);
+      const sb = root.querySelector('[data-el="subtitles"]');
+      setSubBox(sb ? rel(sb) : null);
+    };
+    const id = requestAnimationFrame(measure);
+    return () => cancelAnimationFrame(id);
+  }, [doc, playhead, selSlide, size]);
+
+  const dragEl = (e: React.PointerEvent, clip: Clip, name: SlideElement, mode: "move" | "scale", elW: number) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const sx = e.clientX;
+    const sy = e.clientY;
+    const lay = ((clip.props as unknown as SlideProps).layout ?? {}) as NonNullable<SlideProps["layout"]>;
+    const o = { dx: lay[name]?.dx ?? 0, dy: lay[name]?.dy ?? 0, s: lay[name]?.s ?? 1 };
+    const bw = (clip.w ?? 1) * size.w;
+    const bh = (clip.h ?? 1) * size.h;
+    const r = (v: number) => Math.round(v * 10000) / 10000;
+    const onMove = (ev: PointerEvent) => {
+      const next =
+        mode === "move"
+          ? { ...o, dx: r(o.dx + (ev.clientX - sx) / bw), dy: r(o.dy + (ev.clientY - sy) / bh) }
+          : { ...o, s: r(Math.max(0.3, Math.min(3, o.s * (1 + (ev.clientX - sx) / Math.max(40, elW))))) };
+      const cur = ((useStudio.getState().doc?.tracks.flatMap((t) => t.clips).find((c) => c.id === clip.id)?.props as unknown as SlideProps)?.layout ?? {}) as Record<string, unknown>;
+      updateProps(clip.id, { layout: { ...cur, [name]: next } }, `el-${clip.id}-${name}`);
+    };
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  };
+
+  // субтитры: перетаскивание меняет общий стиль (для всего ролика)
+  const dragSubs = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const sx = e.clientX;
+    const sy = e.clientY;
+    const st = doc.subtitle_style ?? {};
+    const o = { x: st.x ?? 0.5, y: st.y ?? 0.88 };
+    const onMove = (ev: PointerEvent) => {
+      const r = (v: number) => Math.round(Math.min(0.98, Math.max(0.02, v)) * 1000) / 1000;
+      commit((d) => (d.subtitle_style = { ...(d.subtitle_style ?? {}), x: r(o.x + (ev.clientX - sx) / size.w), y: r(o.y + (ev.clientY - sy) / size.h) }), "subs-drag");
+    };
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  };
 
   const visible = useMemo(() => clipsAt(doc, playhead).filter(({ clip }) => !NO_BOX.includes(clip.type)), [doc, playhead]);
   const locked = useMemo(() => new Set(doc.tracks.filter((t) => t.locked).map((t) => t.id)), [doc]);
@@ -127,6 +194,28 @@ export const Stage = forwardRef<StageHandle>(function Stage(_, ref) {
               </div>
             );
           })}
+          {selSlide
+            ? els.map((b) => (
+                <div
+                  key={b.name}
+                  className="pointer-events-auto absolute cursor-move border border-dashed border-sky-300/80 hover:bg-sky-300/10"
+                  style={{ left: b.x, top: b.y, width: b.w, height: b.h }}
+                  onPointerDown={(e) => dragEl(e, selSlide, b.name as SlideElement, "move", b.w)}
+                  title={`${SLIDE_ELEMENT_LABEL[b.name as SlideElement] ?? b.name}: тяни, чтобы сдвинуть; уголок — масштаб`}
+                >
+                  <div className="absolute -top-4 left-0 rounded bg-sky-300 px-1 text-[9px] font-bold text-black">{SLIDE_ELEMENT_LABEL[b.name as SlideElement] ?? b.name}</div>
+                  <div className="absolute -right-1.5 -bottom-1.5 h-3 w-3 cursor-nwse-resize rounded-sm border border-black bg-sky-300" onPointerDown={(e) => dragEl(e, selSlide, b.name as SlideElement, "scale", b.w)} />
+                </div>
+              ))
+            : null}
+          {subBox ? (
+            <div
+              className="pointer-events-auto absolute cursor-move rounded hover:outline hover:outline-1 hover:outline-dashed hover:outline-emerald-300"
+              style={{ left: subBox.x, top: subBox.y, width: subBox.w, height: subBox.h }}
+              onPointerDown={dragSubs}
+              title="Субтитры: тяни, чтобы сдвинуть для всего ролика"
+            />
+          ) : null}
           {safe ? <SafeArea portrait={portrait} /> : null}
         </div>
       </div>

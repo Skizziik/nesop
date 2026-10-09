@@ -20,7 +20,12 @@ export interface SlideProps {
   /** Для квиза: начало таймера и момент ответа (сек от начала клипа). */
   countdown_at?: number;
   reveal_at?: number;
+  /** Ручное положение элементов (редактор): смещение в долях бокса слайда и масштаб. */
+  layout?: Partial<Record<SlideElement, { dx?: number; dy?: number; s?: number }>>;
 }
+
+export type SlideElement = "chapter" | "title" | "subtitle" | "body";
+export const SLIDE_ELEMENT_LABEL: Record<SlideElement, string> = { chapter: "надзаголовок", title: "заголовок", subtitle: "подзаголовок", body: "содержимое" };
 
 export interface ShortClipProps {
   render_props: RenderProps;

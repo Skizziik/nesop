@@ -257,7 +257,7 @@ async def preview(vid: str, body: EditIn, s: Session) -> dict[str, Any]:
     theme = body.theme or await _theme(s, v, ser)
     vcfg = voice_config({**(v.voice or {}), **(body.voice or {})}, ser.voice if ser else None, await default_voice(s))
     try:
-        track, stats = await synth_track(script, vcfg)
+        track, stats = await synth_track(script, vcfg, verify=False)  # живое превью — без проверки Whisper, чтобы не тормозить
     except ServiceError as e:
         raise HTTPException(503, f"Озвучка недоступна: {e}") from e
     st = get_settings()
