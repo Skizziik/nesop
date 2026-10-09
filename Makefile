@@ -31,8 +31,10 @@ test-api:
 test-tts:
 	$(COMPOSE) exec -T tts-$${COMPOSE_PROFILES:-cpu} sh -c "pytest -q && ruff check app tests && mypy app"
 
+# шаблоны и рендерер — в образе рендерера; веб — локально (в образе рендерера зависимостей веба нет)
 test-ts:
-	$(COMPOSE) run --rm --no-deps -T --entrypoint sh renderer -c "cd /repo && pnpm -r run typecheck && pnpm -r run test && pnpm codegen --check"
+	$(COMPOSE) run --rm --no-deps -T --entrypoint sh renderer -c "cd /repo && pnpm --filter '!@ipt/web' -r run typecheck && pnpm --filter '!@ipt/web' -r run test && pnpm codegen --check"
+	cd apps/web && npx tsc -p tsconfig.json --noEmit && npx vitest run
 
 test-golden:
 	$(COMPOSE) run --rm --no-deps -T --entrypoint sh renderer -c "cd /repo/apps/renderer && GOLDEN=1 UPDATE_GOLDEN=$${UPDATE_GOLDEN:-0} npx vitest run test/golden.test.ts"
