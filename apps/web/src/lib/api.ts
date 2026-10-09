@@ -66,6 +66,7 @@ export interface Video {
   meta: Partial<VideoMeta>;
   hook_text: string;
   video_url: string | null;
+  video_stale?: boolean; // есть правки после последнего рендера
   cover_url: string | null;
   published_manually: boolean;
   published_url: string | null;

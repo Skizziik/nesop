@@ -116,7 +116,7 @@ export function Projects() {
                 <div className="flex items-center gap-1 border-t border-line px-2 py-1">
                   {p.video_url ? (
                     <a href={p.video_url} download className="rounded px-2 py-1 text-xs font-bold text-verde-2 hover:bg-panel">
-                      скачать mp4
+                      скачать mp4{p.video_stale ? " (до правок)" : ""}
                     </a>
                   ) : null}
                   <button onClick={() => dup.mutate(p.id)} className="ml-auto rounded p-1.5 text-mute hover:bg-panel hover:text-ink" title="Дублировать">

@@ -168,9 +168,14 @@ function Editor({ project, onReload }: { project: ProjectFull; onReload: () => P
           <Tool onClick={() => setShowVersions((v) => !v)} title="Версии" active={showVersions}>
             <History size={16} />
           </Tool>
-          {project.video_url && project.status === "ready" ? (
-            <a href={project.video_url} download className="ml-1 inline-flex items-center gap-1 rounded-xl border border-line px-3 py-1.5 text-sm font-bold hover:bg-panel-2">
-              <Download size={15} /> mp4
+          {project.video_url && project.status !== "rendering" ? (
+            <a
+              href={project.video_url}
+              download
+              title={project.video_stale ? "Последний рендер — без правок, сделанных после него. Нажми «Рендер», чтобы обновить" : "Скачать готовое видео"}
+              className="ml-1 inline-flex items-center gap-1 rounded-xl border border-line px-3 py-1.5 text-sm font-bold hover:bg-panel-2"
+            >
+              <Download size={15} /> mp4{project.video_stale ? " (до правок)" : ""}
             </a>
           ) : null}
           <Button className="ml-1 py-1.5" onClick={() => render.mutate()} disabled={busy || render.isPending}>

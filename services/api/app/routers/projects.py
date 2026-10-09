@@ -37,7 +37,9 @@ def project_out(p: Project, full: bool = False) -> dict[str, Any]:
         "params": p.params,
         "revision": p.revision,
         "duration_s": (p.doc or {}).get("duration_s"),
-        "video_url": f"/media{p.out_dir}/video.mp4" if p.out_dir and p.status == "ready" else None,
+        # последний рендер доступен и после правок (статус draft): иначе готовое видео «пропадает» из интерфейса
+        "video_url": f"/media{p.out_dir}/video.mp4" if p.out_dir else None,
+        "video_stale": bool(p.out_dir) and p.status != "ready",
         "cover_url": f"/media{p.out_dir}/cover.png" if p.out_dir else None,
         "created_at": p.created_at.isoformat(),
         "updated_at": p.updated_at.isoformat(),
