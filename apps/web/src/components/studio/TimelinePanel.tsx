@@ -114,6 +114,7 @@ export function TimelinePanel({ onSeek }: { onSeek: (t: number) => void }) {
       </div>
       <div
         ref={scroller}
+        data-scroller
         className="relative min-h-0 flex-1 overflow-auto"
         onWheel={(e) => {
           if (e.ctrlKey || e.metaKey) {
@@ -126,7 +127,7 @@ export function TimelinePanel({ onSeek }: { onSeek: (t: number) => void }) {
           {/* линейка */}
           <div className="sticky top-0 z-20 flex h-7 border-b border-line bg-panel-2">
             <div className="sticky left-0 z-30 shrink-0 border-r border-line bg-panel-2" style={{ width: HEAD_W }} />
-            <div className="relative flex-1 cursor-pointer" onPointerDown={(e) => (onSeek(timeAt(e.clientX)), setDrag({ mode: "playhead" }))}>
+            <div data-ruler data-zoom={zoom} className="relative flex-1 cursor-pointer" onPointerDown={(e) => (onSeek(timeAt(e.clientX)), setDrag({ mode: "playhead" }))}>
               {ticks.map((t) => (
                 <div key={t} className="absolute top-0 h-full border-l border-line/70 pl-1 text-[10px] text-mute" style={{ left: t * zoom }}>
                   {fmtTime(t).replace(/\.\d$/, "")}
@@ -173,6 +174,8 @@ export function TimelinePanel({ onSeek }: { onSeek: (t: number) => void }) {
                   return (
                     <div
                       key={c.id}
+                      data-clip={c.id}
+                      data-clip-type={c.type}
                       className={cn("absolute top-1 bottom-1 cursor-grab overflow-hidden rounded-md border text-[11px] text-white select-none", COLOR[c.type], sel && "ring-2 ring-giallo z-10", tr.locked && "cursor-not-allowed")}
                       style={{ left: c.start * zoom, width: Math.max(4, c.duration * zoom) }}
                       onPointerDown={(e) => {
