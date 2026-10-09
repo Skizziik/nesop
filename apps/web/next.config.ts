@@ -9,6 +9,8 @@ const config: NextConfig = {
   outputFileTracingRoot: join(import.meta.dirname, "..", ".."),
   transpilePackages: ["@ipt/templates"],
   compress: false, // иначе SSE буферизуется
+  // прокси /api по умолчанию рвёт запрос через ~30 с: первая озвучка (загрузка Qwen в GPU) и переозвучка фразы длятся дольше
+  experimental: { proxyTimeout: 900_000 },
   async rewrites() {
     return [
       { source: "/api/:path*", destination: `${API}/api/:path*` },
