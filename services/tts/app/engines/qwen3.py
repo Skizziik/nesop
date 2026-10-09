@@ -14,6 +14,7 @@ import numpy as np
 
 from . import time_stretch
 
+
 def _size() -> str:
     """1.7B заметно чище звучит; на GPU от 7 GB влезает (держим в памяти одну модель). QWEN3_SIZE=0.6B — принудительно лёгкая."""
     forced = os.environ.get("QWEN3_SIZE")
@@ -54,6 +55,7 @@ class Engine:
         self.kw = {"device_map": self.dev, "dtype": torch.bfloat16 if self.dev != "cpu" else torch.float32, "attn_implementation": "sdpa"}
         self.models: dict[str, Any] = {}
         self.prompts: dict[str, Any] = {}
+        self.asr: Any = None
         self.designs = Path(os.environ.get("HF_HOME", "/models/hf")).parent / "designs"
         self.designs.mkdir(parents=True, exist_ok=True)
 
@@ -101,6 +103,24 @@ class Engine:
             m = self.model(CUSTOM)
             wavs, sr = m.generate_custom_voice(text=text, language=lang, speaker=req.get("voice") or "Serena")
         return time_stretch(wavs[0].astype(np.float32), speed), int(sr)
+
+
+ASR = "openai/whisper-large-v3-turbo"  # ~1.6 GB fp16: влезает в 8 GB рядом с Qwen3 1.7B
+
+
+def transcribe(engine: Engine, req: dict[str, Any]) -> str:
+    """Распознаёт озвученную фразу — проверка, что модель не проглотила/не исказила слова."""
+    if engine.asr is None:
+        from transformers import pipeline
+
+        dtype = engine.torch.float16 if engine.dev != "cpu" else engine.torch.float32
+        engine.asr = pipeline("automatic-speech-recognition", model=ASR, torch_dtype=dtype, device=engine.dev)
+    import soundfile as sf
+
+    audio, sr = sf.read(req["path"], dtype="float32", always_2d=True)
+    lang = {"it": "italian", "en": "english"}.get(req.get("language") or "it", "italian")
+    out = engine.asr({"raw": audio.mean(axis=1), "sampling_rate": sr}, generate_kwargs={"language": lang, "task": "transcribe"})
+    return str(out.get("text", "")).strip()
 
 
 def load(device: str) -> Engine:

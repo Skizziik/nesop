@@ -35,6 +35,10 @@ def main() -> None:
                 audio, sr = eng.synth(model, req)
                 sf.write(req["out"], audio, sr, subtype="PCM_16")
                 resp = {"ok": True, "sr": sr}
+            elif req["cmd"] == "asr" and hasattr(eng, "transcribe"):
+                if model is None:
+                    model = eng.load(device)
+                resp = {"ok": True, "text": eng.transcribe(model, req)}
             else:
                 resp = {"ok": False, "error": f"неизвестная команда {req['cmd']}"}
         except Exception as e:  # noqa: BLE001 — ошибку возвращаем менеджеру, процесс живёт

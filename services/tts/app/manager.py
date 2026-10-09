@@ -105,6 +105,16 @@ class Manager:
         if not piper.is_installed():
             self.start_install("piper")
 
+    # ---------- распознавание (проверка произношения) ----------
+    def transcribe(self, path: str, language: str = "it") -> str:
+        plugin = self.plugin("qwen3")
+        if not plugin.is_installed() or not hasattr(plugin, "transcribe"):
+            raise FileNotFoundError("Проверка произношения работает через движок Qwen3 — установи его на странице «Голоса»")
+        full = self.data_dir / path.lstrip("/")
+        if not full.exists():
+            raise FileNotFoundError(f"Нет файла {path}")
+        return str(plugin.transcribe(full, language))
+
     # ---------- синтез ----------
     def synthesize(self, model: str, voice: str | None, text: str, speed: float = 1.0, variant: int = 0,
                    ref_audio: str | None = None, ref_text: str | None = None, design: str | None = None, language: str = "it") -> dict[str, object]:

@@ -29,6 +29,34 @@ async def tts_synthesize(text: str, model: str, voice: str | None, speed: float,
     raise ServiceError("TTS: голос не установился за 5 минут")
 
 
+async def tts_transcribe(path: str, language: str = "it") -> str | None:
+    """Whisper в TTS-сервисе. None — проверка недоступна (Qwen3 не установлен) — тогда просто пропускаем."""
+    st = get_settings()
+    try:
+        async with httpx.AsyncClient(timeout=600) as c:
+            r = await c.post(f"{st.tts_url}/transcribe", json={"path": path, "language": language})
+            return str(r.json()["text"]) if r.status_code == 200 else None
+    except httpx.HTTPError:
+        return None
+
+
+def speech_match(expected: str, heard: str) -> float:
+    """Доля совпадения слов (0..1) между текстом и распознанным — без регистра, пунктуации и апострофов."""
+    import difflib
+    import re
+    import unicodedata
+
+    def words(s: str) -> list[str]:
+        s = unicodedata.normalize("NFKD", s.lower())
+        s = "".join(ch for ch in s if not unicodedata.combining(ch))
+        return re.findall(r"[a-z0-9]+", s)
+
+    a, b = words(expected), words(heard)
+    if not a:
+        return 1.0
+    return difflib.SequenceMatcher(None, a, b, autojunk=False).ratio()
+
+
 async def render(props: dict[str, Any], out_dir: str, on_progress: Callable[[float], Awaitable[None]], composition: str = "Short",
                  timeout_s: int | None = None) -> dict[str, Any]:
     st = get_settings()

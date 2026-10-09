@@ -75,6 +75,10 @@ class SubprocessPlugin(TTSPlugin):
         self._marker().write_text("ok")
         progress_cb(1.0, "готово")
 
+    def transcribe(self, path: Path, language: str = "it") -> str:
+        resp = self.call({"cmd": "asr", "path": str(path), "language": language}, timeout=600)
+        return str(resp.get("text", ""))
+
     def uninstall(self, voice_id: str | None = None) -> None:
         self.stop()
         import shutil

@@ -23,6 +23,7 @@ from .audio import SR, envelope, load_mono, trim_silence, write_wav
 from .music import TRACKS
 
 LANG_NAME = {"en": "inglese"}  # канал учит итальянскому на английском: второй язык только en
+ASR_OK = 0.8  # совпадение слов текста и распознанного Whisper; ниже — переозвучиваем
 WPM = 140  # замер: лекция 1446 слов = 10:03 вместе с паузами, титулами и квизами (~144 сл/мин)
 UNDERSHOOT = 1.1  # LLM пишет ~90% от запрошенного числа слов
 GAP_SENT, GAP_SLIDE, GAP_CHAPTER = 0.35, 0.9, 0.7
@@ -318,14 +319,34 @@ async def build_lecture(project_id: str) -> None:
         sem = asyncio.Semaphore(4)
         done = 0
 
+        asr = {"checked": 0, "redone": 0, "still_bad": [], "available": True}
+
         async def synth(x: Sent) -> None:
             nonlocal done
             async with sem:
-                r = await clients.tts_synthesize(
-                    x.it, vcfg["model"], vcfg.get("voice"), float(vcfg.get("speed", 0.92)), 0, vcfg.get("ref_audio"), vcfg.get("ref_text"), vcfg.get("design"),
-                    language=x.lang,
-                )
-                x.clip = trim_silence(load_mono(st.data_dir / r["path"].lstrip("/")))
+                best: tuple[float, dict[str, Any]] | None = None
+                # проверка произношения (Whisper): плохая фраза переозвучивается другим дублем, берём лучший
+                for variant in range(3):
+                    r = await clients.tts_synthesize(
+                        x.it, vcfg["model"], vcfg.get("voice"), float(vcfg.get("speed", 0.92)), variant, vcfg.get("ref_audio"), vcfg.get("ref_text"),
+                        vcfg.get("design"), language=x.lang,
+                    )
+                    heard = await clients.tts_transcribe(r["path"], x.lang) if asr["available"] else None
+                    if heard is None:
+                        asr["available"] = False
+                        best = (1.0, r)
+                        break
+                    score = clients.speech_match(x.it, heard)
+                    asr["checked"] += variant == 0
+                    asr["redone"] += variant > 0
+                    if best is None or score > best[0]:
+                        best = (score, r)
+                    if score >= ASR_OK:
+                        break
+                assert best is not None
+                if best[0] < ASR_OK:
+                    asr["still_bad"].append({"text": x.it, "score": round(best[0], 2)})
+                x.clip = trim_silence(load_mono(st.data_dir / best[1]["path"].lstrip("/")))
                 done += 1
                 if done % 10 == 0:
                     await progress("озвучка", 0.5 + 0.35 * done / len(all_sents))
@@ -499,7 +520,7 @@ async def build_lecture(project_id: str) -> None:
         ]
         meta = {
             "outline": outline,
-            "report": {"llm_fixes": report, "languagetool_errors": lt_errors, "sentences": len(all_sents)},
+            "report": {"llm_fixes": report, "languagetool_errors": lt_errors, "sentences": len(all_sents), "pronunciation": asr},
             "youtube": {
                 "title": f"{outline.get('title', topic)[:70]} 🇮🇹 Learn Italian ({level})",
                 "description": f"{outline.get('subtitle', '')}\n\nChapters:\n"

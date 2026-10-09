@@ -1,8 +1,6 @@
 """TTS-сервис: синтез, менеджер моделей, кеш. Все пути ответов — относительно /data (api раздаёт их как /media/...)."""
 from __future__ import annotations
 
-from typing import Literal
-
 import json
 import logging
 import os
@@ -11,6 +9,7 @@ import time
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 from pathlib import Path
+from typing import Literal
 
 from fastapi import FastAPI, HTTPException
 from fastapi.concurrency import run_in_threadpool
@@ -62,6 +61,11 @@ class SynthIn(BaseModel):
     language: Literal["it", "en"] = Field(default="it", description="Язык фразы: лекции для англоязычных объясняют по-английски")
 
 
+class AsrIn(BaseModel):
+    path: str = Field(description="Путь относительно /data (например, из ответа /synthesize)")
+    language: Literal["it", "en"] = "it"
+
+
 class InstallIn(BaseModel):
     voice: str | None = None
 
@@ -98,6 +102,14 @@ def uninstall(pid: str, voice: str | None = None) -> dict[str, bool]:
     except KeyError as e:
         raise HTTPException(404, str(e)) from e
     return {"ok": True}
+
+
+@app.post("/transcribe")
+async def transcribe(body: AsrIn) -> dict[str, object]:
+    try:
+        return {"text": await run_in_threadpool(manager.transcribe, body.path, body.language)}
+    except FileNotFoundError as e:
+        raise HTTPException(409, str(e)) from e
 
 
 @app.post("/synthesize")
