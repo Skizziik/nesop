@@ -1,6 +1,7 @@
 "use client";
 
-import { MASCOT_IDS, MASCOTS, STICKER_NAMES, type Clip, type SlideProps, type TimelineDoc } from "@ipt/templates";
+import { BACKGROUND_THEMES, MASCOT_IDS, MASCOTS, STICKER_NAMES, type Clip, type SlideProps, type TimelineDoc } from "@ipt/templates";
+import { useQuery } from "@tanstack/react-query";
 import { Loader2, Mic, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -43,10 +44,8 @@ export function Inspector() {
             </button>
           </Field>
         </Row>
+        <BackgroundEditor />
         <Row>
-          <Field label="Фон">
-            <input type="color" className="h-7 w-full" value={doc.background ?? "#1B1035"} onChange={(e) => setDoc({ background: e.target.value })} />
-          </Field>
           <Field label="Шрифт">
             <select className={inp} value={doc.font ?? "Montserrat"} onChange={(e) => setDoc({ font: e.target.value })}>
               {["Montserrat", "Fredoka", "Nunito"].map((x) => (
@@ -292,6 +291,19 @@ function SlideEditor({ p, setP }: { p: SlideProps; setP: (patch: Record<string, 
           Сбросить положение элементов
         </button>
       ) : null}
+      <Field label="Фон этого слайда">
+        <div className="flex items-center gap-1">
+          <input type="checkbox" checked={!!p.bg} onChange={(e) => setP(e.target.checked ? { bg: "#5B0A12", bg2: "#B3121B" } : { bg: undefined, bg2: undefined })} />
+          {p.bg ? (
+            <>
+              <input type="color" className="h-7 w-full" value={p.bg} onChange={(e) => setP({ bg: e.target.value })} title="Цвет 1" />
+              <input type="color" className="h-7 w-full" value={p.bg2 ?? p.bg} onChange={(e) => setP({ bg2: e.target.value })} title="Цвет 2" />
+            </>
+          ) : (
+            <span className="text-[11px] text-mute">как у всего видео</span>
+          )}
+        </div>
+      </Field>
       <Field label="Тип слайда">
         <select className={inp} value={p.kind} onChange={(e) => setP({ kind: e.target.value })}>
           {["title", "explain", "examples", "table", "quiz", "recap"].map((k) => (
@@ -445,5 +457,82 @@ function Revoice({ clipId }: { clipId: string }) {
     <button onClick={run} disabled={busy} className="flex items-center justify-center gap-1.5 rounded-md bg-verde px-2 py-1.5 text-xs font-bold text-white hover:bg-verde-2 disabled:opacity-60">
       {busy ? <Loader2 size={13} className="animate-spin" /> : <Mic size={13} />} {busy ? "Озвучиваю… (до минуты)" : "Переозвучить фразу"}
     </button>
+  );
+}
+
+/** Фон всего видео: готовые темы, свои цвета градиента, картинка или видео из «Ассетов» с затемнением. */
+function BackgroundEditor() {
+  const doc = useStudio((s) => s.doc)!;
+  const commit = useStudio((s) => s.commit);
+  const { data: images = [] } = useQuery({ queryKey: ["assets", "sticker"], queryFn: () => api.assets("sticker") });
+  const { data: avatars = [] } = useQuery({ queryKey: ["assets", "avatar"], queryFn: () => api.assets("avatar") });
+  const { data: backgrounds = [] } = useQuery({ queryKey: ["assets", "background"], queryFn: () => api.assets("background") });
+  const media = [...backgrounds, ...images, ...avatars].filter((a) => a.url);
+  const pal = (doc.palette ?? {}) as { bg?: string; bg2?: string };
+  const bg = pal.bg ?? "#1B1035";
+  const bg2 = pal.bg2 ?? "#3C1E6E";
+  const setColors = (c: { bg: string; bg2: string; name?: string }) =>
+    commit((d) => {
+      d.palette = { ...((d.palette ?? {}) as Record<string, unknown>), ...c };
+      d.background = c.bg;
+    }, "bg-colors");
+  const bm = doc.background_media;
+  return (
+    <div className="grid gap-2 rounded-lg border border-line p-2">
+      <span className="text-[11px] font-bold">Фон видео</span>
+      <div className="grid grid-cols-3 gap-1.5">
+        {BACKGROUND_THEMES.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setColors({ bg: t.bg, bg2: t.bg2, name: t.id })}
+            title={t.name}
+            className={`h-9 rounded-md border-2 ${bg === t.bg && bg2 === t.bg2 ? "border-verde-2" : "border-transparent"}`}
+            style={{ background: `linear-gradient(135deg, ${t.bg}, ${t.bg2})` }}
+          />
+        ))}
+      </div>
+      <Row>
+        <Field label="Цвет 1">
+          <input type="color" className="h-7 w-full" value={bg} onChange={(e) => setColors({ bg: e.target.value, bg2 })} />
+        </Field>
+        <Field label="Цвет 2">
+          <input type="color" className="h-7 w-full" value={bg2} onChange={(e) => setColors({ bg, bg2: e.target.value })} />
+        </Field>
+      </Row>
+      <Field label="Картинка или видео фоном">
+        <select
+          className={inp}
+          value={bm?.src ?? ""}
+          onChange={(e) => {
+            const a = media.find((x) => x.url === e.target.value);
+            commit((d) => {
+              d.background_media = a ? { src: a.url!, kind: /\.(webm|mp4|mov)$/i.test(a.url!) ? "video" : "image", dim: d.background_media?.dim ?? 0.45 } : undefined;
+            });
+          }}
+        >
+          <option value="">— нет (цветной градиент) —</option>
+          {media.map((a) => (
+            <option key={a.id} value={a.url!}>
+              {a.name}
+            </option>
+          ))}
+        </select>
+      </Field>
+      {bm ? (
+        <Field label={`Затемнение ${Math.round((bm.dim ?? 0.45) * 100)}%`}>
+          <input
+            type="range"
+            min={0}
+            max={0.85}
+            step={0.05}
+            value={bm.dim ?? 0.45}
+            onChange={(e) => commit((d) => d.background_media && (d.background_media.dim = Number(e.target.value)), "bg-dim")}
+            className="w-full accent-[var(--color-verde-2)]"
+          />
+        </Field>
+      ) : (
+        <p className="text-[10px] text-mute">Свои картинки и видео загружаются на странице «Ассеты» (тип «Фон»).</p>
+      )}
+    </div>
   );
 }

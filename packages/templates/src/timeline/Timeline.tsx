@@ -70,7 +70,7 @@ function ClipContent({ clip, doc, w, h, t }: { clip: Clip; doc: TimelineDoc; w: 
   const p = clip.props ?? {};
   switch (clip.type) {
     case "slide":
-      return <Slide p={p as unknown as SlideProps} pal={pal} font={font} w={w} h={h} />;
+      return <Slide p={p as unknown as SlideProps} pal={pal} font={font} w={w} h={h} seeThrough={!!doc.background_media && !(p as unknown as SlideProps).bg} />;
     case "short": {
       const rp = (p as unknown as ShortClipProps).render_props;
       // шортс 1080×1920 вписываем в бокс клипа
@@ -203,11 +203,25 @@ function AudioClip({ clip, doc }: { clip: Clip; doc: TimelineDoc }) {
   );
 }
 
+/** Картинка или видео фоном под всеми дорожками + затемнение (слайды поверх становятся полупрозрачными). */
+function BackgroundMedia({ doc }: { doc: TimelineDoc }) {
+  const bm = doc.background_media;
+  const src = bm ? resolveAsset(bm.src, doc.asset_base) : null;
+  if (!bm || !src) return null;
+  return (
+    <AbsoluteFill>
+      {bm.kind === "video" ? <Video src={src} loop volume={0} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <Img src={src} style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+      <AbsoluteFill style={{ background: `rgba(0,0,0,${bm.dim ?? 0.45})` }} />
+    </AbsoluteFill>
+  );
+}
+
 /** Композиция проекта-таймлайна. Дорожки рисуются по порядку: первая — самая нижняя. */
 export const TimelineVideo: React.FC<TimelineDoc> = (doc) => {
   const { fps } = useVideoConfig();
   return (
     <AbsoluteFill style={{ background: doc.background ?? "#1B1035", overflow: "hidden" }}>
+      <BackgroundMedia doc={doc} />
       {doc.tracks.map((tr) =>
         tr.hidden
           ? null

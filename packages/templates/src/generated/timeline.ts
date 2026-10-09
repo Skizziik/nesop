@@ -14,6 +14,17 @@ export interface TimelineDoc {
    */
   background?: string;
   /**
+   * Картинка или видео фоном под всеми слайдами (слайды становятся полупрозрачными)
+   */
+  background_media?: {
+    src: string;
+    kind?: "image" | "video";
+    /**
+     * Затемнение поверх фона, чтобы текст читался
+     */
+    dim?: number;
+  };
+  /**
    * Палитра (как в RenderProps.theme.palette) для слайдов и текста
    */
   palette?: {};

@@ -8,8 +8,8 @@ import { api, ApiError } from "@/lib/api";
 import { inputCls } from "./SchemaForm";
 import { Badge, Button, Card, CardTitle, Empty, cn } from "./ui";
 
-const KINDS: Record<string, string> = { music: "Музыка", sticker: "Наклейки", avatar: "Ведущая", mascot: "Маскот", sfx: "Звуки", palette: "Палитры" };
-const ACCEPT: Record<string, string> = { music: ".mp3,.wav,.ogg,.m4a", sticker: ".png,.webp,.svg", avatar: ".mp4,.webm,.mov,.png", mascot: ".png,.svg,.webp", sfx: ".wav,.mp3" };
+const KINDS: Record<string, string> = { music: "Музыка", background: "Фоны", sticker: "Наклейки", avatar: "Ведущая", mascot: "Маскот", sfx: "Звуки", palette: "Палитры" };
+const ACCEPT: Record<string, string> = { background: ".png,.jpg,.jpeg,.webp,.mp4,.webm,.mov", music: ".mp3,.wav,.ogg,.m4a", sticker: ".png,.webp,.svg", avatar: ".mp4,.webm,.mov,.png", mascot: ".png,.svg,.webp", sfx: ".wav,.mp3" };
 
 export function AssetsPage() {
   const qc = useQueryClient();
@@ -90,7 +90,7 @@ export function AssetsPage() {
                   </div>
                 </div>
                 {a.url && (kind === "music" || kind === "sfx") ? <audio src={a.url} controls className="h-8" /> : null}
-                {a.url && (kind === "sticker" || kind === "mascot") ? <img src={a.url} alt={a.name} className="h-10 w-10 object-contain" /> : null}
+                {a.url && (kind === "sticker" || kind === "mascot" || (kind === "background" && !/\.(mp4|webm|mov)$/i.test(a.url))) ? <img src={a.url} alt={a.name} className="h-10 w-10 object-contain" /> : null}
                 <Badge>{a.kind}</Badge>
                 {kind !== "palette" && kind !== "sfx" ? (
                   <button onClick={() => confirm("Удалить файл?") && del.mutate(a.id)} className="rounded p-1 text-mute hover:text-rosso" aria-label="Удалить">

@@ -3,7 +3,7 @@ import type { Palette } from "../generated";
 import { activeMark, type SlideElement, type SlideProps } from "./types";
 
 /** Слайд лекции. Размеры — от высоты бокса (k = h/1080), поэтому слайд работает и в 16:9, и в 9:16. */
-export function Slide({ p, pal, font, w, h }: { p: SlideProps; pal: Palette; font: string; w: number; h: number }) {
+export function Slide({ p, pal, font, w, h, seeThrough = false }: { p: SlideProps; pal: Palette; font: string; w: number; h: number; seeThrough?: boolean }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const t = frame / fps;
@@ -160,7 +160,19 @@ export function Slide({ p, pal, font, w, h }: { p: SlideProps; pal: Palette; fon
 
   const glow = interpolate(Math.sin(t * 0.5), [-1, 1], [0.12, 0.22]);
   return (
-    <div style={{ width: w, height: h, position: "relative", overflow: "hidden", fontFamily: font, background: `radial-gradient(circle at 20% 15%, rgba(255,255,255,${glow}), transparent 45%), linear-gradient(135deg, ${pal.bg} 0%, ${pal.bg2 ?? pal.bg} 100%)` }}>
+    <div
+      style={{
+        width: w,
+        height: h,
+        position: "relative",
+        overflow: "hidden",
+        fontFamily: font,
+        // свой фон слайда (props.bg/bg2) → палитра проекта; при картинке/видео фоном слайд прозрачный
+        background: seeThrough
+          ? `radial-gradient(circle at 20% 15%, rgba(255,255,255,${glow * 0.6}), transparent 45%)`
+          : `radial-gradient(circle at 20% 15%, rgba(255,255,255,${glow}), transparent 45%), linear-gradient(135deg, ${p.bg ?? pal.bg} 0%, ${p.bg2 ?? p.bg ?? pal.bg2 ?? pal.bg} 100%)`,
+      }}
+    >
       <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: 10 * k, background: "linear-gradient(90deg, #009246 0 33.3%, #F1F2F1 33.3% 66.6%, #CE2B37 66.6% 100%)" }} />
       <div
         style={{

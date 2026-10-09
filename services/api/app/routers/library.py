@@ -118,9 +118,9 @@ async def gen_hooks(body: GenHooksIn, s: Session) -> dict[str, Any]:
 
 
 # ------------------------------------------------------------------ ассеты
-KINDS = ("music", "sticker", "avatar", "mascot", "sfx", "font", "palette")
+KINDS = ("music", "sticker", "avatar", "mascot", "sfx", "font", "palette", "background")
 ALLOWED = {"music": {".mp3", ".wav", ".ogg", ".m4a"}, "sticker": {".png", ".webp", ".svg"}, "avatar": {".mp4", ".webm", ".mov", ".png"},
-           "mascot": {".png", ".svg", ".webp"}, "sfx": {".wav", ".mp3"}}
+           "mascot": {".png", ".svg", ".webp"}, "sfx": {".wav", ".mp3"}, "background": {".png", ".jpg", ".jpeg", ".webp", ".mp4", ".webm", ".mov"}}
 
 
 def asset_out(a: Asset) -> dict[str, Any]:

@@ -7,6 +7,24 @@ from typing import Annotated, Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class BackgroundMedia(BaseModel):
+    """
+    Картинка или видео фоном под всеми слайдами (слайды становятся полупрозрачными)
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    src: str
+    kind: Literal["image", "video"] | None = "image"
+    dim: Annotated[
+        float | None,
+        Field(
+            description="Затемнение поверх фона, чтобы текст читался", ge=0.0, le=1.0
+        ),
+    ] = 0.45
+
+
 class TlCanvas(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -100,6 +118,12 @@ class TimelineDoc(BaseModel):
     background: Annotated[
         str | None, Field(description="Цвет фона под всеми дорожками")
     ] = "#1B1035"
+    background_media: Annotated[
+        BackgroundMedia | None,
+        Field(
+            description="Картинка или видео фоном под всеми слайдами (слайды становятся полупрозрачными)"
+        ),
+    ] = None
     palette: Annotated[
         dict[str, Any] | None,
         Field(

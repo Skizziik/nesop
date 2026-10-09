@@ -5,81 +5,326 @@
   "description": "Проект-таймлайн: дорожки с клипами. Генерирует LLM (длинные лекции), правит видеоредактор, рендерит композиция Timeline. Время — в секундах, геометрия — доли холста (0..1).",
   "type": "object",
   "additionalProperties": false,
-  "required": ["version", "title", "canvas", "duration_s", "tracks"],
+  "required": [
+    "version",
+    "title",
+    "canvas",
+    "duration_s",
+    "tracks"
+  ],
   "properties": {
-    "version": { "type": "integer", "const": 1 },
-    "title": { "type": "string", "maxLength": 200 },
-    "canvas": { "$ref": "#/$defs/TlCanvas" },
-    "duration_s": { "type": "number", "minimum": 1, "maximum": 3600 },
-    "background": { "type": "string", "default": "#1B1035", "description": "Цвет фона под всеми дорожками" },
-    "palette": { "type": "object", "description": "Палитра (как в RenderProps.theme.palette) для слайдов и текста" },
-    "font": { "type": "string", "enum": ["Montserrat", "Fredoka", "Nunito"], "default": "Montserrat" },
-    "subtitle_style": { "$ref": "#/$defs/SubtitleStyle" },
-    "tracks": { "type": "array", "items": { "$ref": "#/$defs/Track" } },
-    "envelope": { "type": "array", "items": { "type": "number" }, "default": [], "description": "RMS голоса по кадрам (0..1) — рот маскотов" },
-    "asset_base": { "type": "string", "default": "" },
-    "seed": { "type": "integer", "default": 0 },
-    "show_safe_area": { "type": "boolean", "default": false, "description": "Только для редактора" }
+    "version": {
+      "type": "integer",
+      "const": 1
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "canvas": {
+      "$ref": "#/$defs/TlCanvas"
+    },
+    "duration_s": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 3600
+    },
+    "background": {
+      "type": "string",
+      "default": "#1B1035",
+      "description": "Цвет фона под всеми дорожками"
+    },
+    "background_media": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "src"
+      ],
+      "description": "Картинка или видео фоном под всеми слайдами (слайды становятся полупрозрачными)",
+      "properties": {
+        "src": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "image",
+            "video"
+          ],
+          "default": "image"
+        },
+        "dim": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.45,
+          "description": "Затемнение поверх фона, чтобы текст читался"
+        }
+      }
+    },
+    "palette": {
+      "type": "object",
+      "description": "Палитра (как в RenderProps.theme.palette) для слайдов и текста"
+    },
+    "font": {
+      "type": "string",
+      "enum": [
+        "Montserrat",
+        "Fredoka",
+        "Nunito"
+      ],
+      "default": "Montserrat"
+    },
+    "subtitle_style": {
+      "$ref": "#/$defs/SubtitleStyle"
+    },
+    "tracks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Track"
+      }
+    },
+    "envelope": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "default": [],
+      "description": "RMS голоса по кадрам (0..1) — рот маскотов"
+    },
+    "asset_base": {
+      "type": "string",
+      "default": ""
+    },
+    "seed": {
+      "type": "integer",
+      "default": 0
+    },
+    "show_safe_area": {
+      "type": "boolean",
+      "default": false,
+      "description": "Только для редактора"
+    }
   },
   "$defs": {
     "TlCanvas": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["w", "h", "fps"],
+      "required": [
+        "w",
+        "h",
+        "fps"
+      ],
       "properties": {
-        "w": { "type": "integer", "enum": [1920, 1080] },
-        "h": { "type": "integer", "enum": [1080, 1920] },
-        "fps": { "type": "integer", "const": 30 }
+        "w": {
+          "type": "integer",
+          "enum": [
+            1920,
+            1080
+          ]
+        },
+        "h": {
+          "type": "integer",
+          "enum": [
+            1080,
+            1920
+          ]
+        },
+        "fps": {
+          "type": "integer",
+          "const": 30
+        }
       }
     },
     "SubtitleStyle": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "size": { "type": "number", "default": 46 },
-        "y": { "type": "number", "default": 0.88, "description": "Вертикаль центра субтитров (доля высоты)" },
-        "x": { "type": "number", "default": 0.5, "description": "Горизонталь центра субтитров (доля ширины) — чтобы не наезжать на маскота" },
-        "max_w": { "type": "number", "default": 0.88, "description": "Максимальная ширина блока субтитров (доля ширины)" },
-        "color": { "type": "string", "default": "#FFFFFF" },
-        "bg": { "type": "string", "default": "rgba(0,0,0,0.6)" },
-        "show_translation": { "type": "boolean", "default": true },
-        "highlight_words": { "type": "boolean", "default": true, "description": "Караоке: подсветка текущего слова" }
+        "size": {
+          "type": "number",
+          "default": 46
+        },
+        "y": {
+          "type": "number",
+          "default": 0.88,
+          "description": "Вертикаль центра субтитров (доля высоты)"
+        },
+        "x": {
+          "type": "number",
+          "default": 0.5,
+          "description": "Горизонталь центра субтитров (доля ширины) — чтобы не наезжать на маскота"
+        },
+        "max_w": {
+          "type": "number",
+          "default": 0.88,
+          "description": "Максимальная ширина блока субтитров (доля ширины)"
+        },
+        "color": {
+          "type": "string",
+          "default": "#FFFFFF"
+        },
+        "bg": {
+          "type": "string",
+          "default": "rgba(0,0,0,0.6)"
+        },
+        "show_translation": {
+          "type": "boolean",
+          "default": true
+        },
+        "highlight_words": {
+          "type": "boolean",
+          "default": true,
+          "description": "Караоке: подсветка текущего слова"
+        }
       }
     },
     "Track": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "kind", "name", "clips"],
+      "required": [
+        "id",
+        "kind",
+        "name",
+        "clips"
+      ],
       "properties": {
-        "id": { "type": "string" },
-        "kind": { "type": "string", "enum": ["scene", "overlay", "subtitle", "mascot", "audio"] },
-        "name": { "type": "string" },
-        "hidden": { "type": "boolean", "default": false },
-        "muted": { "type": "boolean", "default": false },
-        "locked": { "type": "boolean", "default": false },
-        "clips": { "type": "array", "items": { "$ref": "#/$defs/Clip" } }
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "scene",
+            "overlay",
+            "subtitle",
+            "mascot",
+            "audio"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "hidden": {
+          "type": "boolean",
+          "default": false
+        },
+        "muted": {
+          "type": "boolean",
+          "default": false
+        },
+        "locked": {
+          "type": "boolean",
+          "default": false
+        },
+        "clips": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Clip"
+          }
+        }
       }
     },
     "Clip": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "type", "start", "duration"],
+      "required": [
+        "id",
+        "type",
+        "start",
+        "duration"
+      ],
       "properties": {
-        "id": { "type": "string" },
-        "type": { "type": "string", "enum": ["slide", "short", "text", "subtitle", "mascot", "sticker", "image", "video", "audio", "shape"] },
-        "start": { "type": "number", "minimum": 0 },
-        "duration": { "type": "number", "minimum": 0.05 },
-        "trim": { "type": "number", "minimum": 0, "default": 0, "description": "Сдвиг начала медиа (обрезка слева), сек" },
-        "x": { "type": "number", "default": 0 },
-        "y": { "type": "number", "default": 0 },
-        "w": { "type": "number", "default": 1 },
-        "h": { "type": "number", "default": 1 },
-        "rotation": { "type": "number", "default": 0 },
-        "opacity": { "type": "number", "minimum": 0, "maximum": 1, "default": 1 },
-        "anim_in": { "type": "string", "enum": ["none", "fade", "pop", "slide_up", "slide_left", "zoom"], "default": "none" },
-        "anim_out": { "type": "string", "enum": ["none", "fade", "pop", "slide_up", "slide_left", "zoom"], "default": "none" },
-        "label": { "type": "string", "default": "" },
-        "props": { "type": "object", "default": {}, "description": "Свойства по типу клипа: см. packages/templates/src/timeline/types.ts" }
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "slide",
+            "short",
+            "text",
+            "subtitle",
+            "mascot",
+            "sticker",
+            "image",
+            "video",
+            "audio",
+            "shape"
+          ]
+        },
+        "start": {
+          "type": "number",
+          "minimum": 0
+        },
+        "duration": {
+          "type": "number",
+          "minimum": 0.05
+        },
+        "trim": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0,
+          "description": "Сдвиг начала медиа (обрезка слева), сек"
+        },
+        "x": {
+          "type": "number",
+          "default": 0
+        },
+        "y": {
+          "type": "number",
+          "default": 0
+        },
+        "w": {
+          "type": "number",
+          "default": 1
+        },
+        "h": {
+          "type": "number",
+          "default": 1
+        },
+        "rotation": {
+          "type": "number",
+          "default": 0
+        },
+        "opacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 1
+        },
+        "anim_in": {
+          "type": "string",
+          "enum": [
+            "none",
+            "fade",
+            "pop",
+            "slide_up",
+            "slide_left",
+            "zoom"
+          ],
+          "default": "none"
+        },
+        "anim_out": {
+          "type": "string",
+          "enum": [
+            "none",
+            "fade",
+            "pop",
+            "slide_up",
+            "slide_left",
+            "zoom"
+          ],
+          "default": "none"
+        },
+        "label": {
+          "type": "string",
+          "default": ""
+        },
+        "props": {
+          "type": "object",
+          "default": {},
+          "description": "Свойства по типу клипа: см. packages/templates/src/timeline/types.ts"
+        }
       }
     }
   }

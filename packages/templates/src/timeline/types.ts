@@ -20,6 +20,9 @@ export interface SlideProps {
   /** Для квиза: начало таймера и момент ответа (сек от начала клипа). */
   countdown_at?: number;
   reveal_at?: number;
+  /** Свой фон слайда (иначе — палитра проекта). */
+  bg?: string;
+  bg2?: string;
   /** Ручное положение элементов (редактор): смещение в долях бокса слайда и масштаб. */
   layout?: Partial<Record<SlideElement, { dx?: number; dy?: number; s?: number }>>;
 }
@@ -118,3 +121,13 @@ export function clipsAt(doc: TimelineDoc, t: number): { trackId: string; clip: C
 }
 
 export const docFrames = (doc: Pick<TimelineDoc, "duration_s" | "canvas">) => Math.max(1, Math.ceil(doc.duration_s * doc.canvas.fps));
+
+/** Готовые темы фона для лекций (редактор → «Проект» → «Фон»). */
+export const BACKGROUND_THEMES: { id: string; name: string; bg: string; bg2: string }[] = [
+  { id: "notte", name: "Ночь (фиолетовая)", bg: "#1B1035", bg2: "#3C1E6E" },
+  { id: "roma", name: "Рим (красная)", bg: "#5B0A12", bg2: "#B3121B" },
+  { id: "basilico", name: "Базилик (зелёная)", bg: "#06301D", bg2: "#0E6B3D" },
+  { id: "mare", name: "Море (синяя)", bg: "#081B3A", bg2: "#1554A4" },
+  { id: "tramonto", name: "Закат", bg: "#3A0F2E", bg2: "#D9562B" },
+  { id: "carbone", name: "Уголь", bg: "#111317", bg2: "#2A2F3A" },
+];
