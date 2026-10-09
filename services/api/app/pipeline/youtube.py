@@ -38,7 +38,8 @@ YT_SCHEMA: dict[str, Any] = {
             "items": {
                 "type": "object",
                 "properties": {
-                    "text": {"type": "string", "description": "2-4 BIG words, max 22 chars, readable at phone size; Italian key phrase or a punchy English hook. No numbers, durations or commas"},
+                    "text": {"type": "string",
+                             "description": "2-4 BIG words, max 22 chars, readable at phone size; Italian key phrase or a punchy English hook. No numbers, durations or commas"},
                     "highlight": {"type": "string", "description": "ONE word from text to highlight in color"},
                     "emotion": {"type": "string", "enum": ["surprised", "happy", "thinking"]},
                 },

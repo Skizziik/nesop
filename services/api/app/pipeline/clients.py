@@ -16,7 +16,8 @@ class ServiceError(RuntimeError):
 async def tts_synthesize(text: str, model: str, voice: str | None, speed: float, variant: int = 0,
                          ref_audio: str | None = None, ref_text: str | None = None, design: str | None = None, language: str = "it") -> dict[str, Any]:
     st = get_settings()
-    async with httpx.AsyncClient(timeout=120) as c:
+    # 10 минут: после простоя движок выгружен из GPU, и первая фраза ждёт загрузку модели с диска (на HDD — 2-4 минуты)
+    async with httpx.AsyncClient(timeout=600) as c:
         for attempt in range(60):  # первый запуск: голос по умолчанию может ещё качаться
             r = await c.post(f"{st.tts_url}/synthesize", json={"model": model, "voice": voice, "text": text, "speed": speed, "variant": variant,
                                                                "ref_audio": ref_audio, "ref_text": ref_text, "design": design, "language": language})
