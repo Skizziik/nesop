@@ -27,7 +27,8 @@ FORMAT_GUIDES: dict[str, str] = {
     ),
     "quiz_abc": (
         "Formato «quiz_abc»: una domanda breve (≤ 90 caratteri) e ESATTAMENTE 3 opzioni (≤ 28 caratteri), una sola giusta (indice correct 0-2). "
-        "I distrattori devono essere errori plausibili che fanno davvero gli stranieri, non assurdi. La domanda è in italiano o in inglese (question_lang it/en), le opzioni in italiano (o en se si chiede il significato)."
+        "I distrattori devono essere errori plausibili che fanno davvero gli stranieri, non assurdi. La domanda è in italiano o in inglese (question_lang it/en), le "
+        "opzioni in italiano (o en se si chiede il significato)."
     ),
     "fill_blank": (
         "Formato «fill_blank»: una frase naturale con UN solo vuoto scritto «___», 2-4 opzioni brevi, una giusta (correct). "
@@ -70,7 +71,8 @@ FORMAT_GUIDES: dict[str, str] = {
 }
 
 SYSTEM_TEACHER = (
-    "Sei un insegnante madrelingua di italiano e autore del canale YouTube @ItalianoPerTe (34k iscritti, Shorts didattici per chi impara l'italiano partendo dall'INGLESE). Tutto ciò che non è italiano (traduzioni, spiegazioni, domande) va scritto in inglese; mai in russo o altre lingue. "
+    "Sei un insegnante madrelingua di italiano e autore del canale YouTube @ItalianoPerTe (34k iscritti, Shorts didattici per chi impara l'italiano partendo "
+    "dall'INGLESE). Tutto ciò che non è italiano (traduzioni, spiegazioni, domande) va scritto in inglese; mai in russo o altre lingue. "
     "Scrivi contenuti corretti al 100%: ortografia, accenti (è, perché, più, città), apostrofi (l'acqua, dell'anno), articoli, generi e coniugazioni. "
     "Niente regionalismi, niente forme rare spacciate per standard. Se una forma ha varianti accettate, scegli quella più comune."
 )
@@ -263,8 +265,10 @@ async def generate_metadata(s: AsyncSession, script: dict[str, Any], answer: str
               "answer_tomorrow": "la risposta arriva domani nel commento fissato"}[answer_mode]
     user = (
         f"Script: {json.dumps(script, ensure_ascii=False)}\nRisposta nascosta: {answer}\nSerie: {series_name}\nHook sullo schermo: {hook_text}\nModalità: {reveal}\n\n"
-        "Scrivi i metadati YouTube Shorts per un pubblico anglofono che impara l'italiano: title_a e title_b (due varianti A/B, ≤ 70 caratteri, misto inglese + la parola/frase italiana, hook + tema + 1-2 emoji, senza clickbait "
-        "e senza promettere cose che non ci sono), description (2-3 righe in inglese con gli esempi italiani, invito a commentare, poi hashtag), tags (8-12), hashtags (3-5, con #), "
+        "Scrivi i metadati YouTube Shorts per un pubblico anglofono che impara l'italiano: title_a e title_b (due varianti A/B, ≤ 70 caratteri, misto inglese + la "
+        "parola/frase italiana, hook + tema + 1-2 emoji, senza clickbait "
+        "e senza promettere cose che non ci sono), description (2-3 righe in inglese con gli esempi italiani, invito a commentare, poi hashtag), tags (8-12), hashtags "
+        "(3-5, con #), "
         "pinned_comment (viene pubblicato più tardi come commento fissato: DEVE contenere la risposta esatta «" + answer + "» e una domanda di continuazione, in inglese)."
     )
     r = await prov.complete_json(SYSTEM_TEACHER, user, META_SCHEMA, purpose="metadata", video_id=video_id, max_tokens=3000, effort="low")
