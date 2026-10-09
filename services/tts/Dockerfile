@@ -3,7 +3,8 @@ FROM python:3.12-slim-bookworm
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 \
     MODELS_DIR=/models DATA_DIR=/data
 
-RUN apt-get update && apt-get install -y --no-install-recommends libsndfile1 espeak-ng espeak-ng-data git \
+# gcc + libc6-dev: Triton (PyTorch 2.14+) при первом запуске собирает маленький C-модуль драйвера CUDA — без компилятора Qwen3 падает
+RUN apt-get update && apt-get install -y --no-install-recommends libsndfile1 espeak-ng espeak-ng-data git gcc libc6-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /srv
