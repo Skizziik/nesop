@@ -11,6 +11,7 @@ import os
 import subprocess
 import sys
 import threading
+import time
 import uuid
 from pathlib import Path
 from typing import Any
@@ -43,6 +44,8 @@ class SubprocessPlugin(TTSPlugin):
         self._proc: subprocess.Popen[str] | None = None
         self._lock = threading.Lock()
         self.cuda = False  # выставляет менеджер по железу
+        self._last_used = 0.0
+        self._reaper: threading.Thread | None = None
 
     # ---------- установка ----------
     def packages(self) -> list[str]:
@@ -98,14 +101,29 @@ class SubprocessPlugin(TTSPlugin):
                "TTS_DEVICE": "cuda" if self.cuda else "cpu", "PYTHONUNBUFFERED": "1"}
         return subprocess.Popen([sys.executable, "-m", "app.runner", self.ENGINE], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=None, text=True, env=env)
 
+    def _reap_idle(self) -> None:
+        """Выгружает движок (и VRAM), если им не пользовались TTS_IDLE_UNLOAD_S секунд (по умолчанию 10 минут)."""
+        limit = float(os.environ.get("TTS_IDLE_UNLOAD_S", "600"))
+        while True:
+            time.sleep(30)
+            with self._lock:
+                if self._proc is not None and self._proc.poll() is None and limit > 0 and time.time() - self._last_used > limit:
+                    log.info("выгружаю простаивающий движок %s", self.info.id)
+                    self.stop()
+
     def call(self, msg: dict[str, Any], timeout: float = 600) -> dict[str, Any]:
         with self._lock:
+            self._last_used = time.time()
+            if self._reaper is None:
+                self._reaper = threading.Thread(target=self._reap_idle, daemon=True)
+                self._reaper.start()
             if self._proc is None or self._proc.poll() is not None:
                 self._proc = self._start()
             assert self._proc.stdin and self._proc.stdout
             self._proc.stdin.write(json.dumps(msg) + "\n")
             self._proc.stdin.flush()
             line = self._proc.stdout.readline()
+            self._last_used = time.time()
         if not line:
             self.stop()
             raise EngineError(f"Движок {self.info.id} завершился (смотри логи tts)")
