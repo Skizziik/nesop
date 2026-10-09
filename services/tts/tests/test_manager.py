@@ -26,7 +26,7 @@ class FakePlugin(TTSPlugin):
     def default_voice(self) -> str | None:
         return "v"
 
-    def synthesize(self, text, voice, speed=1.0, emotion=None, ref_audio=None, seed=0, ref_text=None, design=None) -> Synthesis:  # type: ignore[no-untyped-def]
+    def synthesize(self, text, voice, speed=1.0, emotion=None, ref_audio=None, seed=0, ref_text=None, design=None, language="it") -> Synthesis:  # type: ignore[no-untyped-def]
         FakePlugin.calls += 1
         t = np.linspace(0, 0.5, 12000, endpoint=False)
         return Synthesis(audio=(0.3 * np.sin(2 * np.pi * 220 * t)).astype(np.float32), sample_rate=24000)
