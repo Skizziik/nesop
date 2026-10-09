@@ -92,8 +92,8 @@ class Engine:
         if req.get("design"):
             # Гибрид: ICL (продолжение эталонной фразы) держит манеру и интонацию одинаковыми во всём ролике, но на 2-5 словах
             # иногда «глотает» слова; x-vector (только тембр) на коротких стабильнее, зато интонация «гуляет» от фразы к фразе.
-            # QWEN3_CLONE_MODE = hybrid (по умолчанию) | icl | xvec.
-            mode = req.get("clone_mode") or os.environ.get("QWEN3_CLONE_MODE", "hybrid")
+            # QWEN3_CLONE_MODE = xvec (по умолчанию — выбор владельца на слух, A/B 2026-10-10) | hybrid | icl.
+            mode = req.get("clone_mode") or os.environ.get("QWEN3_CLONE_MODE", "xvec")
             icl = mode == "icl" or (mode == "hybrid" and len(text.split()) >= 6)
             ref, ref_text = str(self.design_ref(req["design"])), (DESIGN_REF_TEXT if icl else None)
         # детерминированный сид: тот же текст и номер дубля → тот же звук (повторный рендер не меняет голос)

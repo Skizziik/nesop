@@ -23,7 +23,7 @@ class KokoroPlugin(SubprocessPlugin):
 
 class Qwen3Plugin(SubprocessPlugin):
     ENGINE = "qwen3"
-    cache_tag = "hy1"  # 2026-10-10: гибрид ICL/x-vector, детерминированный сид, без time-stretch на ±10% — меняй при изменении синтеза
+    cache_tag = "xv2"  # 2026-10-10: x-vector (выбор владельца), детерминированный сид, без time-stretch на ±10% — меняй при изменении синтеза
     torch_spec = "torch torchaudio"
     info = PluginInfo(id="qwen3", name="Qwen3-TTS", license="Apache-2.0", commercial="ok", languages=["it", "en"], requires_gpu=True, vram_gb=6,
                       supports_cloning=True, supports_voice_design=True,
