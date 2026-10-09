@@ -13,11 +13,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..db import get_session, new_id
 from ..llm.generate import get_provider
 from ..llm.providers import LLMError
-from ..models import Project, ProjectVersion, Video
+from ..models import Project, ProjectVersion, Video, VoiceProfile
 from ..pipeline.clients import ServiceError
 from ..pipeline.revoice import RevoiceError, revoice_sentence
 from ..schemas_gen.timeline import TimelineDoc
 from ..worker import enqueue
+from .voices import voice_cfg
 
 router = APIRouter(prefix="/api")
 Session = Annotated[AsyncSession, Depends(get_session)]
@@ -110,6 +111,7 @@ class LectureIn(BaseModel):
     aspect: Literal["16:9", "9:16"] = "16:9"
     series_id: str | None = None
     voice: dict[str, Any] | None = None
+    voice_profile_id: str | None = Field(default=None, description="Голос лекции (профиль со страницы «Голоса»); пусто — голос серии или основной")
 
 
 @router.post("/projects/lecture", status_code=202)
@@ -119,6 +121,12 @@ async def create_lecture(body: LectureIn, s: Session) -> dict[str, Any]:
         await get_provider(s)
     except LLMError as e:
         raise HTTPException(400, str(e)) from e
+    params = body.model_dump()
+    if body.voice_profile_id:
+        prof = await s.get(VoiceProfile, body.voice_profile_id)
+        if prof is None:
+            raise HTTPException(404, "Голос не найден")
+        params["voice"] = voice_cfg(prof)
     p = Project(
         title=body.topic[:200],
         kind="lecture",
@@ -127,7 +135,7 @@ async def create_lecture(body: LectureIn, s: Session) -> dict[str, Any]:
         status="generating",
         stage="в очереди",
         series_id=body.series_id,
-        params=body.model_dump(),
+        params=params,
     )
     s.add(p)
     await s.commit()

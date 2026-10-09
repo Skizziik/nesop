@@ -3,10 +3,10 @@
 import { docFrames, MASCOT_IDS, MASCOTS, Mascot, TimelineVideo, type TimelineDoc } from "@ipt/templates";
 import { Thumbnail } from "@remotion/player";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, Film, GraduationCap, Loader2, Monitor, Plus, Smartphone, Trash2 } from "lucide-react";
+import { Copy, Film, GraduationCap, Loader2, Monitor, Play, Plus, Smartphone, Square, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { api, ApiError, type LectureInput, type Project } from "@/lib/api";
 import { inputCls } from "./SchemaForm";
@@ -195,11 +195,12 @@ function LectureForm({ onCreated }: { onCreated: (p: Project) => void }) {
             ))}
           </div>
         </div>
+        <VoicePicker value={f.voice_profile_id ?? null} onChange={(id) => set({ voice_profile_id: id })} />
         {series.length ? (
           <label className="grid gap-1">
-            <span className="text-xs font-bold text-mute">Серия (голос и палитра берутся из неё)</span>
+            <span className="text-xs font-bold text-mute">Серия (палитра берётся из неё)</span>
             <select className={inputCls()} value={f.series_id ?? ""} onChange={(e) => set({ series_id: e.target.value || null })}>
-              <option value="">— без серии, голос по умолчанию —</option>
+              <option value="">— без серии —</option>
               {series
                 .filter((s) => !s.archived)
                 .map((s) => (
@@ -240,5 +241,81 @@ function ProjectThumb({ id }: { id: string }) {
       frameToDisplay={Math.min(frames - 1, Math.round(doc.canvas.fps * 2.5))}
       style={{ width: "100%", height: "100%" }}
     />
+  );
+}
+
+const SAMPLE = {
+  it: "Ciao a tutti! Oggi impariamo il passato prossimo: ho mangiato una pizza e sono andato al mare.",
+  en: "Today we will learn when to use essere and when to use avere. It is easier than you think!",
+};
+
+/** Выбор голоса лекции + прослушивание примера по-итальянски и по-английски (как он будет звучать в уроке). */
+function VoicePicker({ value, onChange }: { value: string | null; onChange: (id: string) => void }) {
+  const { data: voices = [] } = useQuery({ queryKey: ["voice-profiles"], queryFn: api.voiceProfiles });
+  const [playing, setPlaying] = useState<string | null>(null);
+  const [loading, setLoading] = useState<string | null>(null);
+  const audio = useRef<HTMLAudioElement | null>(null);
+  const current = value ?? voices.find((v) => v.is_default)?.id ?? null;
+  const play = async (id: string, lang: "it" | "en") => {
+    const key = `${id}:${lang}`;
+    audio.current?.pause();
+    if (playing === key) return setPlaying(null);
+    setLoading(key);
+    try {
+      const r = await api.testVoice({ profile_id: id, text: SAMPLE[lang], language: lang });
+      const a = new Audio(r.url);
+      audio.current = a;
+      a.onended = () => setPlaying(null);
+      setPlaying(key);
+      await a.play();
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : "Не удалось озвучить пример");
+    } finally {
+      setLoading(null);
+    }
+  };
+  if (!voices.length) return null;
+  return (
+    <div>
+      <span className="text-xs font-bold text-mute">Голос преподавателя</span>
+      <div className="mt-1 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        {voices.map((v) => {
+          const sel = current === v.id;
+          return (
+            <div
+              key={v.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => onChange(v.id)}
+              onKeyDown={(e) => e.key === "Enter" && onChange(v.id)}
+              className={cn("flex cursor-pointer flex-col gap-2 rounded-xl bg-panel-2 p-3 text-left", sel ? "ring-2 ring-verde-2" : "hover:ring-1 hover:ring-line")}
+            >
+              <div className="flex items-center gap-2">
+                <span className="min-w-0 flex-1 truncate text-sm font-bold">{v.name}</span>
+                {v.is_default ? <span className="text-[10px] font-bold text-verde-2">основной</span> : null}
+              </div>
+              <div className="line-clamp-2 text-[11px] text-mute">{v.kind === "design" ? v.description : v.kind === "clone" ? "клон по образцу" : `${v.model} · ${v.voice}`}</div>
+              <div className="flex gap-1.5">
+                {(["it", "en"] as const).map((lang) => {
+                  const key = `${v.id}:${lang}`;
+                  return (
+                    <button
+                      key={lang}
+                      onClick={(e) => (e.stopPropagation(), void play(v.id, lang))}
+                      className="flex items-center gap-1 rounded-lg bg-panel px-2 py-1 text-[11px] font-bold hover:text-verde-2"
+                      title={SAMPLE[lang]}
+                    >
+                      {loading === key ? <Loader2 size={12} className="animate-spin" /> : playing === key ? <Square size={11} /> : <Play size={12} />}
+                      {lang === "it" ? "IT" : "EN"}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <p className="mt-1 text-[11px] text-mute">Первое прослушивание может занять до минуты — модель загружается в видеокарту.</p>
+    </div>
   );
 }

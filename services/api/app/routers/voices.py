@@ -163,6 +163,7 @@ class TestIn(BaseModel):
     model: str | None = None
     voice: str | None = None
     speed: float = 0.92
+    language: Literal["it", "en"] = "it"
 
 
 async def _synth_for(s: AsyncSession, body: TestIn) -> dict[str, Any]:
@@ -176,7 +177,8 @@ async def _synth_for(s: AsyncSession, body: TestIn) -> dict[str, Any]:
             raise HTTPException(400, "Укажи модель или профиль")
         cfg = {"model": body.model, "voice": body.voice, "speed": body.speed}
     try:
-        r = await tts_synthesize(body.text, cfg["model"], cfg.get("voice"), float(cfg.get("speed", 1.0)), 0, cfg.get("ref_audio"), cfg.get("ref_text"), cfg.get("design"))
+        r = await tts_synthesize(body.text, cfg["model"], cfg.get("voice"), float(cfg.get("speed", 1.0)), 0, cfg.get("ref_audio"), cfg.get("ref_text"), cfg.get("design"),
+                                language=body.language)
     except ServiceError as e:
         raise HTTPException(409, str(e)) from e
     return {"url": f"/media{r['path']}", "duration": r["duration"], "cfg": cfg}

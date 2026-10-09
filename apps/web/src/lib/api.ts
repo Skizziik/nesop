@@ -174,6 +174,7 @@ export interface LectureInput {
   lang: "en";
   aspect: "16:9" | "9:16";
   series_id?: string | null;
+  voice_profile_id?: string | null;
 }
 
 export class ApiError extends Error {}
@@ -283,7 +284,7 @@ export const api = {
   },
   defaultVoice: (id: string) => request<VoiceProfile>(`/api/voices/${id}/default`, { method: "POST" }),
   deleteVoice: (id: string) => request<{ ok: boolean }>(`/api/voices/${id}`, { method: "DELETE" }),
-  testVoice: (body: { text?: string; profile_id?: string; model?: string; voice?: string; speed?: number }) =>
+  testVoice: (body: { text?: string; profile_id?: string; model?: string; voice?: string; speed?: number; language?: "it" | "en" }) =>
     request<{ url: string; duration: number }>("/api/voices/test", { method: "POST", body: JSON.stringify(body) }),
   abVoices: (a: string, b: string, text?: string) =>
     request<{ left: { profile_id: string; url: string }; right: { profile_id: string; url: string } }>("/api/voices/ab", { method: "POST", body: JSON.stringify({ a, b, ...(text ? { text } : {}) }) }),
