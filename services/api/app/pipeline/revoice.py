@@ -28,7 +28,7 @@ def _fit(a: np.ndarray, n: int) -> np.ndarray:
     """Ускоряет клип до n сэмплов простой интерполяцией (только для небольших поправок ≤ 15%)."""
     if len(a) <= n:
         return a
-    return np.interp(np.linspace(0, len(a) - 1, n), np.arange(len(a)), a).astype(np.float32)
+    return np.asarray(np.interp(np.linspace(0, len(a) - 1, n), np.arange(len(a)), a), dtype=np.float32)
 
 
 async def revoice_sentence(s: Any, p: Project, clip_id: str) -> dict[str, Any]:
