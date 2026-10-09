@@ -35,7 +35,10 @@ OUTLINE_SCHEMA: dict[str, Any] = {
         "title": {"type": "string", "description": "Titolo del video, ≤ 60 caratteri"},
         "subtitle": {"type": "string"},
         "intro": {"type": "array", "items": {"$ref": "#/$defs/Sent"}, "description": "3-5 frasi di benvenuto e cosa impareremo"},
-        "chapters": {"type": "array", "items": {"type": "object", "properties": {"title": {"type": "string"}, "goal": {"type": "string"}}}},
+        "chapters": {"type": "array", "items": {"type": "object", "properties": {
+            "title": {"type": "string", "description": "Titolo del capitolo in italiano"},
+            "title_en": {"type": "string", "description": "Lo stesso titolo in inglese (per i capitoli di YouTube)"},
+            "goal": {"type": "string"}}}},
         "outro": {"type": "array", "items": {"$ref": "#/$defs/Sent"}, "description": "3-4 frasi finali: ripasso veloce, invito a commentare e iscriversi"},
     },
     "$defs": {"Sent": {"type": "object", "properties": {"it": {"type": "string", "description": "Testo detto dalla voce"}, "lang": {"type": "string", "enum": ["it", "en"]},
@@ -105,6 +108,7 @@ def chapter_guide(level: str, lang: str, words: int, n_chapters: int) -> str:
         "recap (riepilogo in bullets, di solito l'ultima slide del capitolo).\n"
         "Narrazione: frasi brevi (≤ 22 parole), naturali, come un insegnante simpatico; ripeti gli esempi con la voce. "
         "mark = indice del punto/riga che la frase introduce (la slide lo evidenzia in quel momento), -1 se nessuno; ogni punto/riga deve avere almeno una frase con il suo mark, in ordine.\n"
+        "Il saluto e la presentazione ci sono SOLO nell'intro del video: nei capitoli non salutare e non dire «benvenuti», entra subito nell'argomento.\n"
         f"Il video ha {n_chapters} capitoli: non ripetere i contenuti degli altri capitoli. Niente emoji nel testo parlato. Italiano corretto al 100%."
     )
 
@@ -177,7 +181,7 @@ def slide_from_llm(s: dict[str, Any], chapter_label: str) -> SlideBuild:
 # ---------------------------------------------------------------- LLM
 async def llm_outline(s: AsyncSession, topic: str, level: str, minutes: int, lang: str) -> dict[str, Any]:
     prov = await get_provider(s)
-    n = max(4, min(9, round(minutes / 2.6)))
+    n = max(4, min(10, round(minutes / 2.2)))
     user = (
         f"Prepara la scaletta di una video-lezione di {minutes} minuti per il canale @ItalianoPerTe. Argomento: «{topic}». Livello {level}.\n"
         f"Esattamente {n} capitoli, dal più semplice al più difficile, ognuno con un obiettivo concreto. Pubblico: anglofoni che imparano l'italiano. Intro/outro: {VOICE_POLICY.get(level, VOICE_POLICY['A2'])} Ogni frase ha lang (it/en); tr = traduzione inglese delle frasi italiane, vuoto per quelle inglesi. Il saluto iniziale sempre in italiano («Ciao a tutti!»)."
@@ -197,6 +201,25 @@ async def llm_chapter(s: AsyncSession, outline: dict[str, Any], idx: int, level:
     )
     r = await prov.complete_json(SYSTEM_TEACHER, user, CHAPTER_SCHEMA, purpose="lecture_chapter", max_tokens=16000, effort="medium")
     return dict(r.data)
+
+
+def chapter_words(ch: dict[str, Any]) -> int:
+    return sum(len(str(n.get("it", "")).split()) for sl in ch.get("slides", []) for n in sl.get("narration") or [])
+
+
+async def llm_expand_chapter(s: AsyncSession, outline: dict[str, Any], idx: int, level: str, lang: str, words: int, ch: dict[str, Any], have: int) -> dict[str, Any]:
+    prov = await get_provider(s)
+    chs = outline.get("chapters", [])
+    user = (
+        chapter_guide(level, lang, words, len(chs))
+        + f"\n\nQuesto è il capitolo {idx + 1} «{chs[idx].get('title')}», ma è troppo corto: {have} parole di narrazione invece di circa {words}.\n"
+        "Riscrivilo più lungo e più ricco, stesso stile e stesse regole: più esempi spiegati, una slide di pratica in più "
+        "(examples o quiz), frasi «Ripeti con me» per gli esempi. Mantieni le slide buone che ci sono già.\n"
+        + json.dumps(ch, ensure_ascii=False)
+    )
+    r = await prov.complete_json(SYSTEM_TEACHER, user, CHAPTER_SCHEMA, purpose="lecture_chapter", max_tokens=16000, effort="medium")
+    out = dict(r.data)
+    return out if chapter_words(out) > have else ch
 
 
 async def llm_verify_chapter(s: AsyncSession, chapter: dict[str, Any], level: str) -> tuple[dict[str, Any], list[dict[str, str]]]:
@@ -271,6 +294,11 @@ async def build_lecture(project_id: str) -> None:
             await progress(f"глава {i + 1}/{len(chapters)}", 0.05 + 0.45 * i / len(chapters))
             async with SessionLocal() as s:
                 ch = await llm_chapter(s, outline, i, level, lang, words_per)
+                have = chapter_words(ch)
+                if have < 0.75 * words_per:
+                    # модель часто пишет короче (особенно с короткими английскими фразами) — просим расширить, а не обрезаем лекцию
+                    await progress(f"глава {i + 1}/{len(chapters)}: дописываю", 0.05 + 0.45 * (i + 0.5) / len(chapters))
+                    ch = await llm_expand_chapter(s, outline, i, level, lang, words_per, ch, have)
                 ch, issues = await llm_verify_chapter(s, ch, level)
             report += [{"chapter": str(i + 1), **x} for x in issues]
             built.append(ch)
@@ -292,8 +320,9 @@ async def build_lecture(project_id: str) -> None:
             label = f"Capitolo {i + 1}"
             slides.append(
                 SlideBuild(
-                    props={"kind": "title", "chapter": label, "title": str(c.get("title", ""))[:90]},
-                    sents=[Sent(it=f"Capitolo {i + 1}: {c.get('title', '')}.", tr=f"Chapter {i + 1}")],
+                    props={"kind": "title", "chapter": label, "title": str(c.get("title", ""))[:90], "subtitle": str(c.get("title_en", ""))[:120],
+                           "title_en": str(c.get("title_en", ""))[:90]},
+                    sents=[Sent(it=f"Capitolo {i + 1}: {c.get('title', '')}.", tr=f"Chapter {i + 1}: {c.get('title_en', '')}".rstrip(": "))],
                     gap_after=GAP_CHAPTER,
                 )
             )
@@ -319,12 +348,12 @@ async def build_lecture(project_id: str) -> None:
         sem = asyncio.Semaphore(4)
         done = 0
 
-        asr = {"checked": 0, "redone": 0, "still_bad": [], "available": True}
+        asr: dict[str, Any] = {"checked": 0, "redone": 0, "still_bad": [], "available": True}
 
         async def synth(x: Sent) -> None:
             nonlocal done
             async with sem:
-                best: tuple[float, dict[str, Any]] | None = None
+                best: tuple[float, dict[str, Any], str] | None = None
                 # проверка произношения (Whisper): плохая фраза переозвучивается другим дублем, берём лучший
                 for variant in range(3):
                     r = await clients.tts_synthesize(
@@ -334,18 +363,18 @@ async def build_lecture(project_id: str) -> None:
                     heard = await clients.tts_transcribe(r["path"], x.lang) if asr["available"] else None
                     if heard is None:
                         asr["available"] = False
-                        best = (1.0, r)
+                        best = (1.0, r, "")
                         break
-                    score = clients.speech_match(x.it, heard)
+                    score = clients.speech_match(x.it, heard, x.lang)
                     asr["checked"] += variant == 0
                     asr["redone"] += variant > 0
                     if best is None or score > best[0]:
-                        best = (score, r)
+                        best = (score, r, heard)
                     if score >= ASR_OK:
                         break
                 assert best is not None
                 if best[0] < ASR_OK:
-                    asr["still_bad"].append({"text": x.it, "score": round(best[0], 2)})
+                    asr["still_bad"].append({"text": x.it, "heard": best[2], "lang": x.lang, "score": round(best[0], 2)})
                 x.clip = trim_silence(load_mono(st.data_dir / best[1]["path"].lstrip("/")))
                 done += 1
                 if done % 10 == 0:
@@ -514,7 +543,7 @@ async def build_lecture(project_id: str) -> None:
         }
         # главы YouTube: таймкоды в описании
         chapter_marks = ["00:00 Intro"] + [
-            f"{_mmss(sl.start)} {sl.props.get('title', '')}"
+            f"{_mmss(sl.start)} {sl.props.get('title_en') or sl.props.get('title', '')}" + (f" ({sl.props['title']})" if sl.props.get("title_en") else "")
             for sl in slides
             if sl.props["kind"] == "title" and sl.props.get("chapter", "").startswith("Capitolo")
         ]

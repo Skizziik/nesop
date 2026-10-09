@@ -40,16 +40,24 @@ async def tts_transcribe(path: str, language: str = "it") -> str | None:
         return None
 
 
-def speech_match(expected: str, heard: str) -> float:
-    """Доля совпадения слов (0..1) между текстом и распознанным — без регистра, пунктуации и апострофов."""
+_NUM = {
+    "it": "zero uno due tre quattro cinque sei sette otto nove dieci undici dodici tredici quattordici quindici sedici diciassette diciotto diciannove venti".split(),
+    "en": "zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty".split(),
+}
+
+
+def speech_match(expected: str, heard: str, language: str = "it") -> float:
+    """Доля совпадения слов (0..1) между текстом и распознанным — без регистра, пунктуации и апострофов; «8» = «otto»."""
     import difflib
     import re
     import unicodedata
 
+    nums = _NUM.get(language, _NUM["it"])
+
     def words(s: str) -> list[str]:
         s = unicodedata.normalize("NFKD", s.lower())
         s = "".join(ch for ch in s if not unicodedata.combining(ch))
-        return re.findall(r"[a-z0-9]+", s)
+        return [nums[int(w)] if w.isdigit() and int(w) <= 20 else w for w in re.findall(r"[a-z0-9]+", s)]
 
     a, b = words(expected), words(heard)
     if not a:

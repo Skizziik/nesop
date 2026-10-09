@@ -90,7 +90,9 @@ class Engine:
         lang = LANGS.get(req.get("language") or "it", "Italian")
         ref, ref_text = req.get("ref_audio"), req.get("ref_text") or None
         if req.get("design"):
-            ref, ref_text = str(self.design_ref(req["design"])), DESIGN_REF_TEXT
+            # x-vector (только тембр, без продолжения эталонной фразы): на коротких фразах стабильнее и темп естественнее
+            # (замер 2026-10-09: 89% против 86% точности по Whisper, ICL «проглатывает» слова в 2-словных фразах)
+            ref, ref_text = str(self.design_ref(req["design"])), None
         if req.get("seed"):
             self.torch.manual_seed(int(req["seed"]))
         if ref:
@@ -102,7 +104,9 @@ class Engine:
         else:
             m = self.model(CUSTOM)
             wavs, sr = m.generate_custom_voice(text=text, language=lang, speaker=req.get("voice") or "Serena")
-        return time_stretch(wavs[0].astype(np.float32), speed), int(sr)
+        audio = wavs[0].astype(np.float32)
+        # фазовый вокодер (librosa) даёт «металлический» звук и путает распознавание — для мелких поправок темпа не растягиваем
+        return (audio if abs(speed - 1.0) <= 0.1 else time_stretch(audio, speed)), int(sr)
 
 
 ASR = "openai/whisper-large-v3-turbo"  # ~1.6 GB fp16: влезает в 8 GB рядом с Qwen3 1.7B

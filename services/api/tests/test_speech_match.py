@@ -26,3 +26,8 @@ def test_minor_slip_passes() -> None:
 
 def test_empty_expected_is_ok() -> None:
     assert speech_match("", "anything") == 1.0
+
+
+def test_digits_equal_number_words() -> None:
+    assert speech_match("Ho dormito otto ore.", "Ho dormito 8 ore.") == 1.0
+    assert speech_match("I have three cats.", "I have 3 cats.", "en") == 1.0
