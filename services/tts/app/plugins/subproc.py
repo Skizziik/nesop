@@ -65,10 +65,11 @@ class SubprocessPlugin(TTSPlugin):
 
     def install(self, progress_cb: ProgressCb, voice_id: str | None = None) -> None:
         self.site.mkdir(parents=True, exist_ok=True)
-        if self.torch_spec:
-            self._pip([*self.torch_spec.split(), "--index-url", TORCH_CUDA if self.cuda else TORCH_CPU], progress_cb, "torch", (0.02, 0.45))
-        # torch уже стоит из нужного индекса — pip не должен тянуть другую сборку
-        self._pip([*self.packages(), "--extra-index-url", TORCH_CUDA if self.cuda else TORCH_CPU], progress_cb, "пакеты модели", (0.45, 0.7))
+        # Одним вызовом pip: с --target второй вызов не видит уже поставленный torch и качает/ставит его заново
+        # (~6 GB на HDD), да ещё другой версии, несовместимой с torchaudio. Индекс PyTorch — главный (CUDA/CPU-сборки), PyPI — для остального.
+        index = TORCH_CUDA if self.cuda else TORCH_CPU
+        self._pip([*(self.torch_spec.split() if self.torch_spec else []), *self.packages(), "--index-url", index, "--extra-index-url", "https://pypi.org/simple"],
+                  progress_cb, "torch и пакеты модели", (0.02, 0.7))
         progress_cb(0.72, "веса модели")
         self.call({"cmd": "download"}, timeout=3600)
         self._marker().write_text("ok")
