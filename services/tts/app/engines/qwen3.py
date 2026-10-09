@@ -90,11 +90,14 @@ class Engine:
         lang = LANGS.get(req.get("language") or "it", "Italian")
         ref, ref_text = req.get("ref_audio"), req.get("ref_text") or None
         if req.get("design"):
-            # x-vector (только тембр, без продолжения эталонной фразы): на коротких фразах стабильнее и темп естественнее
-            # (замер 2026-10-09: 89% против 86% точности по Whisper, ICL «проглатывает» слова в 2-словных фразах)
-            ref, ref_text = str(self.design_ref(req["design"])), None
-        if req.get("seed"):
-            self.torch.manual_seed(int(req["seed"]))
+            # Гибрид: ICL (продолжение эталонной фразы) держит манеру и интонацию одинаковыми во всём ролике, но на 2-5 словах
+            # иногда «глотает» слова; x-vector (только тембр) на коротких стабильнее, зато интонация «гуляет» от фразы к фразе.
+            # QWEN3_CLONE_MODE = hybrid (по умолчанию) | icl | xvec.
+            mode = req.get("clone_mode") or os.environ.get("QWEN3_CLONE_MODE", "hybrid")
+            icl = mode == "icl" or (mode == "hybrid" and len(text.split()) >= 6)
+            ref, ref_text = str(self.design_ref(req["design"])), (DESIGN_REF_TEXT if icl else None)
+        # детерминированный сид: тот же текст и номер дубля → тот же звук (повторный рендер не меняет голос)
+        self.torch.manual_seed(int(hashlib.sha1(f"{text}|{req.get('seed') or 0}".encode()).hexdigest()[:8], 16))
         if ref:
             key = f"{ref}|{ref_text}"
             b = self.model(BASE)
