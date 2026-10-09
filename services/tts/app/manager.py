@@ -128,6 +128,10 @@ class Manager:
         extra = f"{ref_audio}:{ref.stat().st_mtime_ns}|{ref_text}" if ref else (f"design:{design}" if design else "")
         if language != "it":
             extra += f"|lang:{language}"
+        # версия движка: после изменения способа синтеза старые дубли из кеша не должны подставляться
+        tag = getattr(plugin, "cache_tag", "")
+        if tag:
+            extra += f"|eng:{tag}"
         key = cache_key(model, vid, speed, text, variant, extra)
         path = self.cache_dir / f"{key}.wav"
         cached = path.exists()

@@ -23,8 +23,9 @@ class KokoroPlugin(SubprocessPlugin):
 
 class Qwen3Plugin(SubprocessPlugin):
     ENGINE = "qwen3"
+    cache_tag = "xv1"  # 2026-10-09: x-vector для design-голосов, без time-stretch на ±10% — меняй при изменении синтеза
     torch_spec = "torch torchaudio"
-    info = PluginInfo(id="qwen3", name="Qwen3-TTS", license="Apache-2.0", commercial="ok", languages=["it"], requires_gpu=True, vram_gb=6,
+    info = PluginInfo(id="qwen3", name="Qwen3-TTS", license="Apache-2.0", commercial="ok", languages=["it", "en"], requires_gpu=True, vram_gb=6,
                       supports_cloning=True, supports_voice_design=True,
                       description="Лучший кандидат для фирменного голоса: клон по образцу и voice design по описанию. ~8 GB загрузки.")
     voices_static = [_v(s, s, g, "не носитель итальянского, но говорит по-итальянски") for s, g in
