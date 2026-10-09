@@ -37,7 +37,7 @@ export function SeriesPage() {
   const { data: series = [] } = useQuery({ queryKey: ["series"], queryFn: api.series });
   const [edit, setEdit] = useState<Series | "new" | null>(null);
   return (
-    <div className="mx-auto grid max-w-7xl gap-5">
+    <div className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)] gap-5">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-3xl font-bold">Серии</h1>
         <Button onClick={() => setEdit("new")}>

@@ -42,7 +42,7 @@ export function SettingsPage() {
   const total = (usage?.rows ?? []).reduce((a, r) => a + r.usd, 0);
 
   return (
-    <div className="mx-auto grid max-w-4xl gap-5">
+    <div className="mx-auto grid max-w-4xl grid-cols-[minmax(0,1fr)] gap-5">
       <h1 className="font-display text-3xl font-bold">Настройки</h1>
       <Card>
         <CardTitle>LLM-провайдер</CardTitle>

@@ -46,7 +46,7 @@ export function Library() {
   });
 
   return (
-    <div className="mx-auto grid max-w-7xl gap-5">
+    <div className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)] gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-3xl font-bold">Библиотека</h1>
         <div className="flex flex-wrap items-center gap-2">

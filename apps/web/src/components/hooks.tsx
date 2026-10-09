@@ -47,7 +47,7 @@ export function HooksPage() {
   const del = useMutation({ mutationFn: (id: string) => api.deleteHook(id), onSuccess: () => void refresh(), onError: onErr });
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-5">
+    <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)] gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-3xl font-bold">Хуки и призывы</h1>
         <div className="flex gap-2">

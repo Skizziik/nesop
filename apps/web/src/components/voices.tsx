@@ -34,7 +34,7 @@ export function VoicesPage() {
   const uninstall = useMutation({ mutationFn: ({ id, voice }: { id: string; voice?: string }) => api.ttsUninstall(id, voice), onSuccess: () => (toast.success("Удалено"), refresh()), onError: onErr });
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-5">
+    <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)] gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-3xl font-bold">Голоса</h1>
         <Badge tone={hw?.cuda ? "green" : "gray"}>

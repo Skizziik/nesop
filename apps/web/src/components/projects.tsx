@@ -46,7 +46,7 @@ export function Projects() {
   const del = useMutation({ mutationFn: api.deleteProject, onSuccess: () => void refresh(), onError: onErr });
 
   return (
-    <div className="grid gap-6">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
       <div>
         <h1 className="font-display text-3xl font-bold">Длинные видео</h1>
         <p className="text-sm text-mute">Уроки-лекции на 5–25 минут от LLM и монтаж в редакторе с дорожками: слайды, маскоты, субтитры, музыка.</p>

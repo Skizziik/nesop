@@ -71,7 +71,7 @@ export function Ideas() {
   const ids = [...selected];
 
   return (
-    <div className="mx-auto grid max-w-[1600px] gap-4">
+    <div className="mx-auto grid max-w-[1600px] grid-cols-[minmax(0,1fr)] gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-3xl font-bold">Идеи</h1>
         <div className="flex flex-wrap items-center gap-2">

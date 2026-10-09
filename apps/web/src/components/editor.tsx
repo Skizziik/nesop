@@ -125,7 +125,7 @@ export function Editor({ id }: { id: string }) {
   const updTheme = (patch: Partial<Theme>) => (setTheme({ ...(theme ?? {}), ...patch }), setDirty(true));
 
   return (
-    <div className="mx-auto grid max-w-7xl gap-5">
+    <div className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)] gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <Link href="/ideas" className="text-xs text-mute hover:underline">

@@ -41,7 +41,7 @@ export function AssetsPage() {
   const canUpload = kind in ACCEPT;
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-5">
+    <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)] gap-5">
       <h1 className="font-display text-3xl font-bold">Ассеты</h1>
       <div className="flex flex-wrap gap-2">
         {Object.entries(KINDS).map(([k, v]) => (
