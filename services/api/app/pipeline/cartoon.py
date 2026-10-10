@@ -56,6 +56,13 @@ LOCATIONS = {
 ACTIONS = ["talk", "idle", "wave", "point", "jump", "clap", "dance", "think", "shrug", "cheer", "sad", "scared", "hug", "bow", "walk", "run"]
 EMOTIONS = ["neutral", "happy", "laugh", "sad", "surprised", "angry", "scared", "thinking", "sleepy"]
 SPEAKERS = [*CAST, "narrator"]
+PROPS = ["ball", "balloon", "kite", "umbrella", "toothbrush", "book", "teddy", "apple", "banana", "carrot", "cake", "cookie", "ice_cream", "cup",
+         "bucket", "spade", "flower", "star", "gift", "crayon", "drawing", "blocks", "toy_car", "drum", "sandwich", "bowl", "pillow", "bubbles", "leaf",
+         "shell", "sandcastle", "snowman", "puddle", "magnifier", "plaster"]
+WEAR = ["raincoat", "pajamas", "party_hat", "scarf", "sun_hat", "winter_hat"]
+FX = ["hearts", "sparkles", "zzz", "notes", "sweat", "exclaim", "question", "puff"]
+COLORS = {"red": "#FF4D5A", "blue": "#3D8BFF", "yellow": "#FFD23F", "green": "#4CB944", "orange": "#FF8A2A", "purple": "#8E5CFF", "pink": "#FF6FA8",
+          "white": "#FFFFFF", "brown": "#A86B3C"}
 
 RULES = (
     "Audience: children aged 2-5 who are learning to speak; parents watch too. Language: simple, warm, natural English.\n"
@@ -68,6 +75,8 @@ RULES = (
     "- Safety: no dangerous acts a child could copy (no climbing high, no playing with fire, knives, medicine, water without an adult), "
     "no violence, no frightening villains, no brands, no religion/politics, no unhealthy messages.\n"
     "- Each beat is one short line by one speaker. The narrator only frames the story briefly.\n"
+    "- Make it VISUAL and varied: the story's key object (props), weather and time of day, outfits that fit (raincoat in the rain, pajamas at bedtime, "
+    "party hats at a birthday), and little effects (hearts when happy, zzz when sleepy, sparkles for magic moments, ! when surprised).\n"
 )
 BIBLE = (
     "Series: friends Benny (bunny), Mia (kitten), Ollie (bear cub) and Dot (puppy), with Mama Bunny.\n"
@@ -122,6 +131,11 @@ BEAT = {
         "reactions": {"type": "array", "items": {"type": "object", "properties": {"char": {"type": "string", "enum": list(CAST)},
                                                                                      "action": {"type": "string", "enum": ACTIONS}, "emotion": {"type": "string", "enum": EMOTIONS}}}},
         "ask_viewer": {"type": "boolean", "description": "the speaker asks the child watching; the answer comes in the next beat"},
+        "hold": {"type": "object", "description": "optional: a character picks up (or drops with prop='none') an object at this beat",
+                 "properties": {"char": {"type": "string", "enum": list(CAST)}, "prop": {"type": "string", "enum": [*PROPS, "none"]},
+                                "color": {"type": "string", "enum": list(COLORS)}}},
+        "fx": {"type": "object", "description": "optional: a little effect over a character's head",
+               "properties": {"char": {"type": "string", "enum": list(CAST)}, "kind": {"type": "string", "enum": FX}}},
         "word": {"type": "string", "description": "optional key word to show BIG on screen when it is first taught"},
     },
 }
@@ -135,6 +149,15 @@ STORY_SCHEMA: dict[str, Any] = {
                 "properties": {
                     "location": {"type": "string", "enum": list(LOCATIONS)},
                     "cast": {"type": "array", "items": {"type": "string", "enum": list(CAST)}, "description": "characters present at the start"},
+                    "weather": {"type": "string", "enum": ["clear", "rain", "snow", "leaves"]},
+                    "time": {"type": "string", "enum": ["day", "evening", "night"]},
+                    "decor": {"type": "string", "enum": ["none", "birthday"]},
+                    "props": {"type": "array", "description": "objects standing on the ground in this scene",
+                              "items": {"type": "object", "properties": {"prop": {"type": "string", "enum": PROPS},
+                                                                         "where": {"type": "string", "enum": ["left", "center_left", "center", "center_right", "right"]},
+                                                                         "color": {"type": "string", "enum": list(COLORS)}}}},
+                    "wear": {"type": "array", "description": "what the characters wear in this scene",
+                             "items": {"type": "object", "properties": {"char": {"type": "string", "enum": list(CAST)}, "items": {"type": "array", "items": {"type": "string", "enum": WEAR}}}}},
                     "beats": {"type": "array", "items": BEAT},
                 },
             },
@@ -261,7 +284,7 @@ class Director:
         return out
 
     async def scene(self, location: str, cast: list[str], beats: list[dict[str, Any]], kind: str = "story", title: str | None = None,
-                    sub: str | None = None) -> None:
+                    sub: str | None = None, look: dict[str, Any] | None = None) -> None:
         cast = [c for c in cast if c in CAST] or ["benny"]
         pos = self._place(cast)
         keys: dict[str, list[dict[str, Any]]] = {c: [{"t": 0, "x": pos[c], "action": "idle", "emotion": "happy"}] for c in cast}
@@ -302,6 +325,13 @@ class Director:
             if spk in keys:
                 keys[spk].append({"t": round(lt, 3), "action": b.get("action") or "talk", "emotion": b.get("emotion") or "happy"})
                 keys[spk].append({"t": round(lt + dur, 3), "action": "idle"})
+            hd = b.get("hold") or {}
+            if hd.get("char") in keys:
+                pr = hd.get("prop")
+                keys[hd["char"]].append({"t": round(lt, 3), "hold": None if pr in (None, "none") else {"id": pr, **({"color": COLORS[hd["color"]]} if hd.get("color") in COLORS else {})}})
+            fx = b.get("fx") or {}
+            if fx.get("char") in keys and fx.get("kind") in FX:
+                keys[fx["char"]].append({"t": round(lt + 0.2, 3), "fx": fx["kind"]})
             for rc in b.get("reactions") or []:
                 if rc.get("char") in keys:
                     keys[rc["char"]].append({"t": round(lt + 0.25, 3), "action": rc.get("action") or "idle", "emotion": rc.get("emotion") or "happy"})
@@ -324,9 +354,18 @@ class Director:
                         keys[c].append({"t": round(lt + 2.6, 3), "action": "idle", "emotion": "happy"})
                 lt += 2.8
         dur_total = round(lt + 0.9, 3)
+        lk = look or {}
+        wear = {w.get("char"): [x for x in (w.get("items") or []) if x in WEAR] for w in (lk.get("wear") or []) if w.get("char") in CAST}
+        props = [{"id": pp["prop"], "x": SLOTS.get(pp.get("where") or "center", 960.0) + 60, **({"color": COLORS[pp["color"]]} if pp.get("color") in COLORS else {})}
+                 for pp in (lk.get("props") or []) if pp.get("prop") in PROPS][:4]
         self.scenes.append({
             "location": location, "kind": kind, "start": round(self.t, 3), "duration": dur_total,
-            "camera": cam, "actors": [{"id": c, "keys": k} for c, k in keys.items()], "lines": lines, "overlays": overlays,
+            "camera": cam, "actors": [{"id": c, "keys": k, **({"wear": wear[c]} if wear.get(c) else {})} for c, k in keys.items()],
+            "lines": lines, "overlays": overlays,
+            **({"weather": lk["weather"]} if lk.get("weather") in ("rain", "snow", "leaves") else {}),
+            **({"time": lk["time"]} if lk.get("time") in ("evening", "night") else {}),
+            **({"decor": "birthday"} if lk.get("decor") == "birthday" else {}),
+            **({"props": props} if props else {}),
         })
         self.t += dur_total
 
@@ -416,7 +455,7 @@ async def build_cartoon(project_id: str) -> None:
                           title=str(story.get("title", "")), sub=f"Story {i + 1}")
             for j, sc in enumerate(scenes):
                 await progress(f"история {i + 1}: сцена {j + 1}/{len(scenes)}", 0.32 + 0.55 * (i + j / max(1, len(scenes))) / max(1, len(stories)))
-                await d.scene(sc.get("location") or "garden", sc.get("cast") or story.get("cast") or ["benny"], sc.get("beats") or [])
+                await d.scene(sc.get("location") or "garden", sc.get("cast") or story.get("cast") or ["benny"], sc.get("beats") or [], look=sc)
             for k, sg in enumerate(songs):
                 if int(sg.get("after_story", -1)) == i + 1 and k < len(lyrics):
                     d.chapters.append((d.t, f"Song: {sg.get('title', '')}"))
