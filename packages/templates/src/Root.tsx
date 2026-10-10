@@ -9,6 +9,7 @@ import { SAMPLE_TIMELINE } from "./timeline/sample";
 import { docFrames } from "./timeline/types";
 import { Thumbnail, THUMBNAIL_ID, THUMB_H, THUMB_W } from "./timeline/Thumbnail";
 import { ChannelBanner, BANNER_ID, BANNER_H, BANNER_W } from "./timeline/ChannelBanner";
+import { CartoonEpisode, DEMO_CARTOON } from "./cartoon/Episode";
 
 export const TIMELINE_ID = "Timeline";
 
@@ -31,6 +32,16 @@ const calculateMetadata: CalculateMetadataFunction<AnyProps> = ({ props }) => {
 export const RemotionRoot: React.FC = () => (
   <>
   <Composition id="MascotGallery" component={MascotGallery} durationInFrames={90} fps={30} width={1920} height={1080} />
+  <Composition
+    id="Cartoon"
+    component={CartoonEpisode as unknown as React.FC<AnyProps>}
+    durationInFrames={Math.round(DEMO_CARTOON.duration * 30)}
+    fps={30}
+    width={1920}
+    height={1080}
+    defaultProps={DEMO_CARTOON as unknown as AnyProps}
+    calculateMetadata={({ props }) => ({ durationInFrames: Math.max(1, Math.round(Number((props as { duration?: number }).duration ?? 15) * 30)) })}
+  />
   <Composition id={BANNER_ID} component={ChannelBanner as unknown as React.FC<AnyProps>} durationInFrames={1} fps={30} width={BANNER_W} height={BANNER_H} defaultProps={{}} />
   <Composition
     id={THUMBNAIL_ID}
