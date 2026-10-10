@@ -38,8 +38,9 @@ async def render_project(pid: str) -> None:
     try:
         await _set(pid, status="rendering", stage="рендер 0%", progress=0.0, error=None)
         # ~1 сек реального времени рендера на 1 сек видео на CPU с запасом ×6
-        timeout = int(max(900, float(doc.get("duration_s", 60)) * 6))
-        await clients.render(doc, rel, on_progress, composition="Timeline", timeout_s=timeout)
+        cartoon = "scenes" in doc  # мультик: CartoonDoc (композиция Cartoon), иначе таймлайн
+        timeout = int(max(900, float(doc.get("duration_s") or doc.get("duration") or 60) * 6))
+        await clients.render(doc, rel, on_progress, composition="Cartoon" if cartoon else "Timeline", timeout_s=timeout)
         (st.data_dir / rel.lstrip("/") / "meta.json").write_text(json.dumps(meta.get("youtube", {"title": doc.get("title")}), ensure_ascii=False, indent=2), encoding="utf-8")
         await _set(pid, status="ready", stage="готово", progress=1.0, out_dir=rel)
     except Exception as e:  # noqa: BLE001 — ошибка видна в проекте

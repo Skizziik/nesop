@@ -21,7 +21,7 @@ const STATUS: Record<Project["status"], { label: string; tone: "green" | "red" |
   ready: { label: "готово", tone: "green" },
   failed: { label: "ошибка", tone: "red" },
 };
-const KIND = { lecture: "лекция", short_edit: "из шортса", custom: "свой" } as const;
+const KIND = { lecture: "лекция", short_edit: "из шортса", custom: "свой", cartoon: "мультик" } as const;
 
 const IDEAS = [
   "Il passato prossimo: essere o avere?",
@@ -37,7 +37,7 @@ export function Projects() {
   const router = useRouter();
   const { data = [], isLoading } = useQuery({
     queryKey: ["projects"],
-    queryFn: () => api.projects(),
+    queryFn: async () => (await api.projects()).filter((p) => p.kind !== "cartoon"),
     refetchInterval: (q) => (q.state.data?.some((p) => p.status === "generating" || p.status === "rendering") ? 2500 : false),
   });
   const refresh = () => qc.invalidateQueries({ queryKey: ["projects"] });

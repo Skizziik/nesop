@@ -135,7 +135,7 @@ export type SeriesInput = Partial<Omit<Series, "id" | "slug" | "counts" | "imple
 export interface Project {
   id: string;
   title: string;
-  kind: "lecture" | "short_edit" | "custom";
+  kind: "lecture" | "short_edit" | "custom" | "cartoon";
   aspect: "16:9" | "9:16";
   status: "generating" | "draft" | "rendering" | "ready" | "failed";
   progress: number;
@@ -304,6 +304,8 @@ export const api = {
   projects: (kind?: string) => request<Project[]>(`/api/projects${kind ? `?kind=${kind}` : ""}`),
   project: (id: string) => request<ProjectFull>(`/api/projects/${id}`),
   createProject: (body: { title: string; aspect: "16:9" | "9:16" }) => request<ProjectFull>("/api/projects", { method: "POST", body: JSON.stringify(body) }),
+  createCartoon: (body: { theme: string; minutes: number; stories: number; auto_render: boolean }) =>
+    request<Project>("/api/projects/cartoon", { method: "POST", body: JSON.stringify(body) }),
   createLecture: (body: LectureInput) => request<Project>("/api/projects/lecture", { method: "POST", body: JSON.stringify(body) }),
   saveProject: (id: string, body: { doc: TimelineDoc; title?: string; note?: string; base_revision?: number }) =>
     request<Project>(`/api/projects/${id}`, { method: "PUT", body: JSON.stringify(body) }),

@@ -29,3 +29,4 @@ strict = true
 
 [tool.ruff.lint.per-file-ignores]
 "app/pipeline/lecture.py" = ["E501"]  # длинные строки промптов
+"app/pipeline/cartoon.py" = ["E501"]  # библия сериала и промпты

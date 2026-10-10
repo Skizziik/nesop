@@ -17,3 +17,7 @@ export { SAMPLE_TIMELINE } from "./timeline/sample";
 export { MASCOTS, MASCOT_IDS, Mascot } from "./components/Mascots";
 export type { Emotion } from "./components/Mascots";
 export * from "./timeline/types";
+export { CartoonEpisode, DEMO_CARTOON, type CartoonDoc, type SceneDoc } from "./cartoon/Episode";
+export { CartoonThumb, CARTOON_THUMB_ID, type CartoonThumbProps } from "./cartoon/Thumb";
+export { CAST, CAST_IDS } from "./cartoon/cast";
+export { LOCATIONS, LOCATION_IDS } from "./cartoon/locations";

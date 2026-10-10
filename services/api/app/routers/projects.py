@@ -151,6 +151,27 @@ async def create_lecture(body: LectureIn, s: Session) -> dict[str, Any]:
     return project_out(p)
 
 
+class CartoonIn(BaseModel):
+    theme: str = Field(min_length=3, max_length=300, description="Тема эпизода: «Sharing», «Colours», «Bedtime»…")
+    minutes: int = Field(default=22, ge=4, le=25)
+    stories: int = Field(default=3, ge=1, le=4)
+    auto_render: bool = False
+
+
+@router.post("/projects/cartoon", status_code=202)
+async def create_cartoon(body: CartoonIn, s: Session) -> dict[str, Any]:
+    """Мультик для детей 2-5 лет: план → истории → проверка → озвучка героями → сцены. Потом просмотр и рендер."""
+    try:
+        await get_provider(s)
+    except LLMError as e:
+        raise HTTPException(400, str(e)) from e
+    p = Project(title=body.theme[:200], kind="cartoon", aspect="16:9", doc={}, status="generating", stage="в очереди", params=body.model_dump())
+    s.add(p)
+    await s.commit()
+    await enqueue("run_cartoon", p.id)
+    return project_out(p)
+
+
 @router.get("/projects/{pid}")
 async def get_project(pid: str, s: Session) -> dict[str, Any]:
     p = await s.get(Project, pid)
@@ -164,6 +185,15 @@ class SaveIn(BaseModel):
     title: str | None = None
     note: str = ""
     base_revision: int | None = Field(default=None, description="Ревизия, с которой начал редактор — защита от перезаписи чужих правок")
+
+
+def validate_any(doc: dict[str, Any]) -> dict[str, Any]:
+    """Мультик (CartoonDoc) проверяем по минимуму, таймлайн — по схеме."""
+    if "scenes" in doc:
+        if not isinstance(doc.get("scenes"), list) or not doc["scenes"]:
+            raise HTTPException(400, "В мультике нет сцен")
+        return doc
+    return validate_doc(doc)
 
 
 def validate_doc(doc: dict[str, Any]) -> dict[str, Any]:
@@ -183,7 +213,7 @@ async def save_project(pid: str, body: SaveIn, s: Session) -> dict[str, Any]:
         raise HTTPException(409, "Проект сейчас генерируется или рендерится — дождись окончания")
     if body.base_revision is not None and body.base_revision != p.revision:
         raise HTTPException(409, f"Проект изменился в другом окне (ревизия {p.revision}, у тебя {body.base_revision}) — обнови страницу")
-    doc = validate_doc(body.doc)
+    doc = validate_any(body.doc)
     p.doc, p.revision = doc, p.revision + 1
     if body.title:
         p.title = body.title
@@ -318,7 +348,7 @@ async def render_project(pid: str, s: Session) -> dict[str, Any]:
         raise HTTPException(404, "Проект не найден")
     if p.status in ("generating", "rendering"):
         raise HTTPException(409, "Уже идёт генерация или рендер")
-    validate_doc(p.doc)
+    validate_any(p.doc)
     p.status, p.progress, p.stage, p.error = "rendering", 0.0, "в очереди", None
     await s.commit()
     await enqueue("run_project_render", p.id)

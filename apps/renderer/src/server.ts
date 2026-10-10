@@ -126,7 +126,8 @@ app.post("/render", (req, res) => {
     return;
   }
   try {
-    const job = queue.add({ ...props, __composition: composition === "Timeline" ? "Timeline" : COMPOSITION_ID }, safeOutDir(out_dir));
+    const comp = composition === "Timeline" || composition === "Cartoon" ? composition : COMPOSITION_ID;
+    const job = queue.add({ ...props, __composition: comp }, safeOutDir(out_dir));
     res.status(202).json({ job_id: job.id });
   } catch (e) {
     res.status(400).json({ error: e instanceof Error ? e.message : String(e) });
@@ -134,7 +135,7 @@ app.post("/render", (req, res) => {
 });
 
 /** Один кадр в png (обложки YouTube): синхронно, без очереди видео — рендер кадра занимает секунды. */
-const STILLS = new Set(["Thumbnail", "Timeline", COMPOSITION_ID]);
+const STILLS = new Set(["Thumbnail", "Timeline", "Cartoon", "CartoonThumb", COMPOSITION_ID]);
 app.post("/still", async (req, res) => {
   const { props, out, composition, frame } = req.body as { props?: Record<string, unknown>; out?: string; composition?: string; frame?: number };
   if (!props || !out || !composition || !STILLS.has(composition)) {

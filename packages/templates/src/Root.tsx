@@ -10,6 +10,7 @@ import { docFrames } from "./timeline/types";
 import { Thumbnail, THUMBNAIL_ID, THUMB_H, THUMB_W } from "./timeline/Thumbnail";
 import { ChannelBanner, BANNER_ID, BANNER_H, BANNER_W } from "./timeline/ChannelBanner";
 import { CartoonEpisode, DEMO_CARTOON } from "./cartoon/Episode";
+import { CartoonThumb, CARTOON_THUMB_ID } from "./cartoon/Thumb";
 
 export const TIMELINE_ID = "Timeline";
 
@@ -41,6 +42,15 @@ export const RemotionRoot: React.FC = () => (
     height={1080}
     defaultProps={DEMO_CARTOON as unknown as AnyProps}
     calculateMetadata={({ props }) => ({ durationInFrames: Math.max(1, Math.round(Number((props as { duration?: number }).duration ?? 15) * 30)) })}
+  />
+  <Composition
+    id={CARTOON_THUMB_ID}
+    component={CartoonThumb as unknown as React.FC<AnyProps>}
+    durationInFrames={1}
+    fps={30}
+    width={1280}
+    height={720}
+    defaultProps={{ text: "Sharing is fun", chars: ["benny", "mia"], location: "garden", emoji: "🍎", variant: 0 }}
   />
   <Composition id={BANNER_ID} component={ChannelBanner as unknown as React.FC<AnyProps>} durationInFrames={1} fps={30} width={BANNER_W} height={BANNER_H} defaultProps={{}} />
   <Composition

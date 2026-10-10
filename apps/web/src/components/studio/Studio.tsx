@@ -326,7 +326,7 @@ function Tool({ children, onClick, title, disabled, active }: { children: React.
 }
 
 /** Пакет для YouTube: 3 обложки (для «Test & Compare»), варианты названия, описание с главами, теги, хештеги. */
-function YoutubePanel({ project, onClose }: { project: ProjectFull; onClose: () => void }) {
+export function YoutubePanel({ project, onClose }: { project: ProjectFull; onClose: () => void }) {
   const qc = useQueryClient();
   const yt = project.meta?.youtube ?? {};
   const regen = useMutation({
