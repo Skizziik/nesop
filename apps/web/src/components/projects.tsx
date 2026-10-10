@@ -211,6 +211,10 @@ function LectureForm({ onCreated }: { onCreated: (p: Project) => void }) {
             </select>
           </label>
         ) : null}
+        <label className="flex items-center gap-2 text-xs">
+          <input type="checkbox" checked={!!f.auto_render} onChange={(e) => set({ auto_render: e.target.checked })} className="accent-[var(--color-verde-2)]" />
+          Сразу отрендерить mp4 после генерации (можно нажать и уйти — утром будет готовое видео, обложки и описание)
+        </label>
         <div className="flex items-center gap-3">
           <Button className="shrink-0 whitespace-nowrap" onClick={() => create.mutate()} disabled={f.topic.trim().length < 3 || create.isPending}>
             {create.isPending ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />} Сгенерировать лекцию

@@ -2,13 +2,14 @@
 
 import type { TimelineDoc } from "@ipt/templates";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Copy, Download, History, Loader2, Plus, Redo2, RefreshCw, Scissors, Trash2, Undo2, Wand2, MonitorPlay } from "lucide-react";
+import { ArrowLeft, Copy, Download, History, Loader2, Plus, Redo2, RefreshCw, Scissors, Trash2, Undo2, Wand2, MonitorPlay, ListChecks, Archive } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api, ApiError, type ProjectFull } from "@/lib/api";
 import { Badge, Button, CopyButton, Progress, cn } from "../ui";
 import { AddPanel } from "./AddPanel";
+import { PhrasesPanel } from "./PhrasesPanel";
 import { Inspector } from "./Inspector";
 import { Stage, type StageHandle } from "./Stage";
 import { useStudio, type TrackKind } from "./store";
@@ -58,7 +59,7 @@ function Editor({ project, onReload }: { project: ProjectFull; onReload: () => P
   const stage = useRef<StageHandle>(null);
   const s = useStudio();
   const { doc, dirty, saving, revision, past, future } = s;
-  const [panel, setPanel] = useState<"inspector" | "versions" | "youtube">("inspector");
+  const [panel, setPanel] = useState<"inspector" | "versions" | "youtube" | "phrases">("inspector");
   const showVersions = panel === "versions";
   const setShowVersions = (f: (v: boolean) => boolean) => setPanel(f(showVersions) ? "versions" : "inspector");
   const busy = project.status === "rendering";
@@ -167,6 +168,9 @@ function Editor({ project, onReload }: { project: ProjectFull; onReload: () => P
           <Tool onClick={s.removeSelected} disabled={!s.selected.length} title="Удалить (Del)">
             <Trash2 size={16} />
           </Tool>
+          <Tool onClick={() => setPanel((v) => (v === "phrases" ? "inspector" : "phrases"))} title="Фразы: список, поиск, переозвучка" active={panel === "phrases"}>
+            <ListChecks size={16} />
+          </Tool>
           <Tool onClick={() => setPanel((v) => (v === "youtube" ? "inspector" : "youtube"))} title="YouTube: обложки, название, описание, теги" active={panel === "youtube"}>
             <MonitorPlay size={16} />
           </Tool>
@@ -208,6 +212,8 @@ function Editor({ project, onReload }: { project: ProjectFull; onReload: () => P
         <div className="w-72 shrink-0 border-l border-line bg-panel">
           {panel === "versions" ? (
             <Versions projectId={project.id} onRestored={onReload} onClose={() => setPanel("inspector")} />
+          ) : panel === "phrases" ? (
+            <PhrasesPanel project={project} onSeek={(t) => stage.current?.seek(t)} onClose={() => setPanel("inspector")} />
           ) : panel === "youtube" ? (
             <YoutubePanel project={project} onClose={() => setPanel("inspector")} />
           ) : (
@@ -357,6 +363,15 @@ function YoutubePanel({ project, onClose }: { project: ProjectFull; onClose: () 
       >
         {regen.isPending ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} {regen.isPending ? "Генерирую… (~1 мин)" : yt.title ? "Перегенерировать" : "Сгенерировать"}
       </button>
+      {yt.title || project.video_url ? (
+        <a
+          href={`/api/projects/${project.id}/youtube.zip`}
+          className="mb-3 flex w-full items-center justify-center gap-1.5 rounded-md border border-line px-2 py-1.5 text-xs font-bold hover:bg-panel-2"
+          title="mp4 + 3 обложки + youtube.txt (названия, описание, теги, хештеги)"
+        >
+          <Archive size={13} /> Скачать всё для YouTube (zip)
+        </a>
+      ) : null}
       {yt.thumbnails?.length ? (
         <div className="mb-3 grid gap-2">
           <span className="text-[10px] font-bold text-mute">Обложки — загрузи все три в YouTube Studio → «Test & Compare», YouTube сам выберет лучшую</span>

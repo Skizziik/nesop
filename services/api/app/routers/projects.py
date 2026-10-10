@@ -3,13 +3,20 @@
 from __future__ import annotations
 
 import copy
+import re
+import tempfile
+import unicodedata
+import zipfile
+from pathlib import Path
 from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..config import get_settings
 from ..db import get_session, new_id
 from ..llm.generate import get_provider
 from ..llm.providers import LLMError
@@ -112,6 +119,7 @@ class LectureIn(BaseModel):
     series_id: str | None = None
     voice: dict[str, Any] | None = None
     voice_profile_id: str | None = Field(default=None, description="Голос лекции (профиль со страницы «Голоса»); пусто — голос серии или основной")
+    auto_render: bool = Field(default=False, description="Сразу отрендерить mp4 после генерации")
 
 
 @router.post("/projects/lecture", status_code=202)
@@ -230,6 +238,39 @@ async def regen_youtube(pid: str, s: Session) -> dict[str, Any]:
         raise HTTPException(409, "Проект ещё генерируется")
     yt = await build_youtube(pid)
     return {"youtube": yt}
+
+
+@router.get("/projects/{pid}/youtube.zip")
+async def youtube_zip(pid: str, s: Session) -> FileResponse:
+    """Всё для ручной загрузки на YouTube одним архивом: mp4, 3 обложки, тексты (названия, описание, теги, хештеги)."""
+    p = await s.get(Project, pid)
+    if p is None:
+        raise HTTPException(404, "Проект не найден")
+    st = get_settings()
+    yt = (p.meta or {}).get("youtube") or {}
+    video = st.data_dir / p.out_dir.lstrip("/") / "video.mp4" if p.out_dir else None
+    if not yt.get("title") and not (video and video.exists()):
+        raise HTTPException(409, "Нет ни видео, ни YouTube-пакета — сначала «Рендер» и «Сгенерировать» в панели YouTube")
+    slug = re.sub(r"[^a-z0-9]+", "-", unicodedata.normalize("NFKD", p.title).encode("ascii", "ignore").decode().lower()).strip("-")[:60] or "video"
+    tmp = Path(tempfile.gettempdir()) / f"yt-{pid}.zip"
+    text = "\n\n".join(
+        [
+            "НАЗВАНИЕ (варианты, первый — основной):\n" + "\n".join(yt.get("titles") or [yt.get("title", p.title)]),
+            "ОПИСАНИЕ:\n" + str(yt.get("description", "")),
+            "ТЕГИ (вставить в поле «Теги»):\n" + ", ".join(yt.get("tags") or []),
+            "ХЕШТЕГИ:\n" + " ".join(yt.get("hashtags") or []),
+            "ОБЛОЖКИ: thumbnail-1..3.png — загрузи все три в YouTube Studio → «Тест и сравнение» (Test & Compare).",
+        ]
+    )
+    with zipfile.ZipFile(tmp, "w", zipfile.ZIP_STORED) as z:  # mp4 уже сжат — без повторного сжатия
+        if video and video.exists():
+            z.write(video, f"{slug}.mp4")
+        for i, url in enumerate(yt.get("thumbnails") or []):
+            f = st.data_dir / str(url).removeprefix("/media/")
+            if f.exists():
+                z.write(f, f"thumbnail-{i + 1}.png")
+        z.writestr("youtube.txt", text)
+    return FileResponse(tmp, media_type="application/zip", filename=f"{slug}-youtube.zip")
 
 
 @router.get("/projects/{pid}/versions")

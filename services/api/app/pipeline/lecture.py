@@ -570,6 +570,11 @@ async def build_lecture(project_id: str) -> None:
         except Exception as e:  # noqa: BLE001 — пакет YouTube не должен ронять готовую лекцию
             log.warning("youtube pack failed: %s", e)
         await progress("готов к редактированию", 1.0, status="draft", error=None, revision=1)
+        if params.get("auto_render"):
+            from ..worker import enqueue
+
+            await progress("в очереди на рендер", 0.0, status="rendering")
+            await enqueue("run_project_render", project_id)
     except (LLMError, clients.ServiceError, KeyError, ValueError) as e:
         await progress("ошибка", 0.0, status="failed", error=str(e)[:2000])
     except Exception as e:  # noqa: BLE001 — любой сбой виден в проекте

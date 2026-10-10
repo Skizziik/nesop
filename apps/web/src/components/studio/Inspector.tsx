@@ -6,6 +6,7 @@ import { Loader2, Mic, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
+import { revoiceClip } from "./revoice";
 import { contentEnd, findClip, useStudio } from "./store";
 
 const ANIMS = [
@@ -431,30 +432,12 @@ function Check({ label, value, onChange }: { label: string; value: boolean; onCh
 /** Новый дубль голоса для этой фразы (лекции): сервер озвучивает заново, проверяет Whisper и вклеивает на место старого. */
 function Revoice({ clipId }: { clipId: string }) {
   const [busy, setBusy] = useState(false);
-  const run = async () => {
-    const st = useStudio.getState();
-    if (!st.projectId || !st.doc) return;
-    setBusy(true);
-    try {
-      let rev = st.revision;
-      if (st.dirty) {
-        const saved = await api.saveProject(st.projectId, { doc: st.doc, title: st.doc.title, base_revision: rev });
-        rev = saved.revision;
-      }
-      const r = await api.revoiceSentence(st.projectId, clipId, rev);
-      const keep = { playhead: useStudio.getState().playhead };
-      st.load(st.projectId, r.doc as TimelineDoc, r.revision);
-      useStudio.setState({ playhead: keep.playhead, selected: [clipId] });
-      const ok = r.revoice.score >= 0.8;
-      toast[ok ? "success" : "warning"](ok ? `Новый дубль #${r.revoice.take} — нажми ▶ и послушай` : `Дубль #${r.revoice.take}: распознано «${r.revoice.heard}». Можно переозвучить ещё раз`);
-    } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : "Не удалось переозвучить");
-    } finally {
-      setBusy(false);
-    }
-  };
   return (
-    <button onClick={run} disabled={busy} className="flex items-center justify-center gap-1.5 rounded-md bg-verde px-2 py-1.5 text-xs font-bold text-white hover:bg-verde-2 disabled:opacity-60">
+    <button
+      onClick={async () => (setBusy(true), await revoiceClip(clipId), setBusy(false))}
+      disabled={busy}
+      className="flex items-center justify-center gap-1.5 rounded-md bg-verde px-2 py-1.5 text-xs font-bold text-white hover:bg-verde-2 disabled:opacity-60"
+    >
       {busy ? <Loader2 size={13} className="animate-spin" /> : <Mic size={13} />} {busy ? "Озвучиваю… (до минуты)" : "Переозвучить фразу"}
     </button>
   );

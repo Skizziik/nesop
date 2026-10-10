@@ -185,6 +185,7 @@ export interface LectureInput {
   aspect: "16:9" | "9:16";
   series_id?: string | null;
   voice_profile_id?: string | null;
+  auto_render?: boolean;
 }
 
 export class ApiError extends Error {}
