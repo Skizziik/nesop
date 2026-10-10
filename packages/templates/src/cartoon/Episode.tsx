@@ -7,7 +7,8 @@ import { Audio } from "@remotion/media";
 import { resolveAsset } from "../lib/assets";
 import { actionPose, type ActionKind } from "./actions";
 import { CAST } from "./cast";
-import { Character, type CEmotion } from "./rig";
+import { Character, type CEmotion, type Fx, type Wear } from "./rig";
+import { Prop } from "./props";
 import { LOCATIONS } from "./locations";
 import { GROUND, type Camera } from "./scenes";
 
@@ -17,6 +18,8 @@ export interface ActorKey {
   action?: ActionKind;
   emotion?: CEmotion;
   facing?: 1 | -1;
+  hold?: { id: string; color?: string } | null; // null — убрать предмет из рук
+  fx?: Fx | null;
 }
 export interface Line {
   char: string;
@@ -42,12 +45,15 @@ export interface Overlay {
 export interface SceneDoc {
   location: string;
   kind?: "story" | "song" | "title";
+  weather?: "rain" | "snow" | "leaves" | null;
+  decor?: "birthday" | null;
+  props?: { id: string; x: number; color?: string; scale?: number }[];
   overlays?: Overlay[];
-  time?: "day" | "evening";
+  time?: "day" | "evening" | "night";
   start: number;
   duration: number;
   camera: CamKey[];
-  actors: { id: string; depth?: number; scale?: number; keys: ActorKey[] }[];
+  actors: { id: string; depth?: number; scale?: number; wear?: Wear[]; keys: ActorKey[] }[];
   lines: Line[];
 }
 export interface AudioTrack {
@@ -86,6 +92,9 @@ function actorAt(keys: ActorKey[], t: number) {
   let action: ActionKind = "idle";
   let emotion: CEmotion = "neutral";
   let since = 0;
+  let hold: { id: string; color?: string } | undefined;
+  let fx: Fx | undefined;
+  let fxAt = -99;
   const xs = keys.filter((k) => k.x !== undefined);
   if (xs.length) {
     x = xs[0]!.x!;
@@ -106,8 +115,14 @@ function actorAt(keys: ActorKey[], t: number) {
     }
     if (k.emotion) emotion = k.emotion;
     if (k.facing) facing = k.facing;
+    if (k.hold !== undefined) hold = k.hold ?? undefined;
+    if (k.fx !== undefined) {
+      fx = k.fx ?? undefined;
+      fxAt = k.t;
+    }
   }
-  return { x, facing, action, emotion, tl: t - since };
+  if (t - fxAt > 2.6) fx = undefined; // эффект живёт ~2.5 с
+  return { x, facing, action, emotion, tl: t - since, hold, fx };
 }
 
 /** Открытость рта: по огибающей голоса или по слогам (≈ 4.5 слога/с). */
@@ -127,6 +142,52 @@ function speakingTo(lines: Line[], char: string, t: number): string | null {
   return l ? l.char : null;
 }
 
+/** Погода поверх кадра: дождь (косые струи), снег (хлопья), листопад. Детерминированно по t. */
+function Weather({ kind, t }: { kind: "rain" | "snow" | "leaves"; t: number }) {
+  const n = kind === "rain" ? 90 : kind === "snow" ? 70 : 24;
+  return (
+    <g>
+      {kind === "rain" ? <rect width={1920} height={1080} fill="#3A5A8C" opacity={0.18} /> : null}
+      {Array.from({ length: n }, (_, i) => {
+        const seed = (i * 7919) % 1000;
+        const speed = kind === "rain" ? 900 : kind === "snow" ? 90 : 120;
+        const x0 = (seed * 1.93) % 1920;
+        const y = ((t * speed + seed * 3.7) % 1200) - 60;
+        const x = kind === "rain" ? x0 - y * 0.18 : x0 + Math.sin(t * 1.3 + i) * (kind === "snow" ? 24 : 60);
+        if (kind === "rain") return <path key={i} d={`M${x} ${y} l-8 34`} stroke="#CFE6FF" strokeWidth="3" strokeLinecap="round" opacity={0.75} />;
+        if (kind === "snow") return <circle key={i} cx={x} cy={y} r={4 + (seed % 5)} fill="#FFFFFF" opacity={0.9} />;
+        const c = ["#FF8A2A", "#FFB23F", "#E8453C"][i % 3]!;
+        return <path key={i} transform={`translate(${x} ${y}) rotate(${t * 90 + seed})`} d="M0 -14 C10 -10 12 4 0 14 C-12 4 -10 -10 0 -14 Z" fill={c} />;
+      })}
+    </g>
+  );
+}
+
+/** День рождения: флажки-гирлянда и шарики в мире сцены. */
+function Birthday({ t }: { t: number }) {
+  const colors = ["#FF4D5A", "#FFD23F", "#3D8BFF", "#7BC96F", "#B38BFF"];
+  return (
+    <g>
+      <path d="M-200 220 Q960 380 2120 220" stroke="#8A6A4A" strokeWidth="4" fill="none" />
+      {Array.from({ length: 24 }, (_, i) => {
+        const x = -150 + i * 95;
+        const y = 220 + Math.sin((i / 23) * Math.PI) * 150;
+        return <path key={i} d={`M${x - 30} ${y} L${x + 30} ${y} L${x} ${y + 56} Z`} fill={colors[i % 5]} stroke="#FFFFFF" strokeWidth="3" />;
+      })}
+      {[180, 1740].map((bx, k) => (
+        <g key={bx} transform={`translate(${bx} ${GROUND - 60})`}>
+          {[0, 1, 2].map((i) => (
+            <g key={i} transform={`translate(${(i - 1) * 46} ${Math.sin(t * 2 + i + k) * 6})`}>
+              <path d={`M0 0 q-6 -120 ${(i - 1) * 10} -230`} stroke="#7A6A5A" strokeWidth="3" fill="none" />
+              <ellipse cx={(i - 1) * 10} cy={-270} rx={36} ry={44} fill={colors[(i + k) % 5]} stroke="#FFFFFF" strokeWidth="3" />
+            </g>
+          ))}
+        </g>
+      ))}
+    </g>
+  );
+}
+
 function Scene({ sc, t, fps }: { sc: SceneDoc; t: number; fps: number }) {
   const cam = camAt(sc.camera, t);
   const actors = sc.actors.map((a) => ({ a, s: actorAt(a.keys, t) }));
@@ -138,6 +199,12 @@ function Scene({ sc, t, fps }: { sc: SceneDoc; t: number; fps: number }) {
     <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{ position: "absolute", inset: 0 }}>
       {(LOCATIONS[sc.location] ?? LOCATIONS.garden!).Back({ cam, t: t + sc.start })}
       <g transform={tf}>
+        {sc.decor === "birthday" ? <Birthday t={t} /> : null}
+        {(sc.props ?? []).map((pr, i) => (
+          <g key={i} transform={`translate(${pr.x} ${GROUND + 6}) scale(${pr.scale ?? 1.3})`}>
+            <Prop id={pr.id} color={pr.color} t={t} />
+          </g>
+        ))}
         {actors
           .sort((p, q) => (p.a.depth ?? 0) - (q.a.depth ?? 0))
           .map(({ a, s }) => {
@@ -147,13 +214,19 @@ function Scene({ sc, t, fps }: { sc: SceneDoc; t: number; fps: number }) {
             const other = listener ? actors.find((o) => o.a.id === listener) : undefined;
             const lookX = other ? Math.sign(other.s.x - s.x) : 0;
             const blink = (Math.floor((t + a.id.length * 0.7) * 10) % 37) === 0;
+            // высокие предметы (зонтик, шарик, змей) держат поднятой рукой
+            const basePose = actionPose(s.action, s.tl, t + a.id.length);
+            const tall = s.hold && ["umbrella", "balloon", "kite"].includes(s.hold.id);
             const st = {
-              pose: actionPose(s.action, s.tl, t + a.id.length),
+              pose: tall && (s.action === "idle" || s.action === "talk" || s.action === "walk") ? { ...basePose, armR: [150, 12] as [number, number] } : basePose,
               emotion: s.emotion,
               mouth: mouthAt(sc.lines, a.id, t, fps),
               blink,
               look: [lookX, 0] as [number, number],
               facing: (other ? (lookX >= 0 ? 1 : -1) : s.facing) as 1 | -1,
+              hold: s.hold,
+              wear: a.wear,
+              fx: s.fx,
             };
             const sc2 = (a.scale ?? 1) * 1.25 * (spec.adult ? 1.12 : 1);
             return (
@@ -164,6 +237,8 @@ function Scene({ sc, t, fps }: { sc: SceneDoc; t: number; fps: number }) {
           })}
       </g>
       {(LOCATIONS[sc.location] ?? LOCATIONS.garden!).Front?.({ cam, t: t + sc.start })}
+      {sc.weather ? <Weather kind={sc.weather} t={t + sc.start} /> : null}
+      {sc.time === "evening" ? <rect width={W} height={H} fill="#FF7A3D" opacity={0.14} /> : sc.time === "night" ? <rect width={W} height={H} fill="#1B2A6B" opacity={0.38} /> : null}
     </svg>
   );
 }

@@ -3,6 +3,7 @@
  * Локальные координаты: (0,0) — точка между ступнями, рост ребёнка ~300, взрослого ~380. Вверх — отрицательный y.
  */
 import type { ReactNode } from "react";
+import { Prop } from "./props";
 
 export type Species = "bunny" | "cat" | "bear" | "dog";
 export type CEmotion = "neutral" | "happy" | "laugh" | "sad" | "surprised" | "angry" | "scared" | "thinking" | "sleepy";
@@ -30,7 +31,13 @@ export interface Pose {
   lean: number; // наклон корпуса
 }
 
+export type Wear = "raincoat" | "pajamas" | "party_hat" | "scarf" | "sun_hat" | "winter_hat";
+export type Fx = "hearts" | "sparkles" | "zzz" | "notes" | "sweat" | "exclaim" | "question" | "puff";
+
 export interface CharState {
+  hold?: { id: string; color?: string }; // предмет в правой руке
+  wear?: Wear[];
+  fx?: Fx;
   pose: Pose;
   emotion: CEmotion;
   mouth: number; // 0..1 — открытость рта по голосу
@@ -69,6 +76,127 @@ function Arm({ x, y, a1, a2, side, len, w, color, hand }: { x: number; y: number
       <path d={`M${x} ${y} L${ex} ${ey} L${hx} ${hy}`} stroke={line} strokeWidth={w + 6} fill="none" strokeLinecap="round" strokeLinejoin="round" />
       <path d={`M${x} ${y} L${ex} ${ey} L${hx} ${hy}`} stroke={color} strokeWidth={w} fill="none" strokeLinecap="round" strokeLinejoin="round" />
       <circle cx={hx} cy={hy} r={w * 0.62} fill={hand} stroke={shade(hand, 0.35)} strokeWidth="3" />
+    </g>
+  );
+}
+
+function handPos(x: number, y: number, a1: number, a2: number, side: -1 | 1, len: number): [number, number] {
+  const t1 = deg(a1) * side;
+  const ex = x + Math.sin(t1) * len;
+  const ey = y + Math.cos(t1) * len;
+  const t2 = t1 + deg(a2) * side;
+  return [ex + Math.sin(t2) * len * 0.92, ey + Math.cos(t2) * len * 0.92];
+}
+
+/** Одежда поверх тела/головы: дождевик, пижама, шапки, шарф. */
+function WearBody({ wear, bw, top, bottom }: { wear: Wear[]; bw: number; top: number; bottom: number }) {
+  return (
+    <>
+      {wear.includes("pajamas") ? (
+        <g>
+          <path d={`M${-bw * 0.85} ${top + 14} Q0 ${top + 2} ${bw * 0.85} ${top + 14} L${bw * 0.95} ${bottom - 4} Q0 ${bottom + 12} ${-bw * 0.95} ${bottom - 4} Z`} fill="#9FD3FF" stroke="#5C9BD1" strokeWidth="3.5" />
+          {[0, 1, 2, 3, 4].map((i) => (
+            <path key={i} d={`M${-bw * 0.9} ${top + 30 + i * 22} H${bw * 0.9}`} stroke="#FFFFFF" strokeWidth="7" opacity={0.85} />
+          ))}
+          {[0, 1, 2].map((i) => (
+            <circle key={i} cx={0} cy={top + 34 + i * 26} r={5} fill="#FFD54A" />
+          ))}
+        </g>
+      ) : null}
+      {wear.includes("raincoat") ? (
+        <g>
+          <path d={`M${-bw * 0.8} ${top + 8} Q0 ${top - 6} ${bw * 0.8} ${top + 8} L${bw * 1.12} ${bottom + 4} Q0 ${bottom + 20} ${-bw * 1.12} ${bottom + 4} Z`} fill="#FFD23F" stroke="#C9A01A" strokeWidth="4" />
+          <path d={`M0 ${top + 6} V${bottom + 14}`} stroke="#C9A01A" strokeWidth="3" />
+          {[0, 1, 2].map((i) => (
+            <circle key={i} cx={10} cy={top + 30 + i * 26} r={5} fill="#3D8BFF" />
+          ))}
+        </g>
+      ) : null}
+      {wear.includes("scarf") ? (
+        <g>
+          <path d={`M${-bw * 0.66} ${top + 10} Q0 ${top + 32} ${bw * 0.66} ${top + 10}`} stroke="#E53950" strokeWidth="18" fill="none" strokeLinecap="round" />
+          <path d={`M${bw * 0.3} ${top + 20} l10 56`} stroke="#E53950" strokeWidth="16" strokeLinecap="round" />
+          <path d={`M${bw * 0.3} ${top + 40} l8 10 M${bw * 0.34} ${top + 60} l8 10`} stroke="#FFFFFF" strokeWidth="4" />
+        </g>
+      ) : null}
+    </>
+  );
+}
+
+function WearHead({ wear, r }: { wear: Wear[]; r: number }) {
+  return (
+    <>
+      {wear.includes("raincoat") ? <path d={`M${-r * 1.02} ${-r * 0.1} Q${-r * 1.0} ${-r * 1.15} 0 ${-r * 1.12} Q${r * 1.0} ${-r * 1.15} ${r * 1.02} ${-r * 0.1} Q${r * 0.7} ${-r * 0.55} 0 ${-r * 0.62} Q${-r * 0.7} ${-r * 0.55} ${-r * 1.02} ${-r * 0.1} Z`} fill="#FFD23F" stroke="#C9A01A" strokeWidth="4" /> : null}
+      {wear.includes("party_hat") ? (
+        <g transform={`translate(${r * 0.2} ${-r * 0.82}) rotate(12)`}>
+          <path d={`M${-r * 0.32} 0 L0 ${-r * 0.9} L${r * 0.32} 0 Z`} fill="#8E5CFF" stroke="#5E38B8" strokeWidth="4" strokeLinejoin="round" />
+          <path d={`M${-r * 0.2} ${-r * 0.3} L${r * 0.18} ${-r * 0.4} M${-r * 0.12} ${-r * 0.6} L${r * 0.1} ${-r * 0.66}`} stroke="#FFD23F" strokeWidth="6" />
+          <circle cy={-r * 0.92} r={r * 0.1} fill="#FF6FA8" />
+        </g>
+      ) : null}
+      {wear.includes("sun_hat") ? (
+        <g transform={`translate(0 ${-r * 0.72})`}>
+          <ellipse cx={0} cy={0} rx={r * 1.15} ry={r * 0.22} fill="#FFE08A" stroke="#C9A65A" strokeWidth="4" />
+          <path d={`M${-r * 0.55} 0 Q0 ${-r * 0.7} ${r * 0.55} 0 Z`} fill="#FFE08A" stroke="#C9A65A" strokeWidth="4" />
+          <path d={`M${-r * 0.55} -4 Q0 ${-r * 0.2} ${r * 0.55} -4`} stroke="#FF6FA8" strokeWidth="9" fill="none" />
+        </g>
+      ) : null}
+      {wear.includes("winter_hat") ? (
+        <g transform={`translate(0 ${-r * 0.6})`}>
+          <path d={`M${-r * 0.82} ${r * 0.05} Q0 ${-r * 1.0} ${r * 0.82} ${r * 0.05} Z`} fill="#3D8BFF" stroke="#2A64C2" strokeWidth="4" />
+          <rect x={-r * 0.86} y={-r * 0.06} width={r * 1.72} height={r * 0.22} rx={r * 0.1} fill="#FFFFFF" stroke="#C9DDEA" strokeWidth="3" />
+          <circle cy={-r * 0.82} r={r * 0.17} fill="#FFFFFF" stroke="#C9DDEA" strokeWidth="3" />
+        </g>
+      ) : null}
+    </>
+  );
+}
+
+/** Эффекты над головой: сердечки, искры, «zzz», ноты, капли, «!» «?», облачко. */
+function FxLayer({ fx, x, y, t }: { fx: Fx; x: number; y: number; t: number }) {
+  const ph = (k: number) => ((t * 0.8 + k) % 1 + 1) % 1;
+  const items = [0, 0.33, 0.66];
+  if (fx === "hearts" || fx === "notes" || fx === "zzz" || fx === "sparkles")
+    return (
+      <g>
+        {items.map((k, i) => {
+          const p = ph(k);
+          const gx = x + (i - 1) * 46 + Math.sin(p * 6 + i) * 10;
+          const gy = y - p * 120;
+          const op = p < 0.15 ? p / 0.15 : 1 - (p - 0.15) / 0.85;
+          const body =
+            fx === "hearts" ? (
+              <path d="M0 8 C-18 -6 -12 -22 0 -12 C12 -22 18 -6 0 8 Z" fill="#FF4D7A" stroke="#C2224F" strokeWidth="2.5" />
+            ) : fx === "notes" ? (
+              <path d="M-6 6 a7 6 0 1 1 6 -4 V-22 l14 -4 v6 l-10 3 V4" fill="#3A2A66" stroke="#3A2A66" strokeWidth="2" />
+            ) : fx === "zzz" ? (
+              <text fontFamily="Fredoka" fontWeight={700} fontSize={30 + i * 8} fill="#7FA8FF" stroke="#3A4A99" strokeWidth="2">
+                z
+              </text>
+            ) : (
+              <path d="M0 -14 L4 -4 L14 0 L4 4 L0 14 L-4 4 L-14 0 L-4 -4 Z" fill="#FFE45C" stroke="#E0B400" strokeWidth="2" />
+            );
+          return (
+            <g key={i} transform={`translate(${gx} ${gy}) scale(${0.8 + p * 0.5})`} opacity={op}>
+              {body}
+            </g>
+          );
+        })}
+      </g>
+    );
+  if (fx === "sweat") return <path transform={`translate(${x + 60} ${y + 40 + (t * 40) % 20})`} d="M0 -16 Q-12 4 0 10 Q12 4 0 -16 Z" fill="#9ADBFF" stroke="#3B8BD0" strokeWidth="2.5" />;
+  if (fx === "exclaim" || fx === "question")
+    return (
+      <text x={x + 70} y={y + 10} fontFamily="Fredoka" fontWeight={700} fontSize={90} fill={fx === "exclaim" ? "#FF4D5A" : "#3D8BFF"} stroke="#FFFFFF" strokeWidth="6" paintOrder="stroke" transform={`rotate(12 ${x + 70} ${y})`}>
+        {fx === "exclaim" ? "!" : "?"}
+      </text>
+    );
+  // puff — облачко пыли у ног (бег, приземление)
+  return (
+    <g opacity={0.8}>
+      {[-50, 0, 50].map((dx, i) => (
+        <circle key={i} cx={x + dx} cy={-10} r={18 + ((t * 30 + i * 7) % 12)} fill="#FFFFFF" />
+      ))}
     </g>
   );
 }
@@ -370,6 +498,7 @@ export function Character({ spec, st, t }: { spec: CharacterSpec; st: CharState;
       />
       <ellipse cx={0} cy={bodyBottom - bodyH * 0.38} rx={bw * 0.55} ry={bodyH * 0.32} fill={spec.belly} opacity={0.9} />
       <Outfit spec={spec} bw={bw} top={bodyTop} bottom={bodyBottom} />
+      {st.wear?.length ? <WearBody wear={st.wear} bw={bw} top={bodyTop} bottom={bodyBottom} /> : null}
       {spec.extra === "collar" ? (
         <g>
           <path d={`M${-bw * 0.6} ${bodyTop + 14} Q0 ${bodyTop + 30} ${bw * 0.6} ${bodyTop + 14}`} stroke="#E53950" strokeWidth="10" fill="none" strokeLinecap="round" />
@@ -386,6 +515,7 @@ export function Character({ spec, st, t }: { spec: CharacterSpec; st: CharState;
           {spec.species === "dog" ? <ellipse cx={r * 0.38} cy={-r * 0.18} rx={r * 0.26} ry={r * 0.22} fill="#4A3426" opacity={0.85} /> : null}
           {spec.species === "dog" ? <DogEars spec={spec} r={r} t={t} /> : null}
           <Face spec={spec} st={st} r={r} />
+          {st.wear?.length ? <WearHead wear={st.wear} r={r} /> : null}
           {spec.extra === "bow" ? (
             <g transform={`translate(${r * 0.55} ${-r * 0.78})`}>
               <path d="M0 0 L-26 -16 L-26 16 Z M0 0 L26 -16 L26 16 Z" fill="#FF5FA2" stroke={shade("#FF5FA2", 0.35)} strokeWidth="3" strokeLinejoin="round" />
@@ -396,6 +526,17 @@ export function Character({ spec, st, t }: { spec: CharacterSpec; st: CharState;
       </g>
       {/* поднятые руки — поверх головы, чтобы ладошки было видно */}
       {p.armL[0] >= 120 && p.armR[0] >= 120 ? arms : null}
+      {st.hold
+        ? (() => {
+            const [hx, hy] = handPos(bw * 0.68, shoulderY, p.armR[0], p.armR[1], 1, adult ? 54 : 44);
+            return (
+              <g transform={`translate(${hx} ${hy}) scale(${adult ? 0.95 : 0.85})`}>
+                <Prop id={st.hold.id} color={st.hold.color} t={t} />
+              </g>
+            );
+          })()
+        : null}
+      {st.fx ? <FxLayer fx={st.fx} x={0} y={headY - r * 1.1} t={t} /> : null}
     </g>
   );
 }
