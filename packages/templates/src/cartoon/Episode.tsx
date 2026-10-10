@@ -2,11 +2,14 @@
  * Движок мультика: сцена = локация + камера по ключевым кадрам + персонажи с дорожками (позиция, действие, эмоция) + реплики.
  * Рот — по огибающей голоса персонажа (envelope, кадры), без неё — по слогам текста (для черновика без озвучки).
  */
-import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { Audio } from "@remotion/media";
+import { resolveAsset } from "../lib/assets";
 import { actionPose, type ActionKind } from "./actions";
 import { CAST } from "./cast";
 import { Character, type CEmotion } from "./rig";
-import { GardenForeground, GardenLife, GardenScene, GROUND, type Camera } from "./scenes";
+import { LOCATIONS } from "./locations";
+import { GROUND, type Camera } from "./scenes";
 
 export interface ActorKey {
   t: number; // сек от начала сцены
@@ -28,8 +31,18 @@ export interface CamKey {
   y?: number;
   zoom: number;
 }
+/** Надписи поверх сцены: слово урока, заставка истории, вопрос зрителю, строка песни. */
+export interface Overlay {
+  t: number;
+  dur: number;
+  kind: "word" | "title" | "question" | "lyric";
+  text: string;
+  sub?: string;
+}
 export interface SceneDoc {
-  location: "garden";
+  location: string;
+  kind?: "story" | "song" | "title";
+  overlays?: Overlay[];
   time?: "day" | "evening";
   start: number;
   duration: number;
@@ -37,11 +50,21 @@ export interface SceneDoc {
   actors: { id: string; depth?: number; scale?: number; keys: ActorKey[] }[];
   lines: Line[];
 }
+export interface AudioTrack {
+  src: string;
+  start: number;
+  volume?: number;
+  loop?: boolean;
+  dur?: number;
+}
 export interface CartoonDoc {
   title: string;
   fps: number;
   duration: number;
   scenes: SceneDoc[];
+  audio?: AudioTrack[];
+  asset_base?: string;
+  show_captions?: boolean;
 }
 
 const easeIO = (k: number) => (k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2);
@@ -113,7 +136,7 @@ function Scene({ sc, t, fps }: { sc: SceneDoc; t: number; fps: number }) {
   const tf = `translate(${W / 2} ${H * 0.62}) scale(${z}) translate(${-cam.x} ${-cam.y})`;
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{ position: "absolute", inset: 0 }}>
-      <GardenScene cam={cam} t={t + sc.start} time={sc.time} />
+      {(LOCATIONS[sc.location] ?? LOCATIONS.garden!).Back({ cam, t: t + sc.start })}
       <g transform={tf}>
         {actors
           .sort((p, q) => (p.a.depth ?? 0) - (q.a.depth ?? 0))
@@ -140,14 +163,70 @@ function Scene({ sc, t, fps }: { sc: SceneDoc; t: number; fps: number }) {
             );
           })}
       </g>
-      <GardenLife cam={cam} t={t + sc.start} />
-      <GardenForeground cam={cam} t={t} />
+      {(LOCATIONS[sc.location] ?? LOCATIONS.garden!).Front?.({ cam, t: t + sc.start })}
     </svg>
+  );
+}
+
+function pop(frame: number, fps: number) {
+  return spring({ frame, fps, config: { damping: 11, stiffness: 170 } });
+}
+
+/** Надписи: карточка слова (крупно, с подпрыгиванием), заставка истории, «?» для зрителя, караоке песни. */
+function Overlays({ sc, t, fps }: { sc: SceneDoc; t: number; fps: number }) {
+  return (
+    <>
+      {(sc.overlays ?? [])
+        .filter((o) => t >= o.t && t <= o.t + o.dur)
+        .map((o, i) => {
+          const lt = t - o.t;
+          const k = pop(Math.round(lt * fps), fps);
+          const outK = interpolate(lt, [o.dur - 0.3, o.dur], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+          if (o.kind === "word")
+            return (
+              <div key={i} style={{ position: "absolute", top: 70, left: 0, right: 0, display: "flex", justifyContent: "center", opacity: outK }}>
+                <div style={{ transform: `scale(${k}) rotate(${-3 + Math.sin(lt * 3) * 2}deg)`, background: "#FFFFFF", border: "10px solid #FFB23F", borderRadius: 40, padding: "18px 56px", boxShadow: "0 14px 0 rgba(0,0,0,0.18)", fontFamily: "Fredoka", fontWeight: 700, fontSize: 120, color: "#3A2A66", letterSpacing: 2 }}>
+                  {o.text}
+                </div>
+              </div>
+            );
+          if (o.kind === "title")
+            return (
+              <AbsoluteFill key={i} style={{ justifyContent: "center", alignItems: "center", opacity: outK }}>
+                <div style={{ transform: `scale(${k})`, textAlign: "center", fontFamily: "Fredoka", fontWeight: 700, color: "#FFFFFF", WebkitTextStroke: "14px #3A2A66", paintOrder: "stroke fill", fontSize: 140, lineHeight: 1.05, textShadow: "0 12px 0 #3A2A66" }}>
+                  {o.text}
+                  {o.sub ? <div style={{ fontSize: 60, WebkitTextStroke: "10px #3A2A66", marginTop: 16, color: "#FFE45C" }}>{o.sub}</div> : null}
+                </div>
+              </AbsoluteFill>
+            );
+          if (o.kind === "question")
+            return (
+              <div key={i} style={{ position: "absolute", top: 90, right: 120, transform: `scale(${k * (1 + Math.sin(lt * 6) * 0.06)})`, width: 230, height: 230, borderRadius: "50%", background: "#FFE45C", border: "12px solid #3A2A66", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Fredoka", fontWeight: 700, fontSize: 170, color: "#3A2A66" }}>
+                ?
+              </div>
+            );
+          // строка песни: слова подсвечиваются по очереди (караоке)
+          const words = o.text.split(" ");
+          const per = o.dur / Math.max(1, words.length);
+          return (
+            <div key={i} style={{ position: "absolute", bottom: 70, left: 0, right: 0, display: "flex", justifyContent: "center", opacity: outK }}>
+              <div style={{ background: "rgba(58,42,102,0.82)", borderRadius: 36, padding: "16px 40px", fontFamily: "Fredoka", fontWeight: 700, fontSize: 76, color: "#FFFFFF" }}>
+                {words.map((w, j) => (
+                  <span key={j} style={{ color: lt >= j * per ? "#FFE45C" : "#FFFFFF", display: "inline-block", transform: `translateY(${lt >= j * per && lt < (j + 1) * per ? -8 : 0}px)`, marginRight: 20 }}>
+                    {w}
+                  </span>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+    </>
   );
 }
 
 /** Субтитр снизу: кто говорит и что (дети 2-5 не читают, но родителям и для ESL удобно; ключевые слова — крупно). */
 function Caption({ sc, t }: { sc: SceneDoc; t: number }) {
+  if (sc.kind === "song") return null;
   const l = sc.lines.find((x) => t >= x.start && t <= x.start + x.dur);
   if (!l) return null;
   return (
@@ -168,8 +247,20 @@ export function CartoonEpisode(doc: CartoonDoc) {
     <AbsoluteFill style={{ background: "#000" }}>
       <AbsoluteFill style={{ opacity: fade }}>
         <Scene sc={sc} t={lt} fps={fps} />
-        <Caption sc={sc} t={lt} />
+        <Overlays sc={sc} t={lt} fps={fps} />
+        {doc.show_captions !== false ? <Caption sc={sc} t={lt} /> : null}
       </AbsoluteFill>
+      {(doc.audio ?? []).map((a, i) => {
+        const src = resolveAsset(a.src, doc.asset_base);
+        if (!src) return null;
+        const from = Math.round(a.start * fps);
+        const dur = a.dur ? Math.max(1, Math.round(a.dur * fps)) : undefined;
+        return (
+          <Sequence key={i} from={from} durationInFrames={dur} layout="none">
+            <Audio src={src} volume={a.volume ?? 1} loop={a.loop} />
+          </Sequence>
+        );
+      })}
     </AbsoluteFill>
   );
 }

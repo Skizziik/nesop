@@ -88,7 +88,9 @@ function Leg({ x, phase, color, foot, h }: { x: number; phase: number; color: st
 /** Мордочка: глаза, брови, нос, рот. Центр — середина головы. */
 function Face({ spec, st, r }: { spec: CharacterSpec; st: CharState; r: number }) {
   const { emotion: e, blink, mouth } = st;
-  const fx = st.facing * r * 0.08; // лёгкий поворот 3/4
+  // поворот 3/4: при ходьбе мордочка сильнее смотрит по ходу движения (как в «Пеппе» — герои идут боком)
+  const walking = !Number.isNaN(st.pose.walk);
+  const fx = st.facing * r * (walking ? 0.24 : 0.08);
   const lx = st.look[0] * 4 + fx * 0.6;
   const ly = st.look[1] * 3;
   const eyeY = -r * 0.05;
