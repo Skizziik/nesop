@@ -240,6 +240,24 @@ async def regen_youtube(pid: str, s: Session) -> dict[str, Any]:
     return {"youtube": yt}
 
 
+def _srt(doc: dict[str, Any]) -> tuple[str, str]:
+    """SRT из клипов субтитров: «как звучит» (итальянский + английские пояснения) и английский перевод."""
+
+    def ts(t: float) -> str:
+        ms = int(round(t * 1000))
+        return f"{ms // 3600000:02d}:{ms // 60000 % 60:02d}:{ms // 1000 % 60:02d},{ms % 1000:03d}"
+
+    subs = sorted((c for t in doc.get("tracks", []) if t.get("kind") == "subtitle" for c in t["clips"]), key=lambda c: c["start"])
+    it, en = [], []
+    for i, c in enumerate(subs, 1):
+        pr = c.get("props") or {}
+        text, tr = str(pr.get("text", "")).strip(), str(pr.get("tr", "")).strip()
+        span = f"{ts(c['start'])} --> {ts(c['start'] + c['duration'])}"
+        it.append(f"{i}\n{span}\n{text}\n")
+        en.append(f"{i}\n{span}\n{tr or text}\n")
+    return "\n".join(it), "\n".join(en)
+
+
 @router.get("/projects/{pid}/youtube.zip")
 async def youtube_zip(pid: str, s: Session) -> FileResponse:
     """Всё для ручной загрузки на YouTube одним архивом: mp4, 3 обложки, тексты (названия, описание, теги, хештеги)."""
@@ -260,6 +278,7 @@ async def youtube_zip(pid: str, s: Session) -> FileResponse:
             "ТЕГИ (вставить в поле «Теги»):\n" + ", ".join(yt.get("tags") or []),
             "ХЕШТЕГИ:\n" + " ".join(yt.get("hashtags") or []),
             "ОБЛОЖКИ: thumbnail-1..3.png — загрузи все три в YouTube Studio → «Тест и сравнение» (Test & Compare).",
+            "СУБТИТРЫ: subtitles-italian.srt (язык «итальянский») и subtitles-english.srt (язык «английский») — YouTube Studio → Субтитры → Загрузить файл.",
         ]
     )
     with zipfile.ZipFile(tmp, "w", zipfile.ZIP_STORED) as z:  # mp4 уже сжат — без повторного сжатия
@@ -270,6 +289,11 @@ async def youtube_zip(pid: str, s: Session) -> FileResponse:
             if f.exists():
                 z.write(f, f"thumbnail-{i + 1}.png")
         z.writestr("youtube.txt", text)
+        # субтитры для YouTube (Субтитры → Загрузить файл): итальянская дорожка и английская
+        it_srt, en_srt = _srt(p.doc or {})
+        if it_srt:
+            z.writestr("subtitles-italian.srt", it_srt)
+            z.writestr("subtitles-english.srt", en_srt)
     return FileResponse(tmp, media_type="application/zip", filename=f"{slug}-youtube.zip")
 
 
