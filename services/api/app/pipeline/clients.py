@@ -90,7 +90,9 @@ async def render(props: dict[str, Any], out_dir: str, on_progress: Callable[[flo
         job_id = r.json()["job_id"]
         last = -1.0
         misses = 0
-        for _ in range(limit):
+        spent = 0
+        queued = 0
+        while spent < limit:
             await asyncio.sleep(1)
             try:
                 s = (await c.get(f"{st.renderer_url}/render/{job_id}")).json()
@@ -101,6 +103,12 @@ async def render(props: dict[str, Any], out_dir: str, on_progress: Callable[[flo
                 if misses > 120:
                     raise ServiceError(f"Рендерер не отвечает: {type(e).__name__}") from e
                 continue
+            if s.get("status") == "queued":  # ждёт своей очереди за другим рендером — это не время рендера
+                queued += 1
+                if queued > 6 * 3600:
+                    raise ServiceError("Рендер не дождался очереди за 6 часов")
+                continue
+            spent += 1
             if s["status"] == "done":
                 return s  # type: ignore[no-any-return]
             if s["status"] == "error":

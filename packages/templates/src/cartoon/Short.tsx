@@ -46,7 +46,7 @@ function rawFocus(sc: SceneDoc, lt: number): number {
 
 function ShortKaraoke({ o, lt, fps }: { o: Overlay; lt: number; fps: number }) {
   const words = o.text.split(/\s+/).filter(Boolean);
-  const per = o.dur / Math.max(1, words.length + 0.4); // тот же темп, что у караоке эпизода (overlays.tsx → LyricLine)
+  const per = Math.min(o.dur, o.sung ?? o.dur) / Math.max(1, words.length + 0.4); // тот же темп, что у караоке эпизода (overlays.tsx → LyricLine)
   const cur = Math.min(words.length - 1, Math.floor(lt / per));
   const p = Math.max(0, Math.min(1, (lt - cur * per) / per));
   const k = popAt(lt, 0, fps, 13, 170);

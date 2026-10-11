@@ -134,5 +134,5 @@ class WorkerSettings:
     functions = [run_batch, run_video, run_llm_ideas, run_fill_bank, run_lecture, run_cartoon, run_compilation, run_project_render, run_cartoon_shorts]
     redis_settings = redis_settings()
     max_jobs = get_settings().worker_max_jobs
-    job_timeout = 60 * 60 * 6  # длинные лекции: генерация + рендер 20 минут видео на CPU
+    job_timeout = 60 * 60 * 12  # длинные лекции: генерация + рендер 20 минут видео на CPU
     keep_result = 3600

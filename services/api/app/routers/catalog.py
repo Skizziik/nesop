@@ -33,6 +33,8 @@ def usage_of(doc: dict[str, Any]) -> dict[str, Counter[str]]:
         u["locations"][sc.get("location") or "garden"] += 1
         for pr in sc.get("props") or []:
             u["props"][pr.get("id") or pr.get("prop") or ""] += 1
+        for it in sc.get("items") or []:
+            u["props"][it.get("prop") or ""] += 1
         for a in sc.get("actors") or []:
             u["characters"][a.get("id") or ""] += 1
             for w in a.get("wear") or []:

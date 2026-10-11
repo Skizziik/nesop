@@ -20,6 +20,7 @@ export interface OverlayDoc {
   kind: "word" | "title" | "question" | "lyric";
   text: string;
   sub?: string;
+  sung?: number; // строка песни: сколько секунд реально поётся
 }
 interface CaptionLine {
   char: string;
@@ -328,7 +329,7 @@ function QuestionCard({ o, lt, fps }: { o: OverlayDoc; lt: number; fps: number }
 /** Строка песни: слово под мячиком подсвечивается; мячик прыгает по центрам слов в такт. */
 function LyricLine({ o, lt, fps }: { o: OverlayDoc; lt: number; fps: number }) {
   const words = o.text.split(/\s+/).filter(Boolean);
-  const per = o.dur / Math.max(1, words.length + 0.4);
+  const per = Math.min(o.dur, o.sung ?? o.dur) / Math.max(1, words.length + 0.4); // шарик идёт вместе с голосом, а не по всему слоту
   const k = popAt(lt, 0, fps, 13, 170);
   const out = outK(lt, o.dur, 0.25);
   const fs = o.text.length <= 26 ? 80 : o.text.length <= 40 ? 68 : 56;

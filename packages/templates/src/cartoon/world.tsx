@@ -224,13 +224,13 @@ export function WorldFx({ world, t, outdoor, legacy }: { world: WorldState; t: n
     parts.push(
       <g key="night">
         <defs>
-          <radialGradient id="night-vignette" cx="50%" cy="58%" r="75%">
+          <radialGradient id={`night-vignette-${outdoor ? "o" : "i"}`} cx="50%" cy="58%" r="75%">
             <stop offset="0.35" stopColor={outdoor ? "#0E1640" : "#FFC870"} stopOpacity={outdoor ? 0.05 : 0.07} />
             <stop offset="1" stopColor="#0E1640" stopOpacity={outdoor ? 0.36 : 0.3} />
           </radialGradient>
         </defs>
         <rect width={W} height={H} fill="#1B2A6B" opacity={outdoor ? 0.16 : 0.07} />
-        <rect width={W} height={H} fill="url(#night-vignette)" />
+        <rect width={W} height={H} fill={`url(#night-vignette-${outdoor ? "o" : "i"})`} />
       </g>,
     );
   else if (world.time === "evening") parts.push(<rect key="eve" width={W} height={H} fill="#FF7A3D" opacity={0.07} />);

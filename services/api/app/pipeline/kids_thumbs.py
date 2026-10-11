@@ -53,7 +53,7 @@ THUMB_ITEM: dict[str, Any] = {
 
 # ------------------------------------------------------------------ контекст эпизода
 def _scene_props(sc: dict[str, Any]) -> list[str]:
-    out = [p.get("id") for p in sc.get("props") or []]
+    out = [p.get("id") for p in sc.get("props") or []] + [it.get("prop") for it in sc.get("items") or []]
     for a in sc.get("actors") or []:
         for k in a.get("keys") or []:
             h = k.get("hold")
@@ -287,9 +287,17 @@ def kids_description(pack: dict[str, Any], chapters: list[str], ctx: dict[str, A
     ch = clean_chapters(chapters)
     if ch:
         parts.append("⏱ Stories & songs:\n" + "\n".join(ch))
+    tail = [f"{SERIES}: gentle cartoons and songs for children aged 2-5. Watch together, sing along and answer the friends' questions out loud!", " ".join(hashtags)]
     lyr = lyrics_block(ctx)
     if lyr:
-        parts.append("📝 Lyrics\n\n" + lyr)
-    parts.append(f"{SERIES}: gentle cartoons and songs for children aged 2-5. Watch together, sing along and answer the friends' questions out loud!")
-    parts.append(" ".join(hashtags))
-    return "\n\n".join(x for x in parts if x)
+        seen: set[str] = set()
+        lines = [ln for ln in lyr.split("\n") if not ln.strip() or ln.strip().lower() not in seen and not seen.add(ln.strip().lower())]
+        room = 4800 - len("\n\n".join([*parts, *tail])) - 20
+        block = ""
+        for ln in lines:  # сборник из 3-4 эпизодов: тексты всех песен не влезают в лимит YouTube — берём, сколько помещается
+            if len(block) + len(ln) + 1 > room:
+                break
+            block += ln + "\n"
+        if block.strip():
+            parts.append("📝 Lyrics\n\n" + block.strip())
+    return "\n\n".join(x for x in [*parts, *tail] if x)[:5000]

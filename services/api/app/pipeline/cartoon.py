@@ -7,6 +7,7 @@ LLM: план эпизода → сценарий каждой истории (�
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 import zlib
@@ -313,6 +314,41 @@ async def voice_line(text: str, speaker: str) -> tuple[np.ndarray, dict[str, Any
 
 
 # ------------------------------------------------------------------ режиссёр
+def _ease_io(k: float) -> float:
+    return 2 * k * k if k < 0.5 else 1 - (-2 * k + 2) ** 2 / 2
+
+
+def cam_at(cam: list[dict[str, Any]], t: float) -> dict[str, float]:
+    """Камера в момент t — та же интерполяция, что camAt в Episode.tsx (easeIO между соседними ключами)."""
+    if not cam:
+        return {"x": 960.0, "y": 670.0, "zoom": 1.0}
+    ks = sorted(cam, key=lambda k: k["t"])
+    a, b = ks[0], ks[-1]
+    for i in range(len(ks) - 1):
+        if ks[i]["t"] <= t <= ks[i + 1]["t"]:
+            a, b = ks[i], ks[i + 1]
+            break
+    if t <= ks[0]["t"]:
+        b = a
+    if t >= ks[-1]["t"]:
+        a = b = ks[-1]
+    k = _ease_io(min(1.0, max(0.0, (t - a["t"]) / (b["t"] - a["t"])))) if b["t"] > a["t"] else 0.0
+    ay, by = a.get("y", 670.0), b.get("y", 670.0)
+    return {"x": a["x"] + (b["x"] - a["x"]) * k, "y": ay + (by - ay) * k, "zoom": a["zoom"] + (b["zoom"] - a["zoom"]) * k}
+
+
+def cam_move(cam: list[dict[str, Any]], t0: float, t1: float, x: float, y: float, zoom: float) -> None:
+    """Движение камеры с t0 до t1 из того места, где она на самом деле в t0; более поздние ключи отменяются — ключи не перепутаются."""
+    st = cam_at(cam, t0)
+    cam[:] = [k for k in cam if k["t"] < t0]
+    cam.append({"t": round(t0, 3), "x": round(st["x"], 2), "y": round(st["y"], 2), "zoom": round(st["zoom"], 4)})
+    cam.append({"t": round(max(t1, t0 + 0.05), 3), "x": float(x), "y": float(y), "zoom": float(zoom)})
+
+
+def _obj(x: Any) -> dict[str, Any]:
+    return x if isinstance(x, dict) else {}
+
+
 class Director:
     """Собирает сцены CartoonDoc: время, позиции, действия, камера, надписи, огибающие рта."""
 
@@ -359,7 +395,10 @@ class Director:
                 items[ground]["keys"].append({"t": round(max(0.0, lt - 0.3), 3), "at": {"kind": "hand", "char": ch}, "anim": "pass"})
                 holding[ch] = ground
                 return ground
-            uid = f"{prop}{len(items)}"
+            n = len(items)
+            while f"{prop}{n}" in items:
+                n += 1
+            uid = f"{prop}{n}"
             items[uid] = {"uid": uid, "prop": prop, **color, "keys": [{"t": round(max(0.0, lt - 0.2), 3), "at": {"kind": "hand", "char": ch}}]}
             holding[ch] = uid
             return uid
@@ -463,8 +502,24 @@ class Director:
             overlays.append({"t": 0.4, "dur": 3.2, "kind": "title", "text": title, **({"sub": sub} if sub else {})})
             lt = 0.6
         shots = {int(x["beat"]): x["shot"] for x in (look or {}).get("special_shots") or [] if isinstance(x, dict) and isinstance(x.get("beat"), int)}
-        for bi, b in enumerate(beats):
-            spk = b.get("speaker") or "narrator"
+        for bi, b0 in enumerate(beats):
+            if not isinstance(b0, dict):
+                continue
+            # поля от LLM-редактора не проходят схему: всё, что не из каталога, приводим к допустимому (иначе падает рендер/эпизод)
+            b = dict(b0)
+            b["speaker"] = str(b.get("speaker") or "narrator").strip().lower()
+            if b["speaker"] not in SPEAKERS:
+                b["speaker"] = "narrator"
+            if b.get("action") not in ACTIONS:
+                b["action"] = "talk"
+            if b.get("emotion") not in EMOTIONS:
+                b["emotion"] = "happy"
+            if b.get("shot") not in ("wide", "medium", "close"):
+                b["shot"] = "medium"
+            for f in ("move", "hold", "fx", "item"):
+                b[f] = _obj(b.get(f))
+            b["reactions"] = [r for r in (b.get("reactions") or []) if isinstance(r, dict)] if isinstance(b.get("reactions"), list) else []
+            spk = b["speaker"]
             text = str(b.get("text") or "").strip()
             mv = b.get("move") or {}
             if mv.get("char") in CAST:
@@ -480,8 +535,7 @@ class Director:
                 keys[ch].append({"t": lt, "x": pos[ch], "action": "run" if run else "walk"})
                 keys[ch].append({"t": lt + d, "x": dest, "action": "idle"})
                 pos[ch] = dest
-                cam.append({"t": lt, "x": cam[-1]["x"], "zoom": cam[-1]["zoom"]})
-                cam.append({"t": lt + d * 0.6, "x": float(np.mean([v for v in pos.values() if -100 < v < 2000] or [960])), "zoom": 1.0})
+                cam_move(cam, lt, lt + max(0.9, d * 0.6), float(np.mean([v for v in pos.values() if -100 < v < 2000] or [960])), 670.0, 1.0)
                 lt += d * 0.85
             if not text:
                 continue
@@ -499,7 +553,7 @@ class Director:
                 pr = hd.get("prop")
                 op = {"kind": "put_down", "char": hd["char"]} if pr in (None, "none") else {"kind": "pick_up", "char": hd["char"], "prop": pr, "color": hd.get("color")}
                 self._item_op(items, holding, keys, pos, op, lt, dur)
-            if isinstance(b.get("item"), dict):
+            if b.get("item"):
                 self._item_op(items, holding, keys, pos, b["item"], lt, dur)
             fx = b.get("fx") or {}
             if fx.get("char") in keys and fx.get("kind") in FX:
@@ -507,7 +561,8 @@ class Director:
             for rc in b.get("reactions") or []:
                 if rc.get("char") in keys:
                     big = rc.get("action") in ("jump", "cheer", "clap", "dance", "scared", "hug", "sad", "hop", "laugh", "catch", "spin")
-                    keys[rc["char"]].append({"t": round(lt + 0.25, 3), "action": rc.get("action") if big else "idle", "emotion": rc.get("emotion") or "happy"})
+                    emo = rc.get("emotion") if rc.get("emotion") in EMOTIONS else "happy"
+                    keys[rc["char"]].append({"t": round(lt + 0.25, 3), "action": rc.get("action") if big else "idle", "emotion": emo})
                     keys[rc["char"]].append({"t": round(lt + dur + 0.4, 3), "action": "idle"})
             shot = b.get("shot") or "medium"
             sx = pos.get(spk, float(np.mean(list(pos.values()))))
@@ -520,14 +575,13 @@ class Director:
             if b.get("ask_viewer"):
                 target = (sx, 1.6, 590.0)
             if want_change and lt - shot_since >= MIN_SHOT and abs(target[0] - cam[-1]["x"]) + abs(target[1] - cam[-1]["zoom"]) * 400 > 60:
-                cam.append({"t": round(lt, 3), "x": cam[-1]["x"], "y": cam[-1].get("y", 670.0), "zoom": cam[-1]["zoom"]})
-                cam.append({"t": round(lt + 0.9, 3), "x": target[0], "y": target[2], "zoom": target[1]})
+                cam_move(cam, lt, lt + 0.9, target[0], target[2], target[1])
                 shot_since = lt
             last_spk = spk
             special = shots.get(bi)
             if special == "push_in":  # медленный наезд на говорящего — смешная или трогательная реплика
-                cam.append({"t": round(lt, 3), "x": cam[-1]["x"], "y": cam[-1].get("y", 670.0), "zoom": cam[-1]["zoom"]})
-                cam.append({"t": round(lt + dur, 3), "x": sx, "y": 600.0, "zoom": round(min(2.0, max(1.35, cam[-1]["zoom"]) + 0.3), 3)})
+                z0 = cam_at(cam, lt)["zoom"]
+                cam_move(cam, lt, lt + max(1.2, dur), sx, 600.0, round(min(2.0, max(1.35, z0) + 0.3), 3))
                 shot_since = lt
             elif special == "insert":  # вставка: крупно предмет, о котором бит, потом назад
                 it = b.get("item") if isinstance(b.get("item"), dict) else {}
@@ -535,12 +589,12 @@ class Director:
                 held = next((c for c, u in holding.items() if items.get(u, {}).get("prop") == it.get("prop")), None) if it else None
                 on_ground = next((k["at"]["x"] for v in items.values() for k in v["keys"][:1] if k.get("at", {}).get("kind") == "ground"), None)
                 ix = pos.get(who or held or "", on_ground if on_ground is not None else sx)
-                back = dict(cam[-1])
-                cam.append({"t": round(lt + 0.1, 3), "x": back["x"], "y": back.get("y", 670.0), "zoom": back["zoom"]})
-                cam.append({"t": round(lt + 0.6, 3), "x": float(ix), "y": 730.0, "zoom": 2.2})
-                cam.append({"t": round(lt + max(1.4, dur), 3), "x": float(ix), "y": 730.0, "zoom": 2.2})
-                cam.append({"t": round(lt + max(1.4, dur) + 0.7, 3), "x": back["x"], "y": back.get("y", 670.0), "zoom": back["zoom"]})
-                shot_since = lt + max(1.4, dur)
+                back = cam_at(cam, lt)
+                hold = lt + min(max(1.4, dur), dur + 0.3)  # не дольше реплики: возврат успевает до следующего бита
+                cam_move(cam, lt + 0.1, lt + 0.6, float(ix), 730.0, 2.2)
+                cam.append({"t": round(hold, 3), "x": float(ix), "y": 730.0, "zoom": 2.2})
+                cam_move(cam, hold, hold + 0.5, back["x"], back["y"], back["zoom"])
+                shot_since = hold
             if b.get("word"):
                 overlays.append({"t": round(lt, 3), "dur": round(max(dur, 2.2), 3), "kind": "word", "text": str(b["word"])[:24]})
             lt += dur + (LONG_GAP if b.get("word") else LINE_GAP)
@@ -555,8 +609,10 @@ class Director:
                         keys[c].append({"t": round(lt + ASK_PAUSE - 0.3, 3), "action": "idle", "emotion": "happy"})
                 lt += ASK_PAUSE + 0.3
         dur_total = round(lt + 0.9, 3)
+        if title:  # заставка истории: надпись живёт 3.2 с — сцена не короче (иначе «Story 2» лишь мелькает)
+            dur_total = max(dur_total, 4.0)
         lk = look or {}
-        world = resolve_world(CATALOG, location, lk, self.season) if kind != "song" else dict(self.world)
+        world = resolve_world(CATALOG, location, lk, self.season) if kind != "song" else resolve_world(CATALOG, location, self.world, self.world["season"])
         dressing = "birthday" if lk.get("decor") == "birthday" else None
         if kind == "story":
             self.world = world
@@ -565,6 +621,7 @@ class Director:
         wear = {c: merge_wear([x for x in auto if not (x == "pajamas" and CAST.get(c, {}).get("adult"))], explicit.get(c, []), CATALOG) for c in keys}
         for it in items.values():  # ключи по времени; предметы сцены рисует Episode (items)
             it["keys"].sort(key=lambda k: k["t"])
+        cam.sort(key=lambda c: c["t"])
         for k in keys.values():  # ключи героев по времени (сортировка устойчивая: при равном t побеждает поздний — «дать» поверх «говорить»)
             k.sort(key=lambda x: x["t"])
         self.scenes.append({
@@ -636,7 +693,7 @@ class Director:
             dur = len(clip) / SR
             nb = 2 if dur <= bar * 2 - 0.3 else 4
             lines.append({"char": who, "start": round(at, 3), "dur": round(dur, 3), "text": row, "envelope": envelope(clip)})
-            overlays.append({"t": round(at, 3), "dur": round(bar * nb - 0.1, 3), "kind": "lyric", "text": row})
+            overlays.append({"t": round(at, 3), "dur": round(bar * nb - 0.1, 3), "sung": round(dur, 3), "kind": "lyric", "text": row})
             sections.append(Section(kind, nb, round(dur / beat, 2)))
             # хореография: припев — все делают одно движение (поём вместе), куплет — поющий двигается, остальные хлопают в такт
             mv = move_for(row, line_i)
@@ -659,7 +716,7 @@ class Director:
         total = at + bar * 2
         plan = song_plan(zlib.crc32(f"{self.project_id}:{title}".encode()), bpm, sections)
         self.scenes.append({
-            "location": location, "kind": "song", "seed": self._seed(), "world": dict(self.world), "start": round(self.t, 3), "duration": round(total, 3),
+            "location": location, "kind": "song", "seed": self._seed(), "world": resolve_world(CATALOG, location, self.world, self.world["season"]), "start": round(self.t, 3), "duration": round(total, 3),
             "camera": [*cam, {"t": round(at, 3), "x": cam[-1]["x"], "y": cam[-1].get("y", 670.0), "zoom": cam[-1]["zoom"]},
                        {"t": round(at + 0.8, 3), "x": group_x, "y": 670.0, "zoom": 1.05}],
             "actors": [{"id": c, "keys": k} for c, k in keys.items()], "lines": lines, "overlays": overlays,
@@ -735,7 +792,7 @@ async def build_cartoon(project_id: str) -> None:
             scenes = script.get("scenes") or []
             first = scenes[0] if scenes else {"location": "garden", "cast": story.get("cast", ["benny"])}
             await d.scene(first.get("location") or "garden", first.get("cast") or story.get("cast") or ["benny"], [], kind="title",
-                          title=str(story.get("title", "")), sub=f"Story {i + 1}")
+                          title=str(story.get("title", "")), sub=f"Story {i + 1}", look={"time": first.get("time"), "weather": first.get("weather")})
             for j, sc in enumerate(scenes):
                 await progress(f"история {i + 1}: сцена {j + 1}/{len(scenes)}", 0.32 + 0.55 * (i + j / max(1, len(scenes))) / max(1, len(stories)))
                 await d.scene(sc.get("location") or "garden", sc.get("cast") or story.get("cast") or ["benny"], sc.get("beats") or [], look=sc)
@@ -782,10 +839,12 @@ async def build_cartoon(project_id: str) -> None:
         log.info("%s: project %s deleted, generation stopped", __name__, project_id)
         return
     except (LLMError, clients.ServiceError, KeyError, ValueError) as e:
-        await progress("ошибка", 0.0, status="failed", error=str(e)[:2000])
+        with contextlib.suppress(ProjectGone):
+            await progress("ошибка", 0.0, status="failed", error=str(e)[:2000])
     except Exception as e:  # noqa: BLE001 — любой сбой виден в проекте
         log.exception("cartoon failed")
-        await progress("ошибка", 0.0, status="failed", error=f"{type(e).__name__}: {e}"[:2000])
+        with contextlib.suppress(ProjectGone):
+            await progress("ошибка", 0.0, status="failed", error=f"{type(e).__name__}: {e}"[:2000])
 
 
 _ = asyncio  # параллельная озвучка — следующий шаг (движок TTS всё равно один)

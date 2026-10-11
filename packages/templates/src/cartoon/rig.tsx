@@ -609,7 +609,7 @@ function Eye({ x, y, er, sx, op, inner, emo, closed, look, iris, lid }: { lid: s
       </g>
     );
   }
-  const lid0 = LIDS[emo];
+  const lid0 = LIDS[emo] ?? LIDS.neutral; // эмоция не из каталога (от LLM) не роняет рендер
   // полуморгание: верхнее веко опускается к середине
   const half = clamp(closed / 0.7, 0, 1);
   const tin = lerp(lid0.tin, -0.2, half);
@@ -787,7 +787,7 @@ function lipPath(x: number, y: number, wl: number, wr: number, ht: number, hb: n
  */
 function VisemeMouth({ spec, e, vis, amp, x, y, r, s, a }: { spec: CharacterSpec; e: CEmotion; vis: Viseme; amp: number; x: number; y: number; r: number; s: 1 | -1; a: number }) {
   const uid = useId().replace(/[^A-Za-z0-9_-]/g, "");
-  const em = VIS_EMO[e];
+  const em = VIS_EMO[e] ?? VIS_EMO.neutral;
   const bunny = spec.species === "bunny";
   const w0 = r * 0.17;
   // половины ширины: передняя (к носу) сжимается в профиле, задняя чуть длиннее
@@ -890,7 +890,7 @@ function Face({ spec, st, r, fl, open, closed, puff, vis, amp = 0.5 }: { spec: C
   const eyes = [fl.far, fl.near];
   // в анфасе «к носу» — к центру; в профиле у ближнего глаза нос впереди
   const innerOf = (slot: EyeSlot): 1 | -1 => (slot.near ? (a > 0.5 ? s : (-slot.side as 1 | -1)) : s);
-  const [bin, bout, braise] = BROWS[e];
+  const [bin, bout, braise] = BROWS[e] ?? BROWS.neutral;
   const brow = (slot: EyeSlot) => {
     if (slot.op <= 0.01) return null;
     const inner = innerOf(slot);

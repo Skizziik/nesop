@@ -49,6 +49,8 @@ export interface Overlay {
   kind: "word" | "title" | "question" | "lyric";
   text: string;
   sub?: string;
+  /** Для строки песни: сколько секунд она реально поётся (караоке-шарик идёт в темпе голоса). */
+  sung?: number;
 }
 export interface SceneDoc {
   location: string;

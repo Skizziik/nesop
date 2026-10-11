@@ -304,7 +304,6 @@ async def render_shorts(pid: str) -> None:
     from ..db import SessionLocal
     from ..events import publish
     from ..models import Project
-    from . import clients
 
     st = get_settings()
 
@@ -333,6 +332,18 @@ async def render_shorts(pid: str) -> None:
         return
     doc, items = cur["doc"], cur["shorts"].get("items") or []
     failed = 0
+    try:
+        await _render_items(pid, doc, items, update, st)
+    finally:
+        fresh = await update(None)
+        its = (fresh or {}).get("shorts", {}).get("items") or []
+        failed = sum(1 for x in its if x.get("status") != "ready")
+        await update(None, status="failed" if its and failed == len(its) else "ready")
+
+
+async def _render_items(pid: str, doc: dict[str, Any], items: list[dict[str, Any]], update: Any, st: Any) -> None:
+    from . import clients
+
     for n, it in enumerate(items):
         rel = f"/projects/{pid}/shorts/{n + 1}"
         (st.data_dir / rel.lstrip("/")).mkdir(parents=True, exist_ok=True)
@@ -348,6 +359,4 @@ async def render_shorts(pid: str) -> None:
             await update(n, status="ready", progress=1.0, video_url=f"/media{rel}/video.mp4?v={v}",
                          cover_url=f"/media{rel}/cover.png?v={v}")
         except Exception as e:  # noqa: BLE001 — ошибка видна у шортса, остальные рендерятся дальше
-            failed += 1
             await update(n, status="failed", error=(str(e) or type(e).__name__)[:500])
-    await update(None, status="failed" if failed == len(items) else "ready")

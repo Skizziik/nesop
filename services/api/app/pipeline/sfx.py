@@ -595,7 +595,18 @@ class Bed:
 
 
 TRANSITIONS = ("cut", "fade", "iris", "wipe", "star", "bubble")
-OUTDOOR = {"garden", "garden_evening", "playground", "beach", "forest"}
+def _outdoor_locations() -> set[str]:
+    """Уличные локации — из каталога (новые ферма/пруд/горка/кемпинг получают птиц, дождь и сверчков как улица)."""
+    import json
+
+    try:
+        cat = json.loads(Path(__file__).with_name("cartoon_catalog.json").read_text(encoding="utf-8"))
+        return {loc["id"] for loc in cat.get("locations", []) if loc.get("outdoor", True)}
+    except (OSError, ValueError):
+        return {"garden", "garden_evening", "playground", "beach", "forest"}
+
+
+OUTDOOR = _outdoor_locations()
 FX_SOUND = {"hearts": ("heart", 0.26), "sparkles": ("sparkle", 0.24), "zzz": ("snore", 0.3), "notes": ("notes", 0.22),
             "sweat": ("droplet", 0.22), "exclaim": ("exclaim", 0.2), "question": ("hmm", 0.24), "puff": ("poof", 0.3)}
 WALK_SPEED = {"walk": 8.0, "run": 13.0, "tiptoe": 6.0}  # фаза шага = tl * speed (actions.ts); стопа встаёт на землю при фазе kπ (rig.tsx stepCycle)

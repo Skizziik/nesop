@@ -1,6 +1,7 @@
 """Рендер проекта-таймлайна (композиция Timeline) в mp4 + обложка."""
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import Any
 
@@ -43,5 +44,8 @@ async def render_project(pid: str) -> None:
         await clients.render(doc, rel, on_progress, composition="Cartoon" if cartoon else "Timeline", timeout_s=timeout)
         (st.data_dir / rel.lstrip("/") / "meta.json").write_text(json.dumps(meta.get("youtube", {"title": doc.get("title")}), ensure_ascii=False, indent=2), encoding="utf-8")
         await _set(pid, status="ready", stage="готово", progress=1.0, out_dir=rel)
+    except asyncio.CancelledError:  # таймаут задачи arq: проект не должен навсегда остаться «в рендере»
+        await asyncio.shield(_set(pid, status="failed", stage="ошибка рендера", error="Рендер прерван (таймаут задачи)"))
+        raise
     except Exception as e:  # noqa: BLE001 — ошибка видна в проекте
         await _set(pid, status="failed", stage="ошибка рендера", error=(str(e) or type(e).__name__)[:2000])
