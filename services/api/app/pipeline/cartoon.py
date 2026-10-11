@@ -599,7 +599,8 @@ async def build_cartoon(project_id: str) -> None:
             plan = await llm_plan(s, theme, minutes, n_stories)
         stories = plan.get("stories", [])[:n_stories]
         songs = plan.get("songs", [])
-        per_story = max(150, int((minutes * 60 - len(songs) * 50 - 40) / max(1, len(stories))))
+        # песня ~95 с (припев ×3 + проигрыш), заставка 7 с, финал ~8 с, на историю ещё плашка и титр ~8 с
+        per_story = max(120, int((minutes * 60 - len(songs) * 95 - 30 - len(stories) * 8) / max(1, len(stories))))
         scripts, report = [], []
         for i in range(len(stories)):
             await progress(f"сценарий истории {i + 1}/{len(stories)}", 0.05 + 0.25 * i / len(stories))
