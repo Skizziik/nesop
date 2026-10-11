@@ -15,6 +15,7 @@ from ..llm.generate import get_provider
 from ..llm.providers import LLMError
 from ..models import Project
 from . import clients
+from . import kids_thumbs as kids
 
 log = logging.getLogger("farm.youtube")
 
@@ -158,31 +159,30 @@ KIDS_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
         "titles": {"type": "array", "items": {"type": "string"},
-                   "description": "3 title variants ≤ 70 chars for parents searching kids cartoons: characters + what happens + learning hook"},
-        "hook": {"type": "string", "description": "2 lines for parents: what the kids will enjoy and learn, ≤ 220 chars"},
+                   "description": f"3 title variants for parents, each in the form 'Topic keyword | {kids.SERIES} | Nursery Rhymes & Kids Songs' "
+                                  "(or '... | Cartoons for Kids' when there are no songs), ≤ 70 chars, the topic first, no ALL CAPS, no keyword stuffing"},
+        "hook": {"type": "string", "description": "2 short lines to parents: what the child will enjoy and learn, ≤ 220 chars"},
         "learn": {"type": "array", "items": {"type": "string"}, "description": "3-5 bullets: skills/words the child practises"},
         "tags": {"type": "array", "items": {"type": "string"}, "description": "15-20 tags (kids cartoon, toddler learning, nursery songs, the topic words)"},
         "hashtags": {"type": "array", "items": {"type": "string"}, "description": "3-5 hashtags with #"},
         "thumbs": {
             "type": "array",
-            "description": "3 different bright thumbnails",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "text": {"type": "string", "description": "1-3 BIG simple words, ≤ 18 chars, no numbers"},
-                    "chars": {"type": "array", "items": {"type": "string", "enum": ["benny", "mia", "ollie", "dot", "mama"]}, "description": "1-3 characters"},
-                    "emotions": {"type": "array", "items": {"type": "string", "enum": ["laugh", "happy", "surprised", "sad", "scared", "thinking", "sleepy"]}},
-                    "location": {"type": "string", "enum": ["garden", "garden_evening", "living_room", "kitchen", "bedroom", "playground", "beach", "forest"]},
-                    "emoji": {"type": "string", "description": "ONE emoji for the story's key object (🍎, 🎈, 🧸, 🌙…)"},
-                },
-            },
+            "description": "3 DIFFERENT thumbnails for A/B testing — each a different layout and moment",
+            "items": kids.THUMB_ITEM,
         },
     },
 }
 
+KIDS_SYSTEM = (
+    f"You are a YouTube strategist for «{kids.SERIES}», a gentle preschool cartoon channel (characters: Benny the bunny, Mia the kitten, Ollie the bear cub, "
+    "Dot the puppy, Mama Bunny). Parents choose the videos, toddlers point at the thumbnail. Thumbnails work like the top kids channels: "
+    "one or two BIG HAPPY faces (never scared, sad or exaggerated shock), ONE huge key object of the story, 1-3 big words, bright and saturated, "
+    "readable at 160 px. Honest: everything on the thumbnail really happens in the episode."
+)
+
 
 async def build_youtube_cartoon(project_id: str) -> dict[str, Any]:
-    """YouTube-пакет мультика: названия для родителей, описание с историями-главами, 3 обложки с героями (CartoonThumb)."""
+    """YouTube-пакет мультика: названия для родителей, описание с главами и текстами песен, 3 разные обложки CartoonThumb."""
     async with SessionLocal() as s:
         p = await s.get(Project, project_id)
         if p is None or not p.doc:
@@ -191,47 +191,42 @@ async def build_youtube_cartoon(project_id: str) -> dict[str, Any]:
         plan = meta.get("plan") or {}
         chapters = list(meta.get("chapters") or [])
         title = str(doc.get("title") or p.title)
-        stories = [{"title": x.get("title"), "lesson": x.get("lesson"), "key_words": x.get("key_words"), "locations": x.get("locations")} for x in plan.get("stories", [])]
+        ctx = kids.episode_context(doc)
+        has_songs = bool(ctx["songs"] or plan.get("songs"))
+        stories = [{"title": x.get("title"), "lesson": x.get("lesson"), "key_words": x.get("key_words")} for x in plan.get("stories", [])]
         try:
             prov = await get_provider(s)
             user = (
                 f"Preschool cartoon episode ({round(float(doc.get('duration', 0)) / 60)} min, ages 2-5, English): «{title}».\n"
-                f"Stories: {json.dumps(stories, ensure_ascii=False)}\nSongs: {[x.get('title') for x in plan.get('songs', [])]}\n\n"
-                "Write the YouTube packaging for parents. Warm, trustworthy, no clickbait lies, no ALL CAPS titles. "
-                "Thumbnails: 3 different moments, big emotions, one key object emoji."
+                f"Stories: {json.dumps(stories, ensure_ascii=False)}\nSongs: {[x.get('title') for x in plan.get('songs', [])]}\n"
+                f"What is on screen:\n{kids.context_for_llm(ctx)}\n\n"
+                "Write the YouTube packaging for parents. Warm, trustworthy, no clickbait lies, no ALL CAPS titles, "
+                "no requests to comment or subscribe (the video is made for kids).\n"
+                "Thumbnails: 3 different layouts (e.g. face, duo, world" + (", song" if has_songs else "") + ", learn, action), each showing a real story moment: "
+                "pick the story, its heroes with happy emotions, ONE key object from that story's objects, and a location where the story happens. "
+                "Use 'world' for a story with snow, rain, wind, autumn or the beach; 'learn' only for letters, numbers or colours."
             )
-            r = await prov.complete_json(
-                "You are a YouTube strategist for a gentle preschool cartoon channel (characters: Benny the bunny, Mia the kitten, Ollie the bear cub, "
-                "Dot the puppy, Mama Bunny). Parents choose the videos; thumbnails must be bright and readable at a glance.",
-                user, KIDS_SCHEMA, purpose="youtube_meta", max_tokens=3000, effort="medium")
+            r = await prov.complete_json(KIDS_SYSTEM, user, KIDS_SCHEMA, purpose="youtube_meta", max_tokens=3000, effort="medium")
             pack = dict(r.data)
         except LLMError as e:
             log.warning("cartoon youtube meta failed: %s", e)
-            pack = {"titles": [f"{title} | Cartoons for Kids"], "hook": "", "learn": [], "tags": ["kids cartoon", "toddler learning"], "hashtags": ["#kidscartoon"],
-                    "thumbs": [{"text": title[:18], "chars": ["benny", "mia"], "location": "garden", "emoji": "⭐"}]}
+            pack = {"titles": [title], "hook": "", "learn": [], "tags": ["kids cartoon", "toddler learning", "nursery rhymes"],
+                    "hashtags": ["#kidscartoon", "#nurseryrhymes"], "thumbs": []}
 
+    thumbs = kids.build_thumbs(pack.get("thumbs"), ctx, title)
     urls: list[str] = []
     stamp = int(time.time())
-    for i, th in enumerate((pack.get("thumbs") or [])[:3]):
+    for i, props in enumerate(thumbs):
         rel = f"projects/{project_id}/thumb-{stamp}-{i}.png"
-        props = {"text": str(th.get("text") or title)[:20], "chars": th.get("chars") or ["benny"], "emotions": th.get("emotions") or [],
-                 "location": th.get("location") or "garden", "emoji": th.get("emoji") or "", "variant": i}
         try:
             await clients.still(props, rel, composition="CartoonThumb")
             urls.append(f"/media/{rel}")
         except clients.ServiceError as e:
             log.warning("cartoon thumbnail %s failed: %s", i, e)
     hashtags = [h if h.startswith("#") else f"#{h}" for h in (pack.get("hashtags") or [])][:5]
-    parts = [str(pack.get("hook", "")).strip()]
-    if pack.get("learn"):
-        parts.append("🌈 In this episode your child will:\n" + "\n".join(f"• {x}" for x in pack["learn"][:5]))
-    if len(chapters) >= 3:
-        parts.append("⏱ Stories & songs:\n" + "\n".join(chapters))
-    parts.append("For children aged 2-5. Watch together, sing along and answer the friends' questions out loud!")
-    parts.append(" ".join(hashtags))
-    titles = [t[:100] for t in (pack.get("titles") or [])][:3] or [title]
-    yt = {"title": titles[0], "titles": titles, "description": "\n\n".join(x for x in parts if x), "tags": (pack.get("tags") or [])[:20],
-          "hashtags": hashtags, "chapters": chapters, "thumbnails": urls, "thumbnail_texts": pack.get("thumbs") or [], "made_for_kids": True, "generated_at": stamp}
+    titles = list(dict.fromkeys(kids.kids_title(t, has_songs) for t in (pack.get("titles") or []) if str(t).strip()))[:3] or [kids.kids_title(title, has_songs)]
+    yt = {"title": titles[0], "titles": titles, "description": kids.kids_description(pack, chapters, ctx, hashtags), "tags": (pack.get("tags") or [])[:20],
+          "hashtags": hashtags, "chapters": kids.clean_chapters(chapters), "thumbnails": urls, "thumbnail_texts": thumbs, "made_for_kids": True, "generated_at": stamp}
     async with SessionLocal() as s:
         p = await s.get(Project, project_id)
         if p is not None:
