@@ -1,6 +1,7 @@
 /**
  * Лист ассетов (docs/cartoon-visual-variety.md, «Как добавляется ассет»): каждый ассет каталога рядом с героем для масштаба —
- * локации с героем, предметы в руке или на земле, костюмы на всех героях, эффекты, действия, эмоции.
+ * локации с героем, предметы в руке или на земле, костюмы на всех героях, эффекты, действия, эмоции;
+ * walk / walk_left — цикл шага в 8 фазах (вправо / влево) для всех героев, faces — крупные мордочки во всех эмоциях и ракурсах.
  * Режим only — один ассет на маленьком холсте (превью для страницы «Каталог» в дашборде).
  */
 import type { ReactNode } from "react";
@@ -15,7 +16,7 @@ import { Character, REST, type CEmotion, type CharState, type Fx, type Wear } fr
 import { GROUND } from "./scenes";
 
 export const ASSET_SHEET_ID = "AssetSheet";
-export const SHEET_KINDS = ["locations", "props", "outfits", "fx", "actions", "characters", "states"] as const;
+export const SHEET_KINDS = ["locations", "props", "outfits", "fx", "actions", "characters", "walk", "walk_left", "faces", "states"] as const;
 export type SheetKind = (typeof SHEET_KINDS)[number];
 
 export interface AssetSheetProps {
@@ -30,7 +31,7 @@ const INK = "#2A1B33";
 const TALL = ["umbrella", "balloon", "kite"];
 
 function state(over: Partial<CharState> = {}): CharState {
-  return { pose: REST, emotion: "happy", mouth: 0, blink: false, look: [0, 0], facing: 1, ...over };
+  return { pose: REST, emotion: "happy", mouth: 0, blink: false, look: [0, 0], facing: 1, autoBlink: false, ...over };
 }
 
 /** Герой в клетке: ступни в (0,0), viewBox подобран под рост ребёнка с ушами и предмет рядом. */
@@ -109,7 +110,7 @@ function OutfitCell({ id, t, char }: { id: string; t: number; char?: string }) {
   );
 }
 
-const ACTION_T: Partial<Record<ActionKind, number>> = { jump: 0.4, wave: 0.6, cheer: 0.5, shrug: 0.3, bow: 0.6, clap: 0.15, dance: 0.3 };
+const ACTION_T: Partial<Record<ActionKind, number>> = { jump: 0.4, wave: 0.6, cheer: 0.5, shrug: 0.3, bow: 0.6, clap: 0.43, dance: 0.3, nod: 0.22, shake_head: 0.17, yawn: 0.9, stretch: 1, spin: 0.3, hop: 0.35, high_five: 0.45, cover_eyes: 0.5, throw: 0.3, catch: 0.22, eat: 0.5, pick_up: 0.3, put_down: 0.9, give: 0.8, wiggle: 0.17 };
 
 /** Содержимое одной клетки по виду листа. */
 function item(kind: SheetKind, id: string, t: number, seed: number, world: WorldState): { label: string; sub: string; node: ReactNode } {
@@ -150,7 +151,55 @@ function item(kind: SheetKind, id: string, t: number, seed: number, world: World
       const e = CHARACTERS.find((c) => c.id === id);
       return { label: e?.name ?? id, sub: e?.label ?? id, node: <Stage><Hero id={id} st={state({ pose: actionPose("wave", 0.8, t) })} t={t} /></Stage> };
     }
+    case "walk":
+    case "walk_left":
+    case "faces":
+      return { label: id, sub: "", node: kind === "faces" ? <FacesRow id={id} t={t} /> : <WalkRow id={id} t={t} facing={kind === "walk_left" ? -1 : 1} /> };
   }
+}
+
+/** Цикл шага: 8 фаз шага, бег, разворот 3/4. Ступни в (0,0) — видно, не скользит ли стопа и не «отрываются» ли конечности. */
+function WalkRow({ id, t, facing }: { id: string; t: number; facing: 1 | -1 }) {
+  const cells: { label: string; st: CharState }[] = [];
+  for (let i = 0; i < 8; i++) cells.push({ label: `${i}/8`, st: state({ facing, pose: actionPose("walk", 1 + (i * Math.PI * 2) / 8 / 8, t), hold: i === 2 ? { id: "ball" } : undefined }) });
+  cells.push({ label: "run", st: state({ facing, pose: actionPose("run", 1.1, t) }) });
+  cells.push({ label: "tiptoe", st: state({ facing, pose: actionPose("tiptoe", 1.3, t), emotion: "neutral" }) });
+  cells.push({ label: "turn 0.5", st: state({ facing, pose: actionPose("walk", 0.1, t), turn: 0.5 }) });
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: `repeat(${cells.length}, 1fr)`, height: "100%" }}>
+      {cells.map((c, i) => (
+        <svg key={i} viewBox="-230 -600 460 640" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+          <line x1={-230} x2={230} y1={2} y2={2} stroke="#E3DDEE" strokeWidth={6} />
+          <Hero id={id} st={c.st} t={t} />
+          <text x={-220} y={-560} fontFamily="monospace" fontSize={34} fill="#7A6E8A">
+            {c.label}
+          </text>
+        </svg>
+      ))}
+    </div>
+  );
+}
+
+/** Крупные мордочки: все эмоции, говорит, профиль, 3/4, моргание. */
+function FacesRow({ id, t }: { id: string; t: number }) {
+  const emos = EMOTION_CATALOG.map((e) => e.id as CEmotion);
+  const cells: { label: string; st: CharState }[] = emos.map((e) => ({ label: e, st: state({ emotion: e }) }));
+  cells.push({ label: "talk", st: state({ emotion: "happy", mouth: 0.6 }) });
+  cells.push({ label: "3/4", st: state({ emotion: "neutral", turn: 0.55 }) });
+  cells.push({ label: "profile", st: state({ emotion: "happy", turn: 1, mouth: 0.5 }) });
+  cells.push({ label: "blink", st: state({ emotion: "neutral", blink: true }) });
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: `repeat(${cells.length}, 1fr)`, height: "100%" }}>
+      {cells.map((c, i) => (
+        <svg key={i} viewBox="-190 -560 380 400" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+          <Hero id={id} st={c.st} t={t} />
+          <text x={-180} y={-180} fontFamily="monospace" fontSize={30} fill="#7A6E8A">
+            {c.label}
+          </text>
+        </svg>
+      ))}
+    </div>
+  );
 }
 
 function ids(kind: SheetKind): string[] {
@@ -166,13 +215,16 @@ function ids(kind: SheetKind): string[] {
     case "actions":
       return [...ACTION_IDS];
     case "characters":
+    case "walk":
+    case "walk_left":
+    case "faces":
       return CHARACTERS.map((c) => c.id);
     case "states":
       return Object.entries(PROP_STATES).flatMap(([id, sts]) => [id, ...sts.map((st) => `${id}:${st}`)]);
   }
 }
 
-const COLS: Record<SheetKind, number> = { states: 8, locations: 4, props: 10, outfits: 4, fx: 4, actions: 6, characters: 5 };
+const COLS: Record<SheetKind, number> = { states: 8, locations: 4, props: 10, outfits: 4, fx: 4, actions: 9, characters: 5, walk: 1, walk_left: 1, faces: 1 };
 
 /** Эмоции всех героев — отдельной строкой листа characters. */
 function EmotionsRow({ t }: { t: number }) {
