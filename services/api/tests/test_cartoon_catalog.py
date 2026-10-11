@@ -106,3 +106,33 @@ def test_song_staging_moves_and_camera(monkeypatch) -> None:  # noqa: ANN001
     assert len(sc["camera"]) > 8 and {1.0, 1.35, 1.75} <= zooms  # общий, средний, крупный
     acts = {k.get("action") for k in sc["actors"][0]["keys"]}
     assert {"clap", "jump", "spin"} <= acts  # движения из слов песни
+
+
+def test_cam_move_keeps_keys_ordered_and_starts_from_real_position() -> None:
+    cam = [{"t": 0, "x": 960.0, "y": 670.0, "zoom": 1.0}]
+    cartoon.cam_move(cam, 1.0, 3.0, 600.0, 730.0, 2.2)  # вставка
+    cartoon.cam_move(cam, 2.0, 2.9, 960.0, 670.0, 1.0)  # следующий бит начался раньше конца вставки
+    ts = [k["t"] for k in cam]
+    assert ts == sorted(ts)
+    mid = cam[-2]  # стартовая точка второго движения = где камера была в t=2.0, а не «прыжок»
+    assert 600 < mid["x"] < 960 and 1.0 < mid["zoom"] < 2.2
+
+
+def test_scene_sanitises_editor_beats(monkeypatch) -> None:  # noqa: ANN001
+    import asyncio
+
+    import numpy as np
+
+    async def fake_voice(text: str, speaker: str):  # noqa: ANN202
+        return np.zeros(int(cartoon.SR * 1.0), np.float32), {"score": 1.0}
+
+    monkeypatch.setattr(cartoon, "voice_line", fake_voice)
+    d = cartoon.Director("p")
+    beats = [{"speaker": "Benny", "text": "I am so proud!", "emotion": "proud", "action": "boogie", "shot": "close-up", "move": "left",
+              "reactions": ["mia laughs", {"char": "mia", "emotion": "excited"}], "hold": None, "fx": "hearts"}, "garbage"]
+    asyncio.run(d.scene("garden", ["benny", "mia"], beats))
+    sc = d.scenes[-1]
+    assert sc["lines"][0]["char"] == "benny"
+    emos = {k.get("emotion") for a in sc["actors"] for k in a["keys"] if k.get("emotion")}
+    acts = {k.get("action") for a in sc["actors"] for k in a["keys"] if k.get("action")}
+    assert emos <= set(cartoon.EMOTIONS) and acts <= set(cartoon.ACTIONS)
