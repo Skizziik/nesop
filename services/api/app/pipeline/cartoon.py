@@ -9,7 +9,6 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import time
 import zlib
 from pathlib import Path
 from typing import Any
@@ -23,11 +22,11 @@ from ..llm.generate import get_provider
 from ..llm.providers import LLMError
 from ..models import Project
 from . import clients
-from .audio import SR, envelope, load_mono, trim_silence, write_wav
+from .audio import SR, envelope, load_mono, trim_silence
 from .cartoon_world import SEASONS, TIMES, WEATHERS, auto_wear, merge_wear, resolve_world
 from .gone import ProjectGone
-from .music import Track
-from .music import render as render_music
+from .music import Section, song_plan
+from .sfx import mix_cartoon
 
 log = logging.getLogger("farm.cartoon")
 
@@ -517,33 +516,57 @@ class Director:
         })
         self.t += dur_total
 
-    async def song(self, title: str, lyrics: dict[str, Any], location: str, cast: list[str], bpm: int = 108) -> dict[str, Any]:
-        """Песенка: строки на сетке тактов (по 2 такта на строку), герои танцуют, караоке, своя музыка."""
-        rows = [*lyrics.get("verse", []), *lyrics.get("chorus", []), *lyrics.get("verse2", []), *lyrics.get("chorus", [])]
-        rows = [str(x).strip() for x in rows if str(x).strip()][:20]
+    async def song(self, title: str, lyrics: dict[str, Any], location: str, cast: list[str], bpm: int = 112) -> dict[str, Any]:
+        """Песенка ~1.5-2 мин: вступление-хук → ПРИПЕВ (хук в первые 15 с) → куплет → припев → куплет 2 → танцевальный
+        проигрыш → припев с эхом (строку поёт один герой, повторяет другой). Строки на сетке тактов (2 такта, длинная — 4),
+        герои поют по очереди своими голосами, повторы припева — те же дубли (узнаваемо). Подложка — music.render_song."""
+        clean = {k: [str(x).strip() for x in lyrics.get(k, []) if str(x).strip()][:4] for k in ("verse", "chorus", "verse2")}
+        chorus = clean["chorus"] or clean["verse"][:2]
+        cast = [c for c in cast if c in CAST] or ["benny", "mia"]
+        rows: list[tuple[str, str, str]] = []  # (секция, текст, кто поёт)
+        rows += [("chorus", r, cast[0]) for r in chorus]
+        rows += [("verse", r, cast[(i + 1) % len(cast)]) for i, r in enumerate(clean["verse"])]
+        rows += [("chorus", r, cast[0]) for r in chorus]
+        rows += [("verse", r, cast[(i + 2) % len(cast)]) for i, r in enumerate(clean["verse2"])]
+        rows.append(("break", "", ""))
+        for r in chorus:
+            rows += [("chorus", r, cast[0]), ("chorus", r, cast[1 % len(cast)])]
         beat = 60.0 / bpm
         bar = beat * 4
         lead = bar * 2  # вступление
-        cast = [c for c in cast if c in CAST] or ["benny", "mia"]
         pos = self._place(cast)
         keys = {c: [{"t": 0, "x": pos[c], "action": "dance", "emotion": "laugh"}] for c in cast}
         lines, overlays = [], [{"t": 0.3, "dur": lead - 0.4, "kind": "title", "text": title, "sub": "Sing along!"}]
-        for i, row in enumerate(rows):
-            at = lead + i * bar * 2
-            clip, _ = await voice_line(row, "narrator")
+        sections = [Section("intro", 2)]
+        takes: dict[tuple[str, str], np.ndarray] = {}
+        at = lead
+        for kind, row, who in rows:
+            if kind == "break":
+                sections.append(Section("break", 4))
+                for c in cast:  # проигрыш: все прыгают и хлопают
+                    keys[c] += [{"t": round(at, 3), "action": "jump", "emotion": "laugh"}, {"t": round(at + bar * 2, 3), "action": "clap"},
+                                {"t": round(at + bar * 4, 3), "action": "dance"}]
+                at += bar * 4
+                continue
+            if (row, who) not in takes:
+                takes[(row, who)], _ = await voice_line(row, who)
+            clip = takes[(row, who)]
             self.clips.append((self.t + at, clip))
             dur = len(clip) / SR
-            lines.append({"char": cast[i % len(cast)], "start": round(at, 3), "dur": round(dur, 3), "text": row, "envelope": envelope(clip)})
-            overlays.append({"t": round(at, 3), "dur": round(bar * 2 - 0.1, 3), "kind": "lyric", "text": row})
-        total = lead + len(rows) * bar * 2 + bar
-        bars = int(np.ceil(total / bar))
-        music = Track(f"song-{int(time.time() * 1000) % 10**9}", title, "C", bpm, (0, 4, 5, 3), bars, 0.8, 0.0, True)
+            nb = 2 if dur <= bar * 2 - 0.3 else 4
+            lines.append({"char": who, "start": round(at, 3), "dur": round(dur, 3), "text": row, "envelope": envelope(clip)})
+            overlays.append({"t": round(at, 3), "dur": round(bar * nb - 0.1, 3), "kind": "lyric", "text": row})
+            sections.append(Section(kind, nb, round(dur / beat, 2)))
+            at += bar * nb
+        sections.append(Section("outro", 2))
+        total = at + bar * 2
+        plan = song_plan(zlib.crc32(f"{self.project_id}:{title}".encode()), bpm, sections)
         self.scenes.append({
             "location": location, "kind": "song", "seed": self._seed(), "world": dict(self.world), "start": round(self.t, 3), "duration": round(total, 3),
             "camera": [{"t": 0, "x": float(np.mean(list(pos.values()))), "zoom": 1.0}, {"t": total, "x": float(np.mean(list(pos.values()))), "zoom": 1.12}],
             "actors": [{"id": c, "keys": k} for c, k in keys.items()], "lines": lines, "overlays": overlays,
         })
-        info = {"track": music, "start": self.t, "dur": total}
+        info = {"plan": plan, "start": self.t, "dur": total}
         self.t += total
         return info
 
@@ -618,30 +641,12 @@ async def build_cartoon(project_id: str) -> None:
         for c in everyone:
             d.scenes[-1]["actors"][everyone.index(c)]["keys"].append({"t": 1.0, "action": "wave", "emotion": "laugh"})
 
-        # звук: дорожка голосов + музыка песен + тихая музыка под истории
+        # звук: три стема — голоса (ровная громкость), музыка (фон с дакингом под репликами, песни, заставки, стингеры),
+        # SFX + атмосфера по сценам; итог −14 LUFS / −1 dBTP (см. sfx.mix_cartoon). Тяжёлый numpy — в отдельном потоке.
         await progress("сведение звука", 0.9)
-        total = d.t
-        buf = np.zeros(int(np.ceil(total * SR)) + SR, np.float32)
-        for at, clip in d.clips:
-            a = int(at * SR)
-            buf[a : a + len(clip)] += clip[: max(0, len(buf) - a)]
-        peak = float(np.abs(buf).max()) or 1.0
-        buf = (buf / peak * 0.9).astype(np.float32)
-        out_dir = st.data_dir / "cartoons" / project_id
-        write_wav(out_dir / "voices.wav", buf)
-        audio = [{"src": f"/media/cartoons/{project_id}/voices.wav", "start": 0, "volume": 1}]
-        for i, sg in enumerate(song_starts):
-            rel = f"cartoons/{project_id}/song-{i}.wav"
-            write_wav(st.data_dir / rel, render_music(sg["track"]))
-            audio.append({"src": f"/media/{rel}", "start": round(sg["start"], 3), "dur": round(sg["dur"], 3), "volume": 0.45})
-        bg = Track("kids-bg", "Kids background", "F", 96, (0, 3, 4, 0), 16, 0.55, 0.06, False)
-        write_wav(out_dir / "bg.wav", render_music(bg))
-        song_spans = [(sg["start"], sg["start"] + sg["dur"]) for sg in song_starts]
-        cur = 0.0
-        for a, b in [*song_spans, (total, total)]:
-            if a - cur > 2:
-                audio.append({"src": f"/media/cartoons/{project_id}/bg.wav", "start": round(cur, 3), "dur": round(a - cur, 3), "volume": 0.07, "loop": True})
-            cur = b
+        audio, total, mix_stats = await asyncio.to_thread(mix_cartoon, d.scenes, d.clips, song_starts, d.t, st.data_dir / "cartoons" / project_id,
+                                                          f"/media/cartoons/{project_id}")
+        log.info("cartoon %s mix: %s", project_id, mix_stats)
         doc = {"title": plan.get("title") or theme, "fps": 30, "duration": round(total, 3), "scenes": d.scenes, "audio": audio, "show_captions": True}
         chapters = [f"{int(t) // 60:02d}:{int(t) % 60:02d} {name}" for t, name in [(0.0, "Intro"), *d.chapters]]
         meta = {"plan": plan, "scripts": scripts, "report": report, "chapters": chapters, "kind": "cartoon"}
