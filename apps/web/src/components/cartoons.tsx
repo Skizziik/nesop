@@ -205,7 +205,7 @@ export function CartoonView({ id }: { id: string }) {
     queryFn: () => api.project(id),
     refetchInterval: (q) => (q.state.data && ["generating", "rendering"].includes(q.state.data.status) ? 3000 : false),
   });
-  const [tab, setTab] = useState<"youtube" | "script">("youtube");
+  const [tab, setTab] = useState<"youtube" | "script" | "qa">("youtube");
   const render = useMutation({ mutationFn: () => api.renderProject(id), onSuccess: () => (toast.success("Рендер запущен"), void qc.invalidateQueries({ queryKey: ["project", id] })), onError: onErr });
   if (!p) return <div className="p-8 text-mute">Загрузка…</div>;
   const doc = p.doc as unknown as { duration?: number; scenes?: unknown[] };
@@ -260,16 +260,18 @@ export function CartoonView({ id }: { id: string }) {
             {p.video_url && !p.video_stale ? <ContactSheet src={p.video_url.replace(/video\.mp4$/, "contact.png")} /> : null}
           </div>
           <div className="min-h-0 rounded-2xl border border-line bg-panel">
-            <div className="grid grid-cols-2 border-b border-line text-xs font-bold">
-              {(["youtube", "script"] as const).map((k) => (
+            <div className="grid grid-cols-3 border-b border-line text-xs font-bold">
+              {(["youtube", "script", "qa"] as const).map((k) => (
                 <button key={k} onClick={() => setTab(k)} className={cn("py-2", tab === k ? "bg-panel-2 text-ink" : "text-mute")}>
-                  {k === "youtube" ? "YouTube" : "Сценарий"}
+                  {k === "youtube" ? "YouTube" : k === "script" ? "Сценарий" : "Проверка"}
                 </button>
               ))}
             </div>
             <div className="h-[70vh]">
               {tab === "youtube" ? (
                 <YoutubePanel project={p} onClose={() => setTab("script")} />
+              ) : tab === "qa" ? (
+                <QaPanel meta={p.meta as QaMeta} />
               ) : (
                 <div className="h-full overflow-auto p-3 text-xs">
                   {(meta.plan?.stories ?? []).map((s, i) => (
@@ -431,5 +433,52 @@ function ContactSheet({ src }: { src: string }) {
         ))}
       </div>
     </details>
+  );
+}
+
+type QaMeta = { qa?: { issues?: string[]; stats?: { avg_shot_s?: number; wpm?: number; words?: number; speech_s?: number } }; report?: string[] } | null;
+
+/** Автопроверки эпизода (services/api/app/pipeline/cartoon_art.py qa_checks) и отчёт сценариста/редактора/арт-директора. */
+function QaPanel({ meta }: { meta: QaMeta }) {
+  const qa = meta?.qa;
+  const st = qa?.stats ?? {};
+  const ok = (v: number | undefined, lo: number, hi: number) => v !== undefined && v >= lo && v <= hi;
+  return (
+    <div className="h-full overflow-auto p-3 text-xs">
+      {!qa ? (
+        <div className="text-mute">Автопроверок нет — эпизод сделан до их появления.</div>
+      ) : (
+        <>
+          <div className="mb-3 grid grid-cols-2 gap-2">
+            <div className={cn("rounded-xl p-2", ok(st.wpm, 90, 140) ? "bg-verde/15" : "bg-giallo/20")}>
+              <div className="text-[10px] font-bold uppercase text-mute">Темп речи</div>
+              <div className="text-lg font-bold">{st.wpm ?? "—"} сл/мин</div>
+              <div className="text-[10px] text-mute">норма для 2-5 лет: 110-130</div>
+            </div>
+            <div className={cn("rounded-xl p-2", ok(st.avg_shot_s, 4, 12) ? "bg-verde/15" : "bg-giallo/20")}>
+              <div className="text-[10px] font-bold uppercase text-mute">Средний план</div>
+              <div className="text-lg font-bold">{st.avg_shot_s ?? "—"} с</div>
+              <div className="text-[10px] text-mute">цель 5-8 с, не меньше 4</div>
+            </div>
+          </div>
+          <div className="mb-1 font-bold">{qa.issues?.length ? `Замечания (${qa.issues.length})` : "Замечаний нет ✓"}</div>
+          {(qa.issues ?? []).map((x, i) => (
+            <div key={i} className="mb-1 rounded bg-panel-2 px-2 py-1">
+              {x}
+            </div>
+          ))}
+        </>
+      )}
+      {meta?.report?.length ? (
+        <>
+          <div className="mt-3 mb-1 font-bold">Отчёт сценариста и редактора</div>
+          {meta.report.map((x, i) => (
+            <div key={i} className="mb-1 text-mute">
+              • {x}
+            </div>
+          ))}
+        </>
+      ) : null}
+    </div>
   );
 }
