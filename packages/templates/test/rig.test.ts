@@ -37,6 +37,10 @@ describe("палитры и сид", () => {
         expect(v.toUpperCase(), `${id}.${k}`).not.toBe("#000000");
       }
   });
+  it("у уличных локаций есть все токены неба (иначе солнце/облака рисуются чёрными)", () => {
+    for (const id of ["garden", "garden_evening", "playground", "beach", "forest"])
+      for (const k of ["sky1", "sky2", "skySun", "skySunRim", "skySunGlow", "skyCloud", "skyCloudShade"]) expect(resolvePalette(id)[k], `${id}.${k}`).toBeTruthy();
+  });
   it("сид 0 — каноническая раскладка, ненулевой сид детерминирован", () => {
     expect(pick(0, "x", ["a", "b", "c"], "z")).toBe("z");
     expect(pick(42, "x", ["a", "b", "c"], "z")).toBe(pick(42, "x", ["a", "b", "c"], "z"));

@@ -23,3 +23,6 @@ legacy/**/output/
 legacy/**/cache/
 .DS_Store
 Thumbs.db
+
+# рабочие копии агентов Claude Code
+.claude/worktrees/

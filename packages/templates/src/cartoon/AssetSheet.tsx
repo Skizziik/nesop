@@ -10,12 +10,12 @@ import { CAST } from "./cast";
 import { EMOTION_CATALOG, FX_CATALOG, LOCATION_CATALOG, OUTFIT_CATALOG, PROP_CATALOG, CHARACTERS } from "./catalog";
 import { locationDef, locationProps } from "./locations";
 import { DEFAULT_WORLD, type WorldState } from "./palette";
-import { Prop } from "./props";
+import { Prop, PROP_STATES } from "./props";
 import { Character, REST, type CEmotion, type CharState, type Fx, type Wear } from "./rig";
 import { GROUND } from "./scenes";
 
 export const ASSET_SHEET_ID = "AssetSheet";
-export const SHEET_KINDS = ["locations", "props", "outfits", "fx", "actions", "characters"] as const;
+export const SHEET_KINDS = ["locations", "props", "outfits", "fx", "actions", "characters", "states"] as const;
 export type SheetKind = (typeof SHEET_KINDS)[number];
 
 export interface AssetSheetProps {
@@ -134,6 +134,18 @@ function item(kind: SheetKind, id: string, t: number, seed: number, world: World
       const k = id as ActionKind;
       return { label: k, sub: id, node: <Stage><Hero st={state({ pose: actionPose(k, ACTION_T[k] ?? 0.8, t) })} t={t} /></Stage> };
     }
+    case "states": {
+      const [pid, st] = id.split(":") as [string, string | undefined];
+      return {
+        label: st ?? "обычный",
+        sub: pid,
+        node: (
+          <svg viewBox="-130 -230 260 280" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+            <Prop id={pid} state={st} t={t} scale={1.3} />
+          </svg>
+        ),
+      };
+    }
     case "characters": {
       const e = CHARACTERS.find((c) => c.id === id);
       return { label: e?.name ?? id, sub: e?.label ?? id, node: <Stage><Hero id={id} st={state({ pose: actionPose("wave", 0.8, t) })} t={t} /></Stage> };
@@ -155,10 +167,12 @@ function ids(kind: SheetKind): string[] {
       return [...ACTION_IDS];
     case "characters":
       return CHARACTERS.map((c) => c.id);
+    case "states":
+      return Object.entries(PROP_STATES).flatMap(([id, sts]) => [id, ...sts.map((st) => `${id}:${st}`)]);
   }
 }
 
-const COLS: Record<SheetKind, number> = { locations: 4, props: 7, outfits: 4, fx: 4, actions: 6, characters: 5 };
+const COLS: Record<SheetKind, number> = { states: 8, locations: 4, props: 10, outfits: 4, fx: 4, actions: 6, characters: 5 };
 
 /** Эмоции всех героев — отдельной строкой листа characters. */
 function EmotionsRow({ t }: { t: number }) {

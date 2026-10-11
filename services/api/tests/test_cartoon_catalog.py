@@ -68,3 +68,21 @@ def test_free_spot_never_stands_inside_another_hero() -> None:
     x = cartoon.Director.free_spot("dot", 960.0, pos)
     assert all(abs(x - o) >= cartoon.GAP for o in pos.values())
     assert cartoon.Director.free_spot("dot", cartoon.SLOTS["off_right"], pos) == cartoon.SLOTS["off_right"]
+
+
+def test_item_ops_give_throw_eat() -> None:
+    d = cartoon.Director
+    keys = {c: [{"t": 0, "x": x, "action": "idle"}] for c, x in (("benny", 640.0), ("mia", 960.0), ("dot", 1300.0))}
+    pos = {"benny": 640.0, "mia": 960.0, "dot": 1300.0}
+    items = d._items_init({"props": [{"prop": "ball", "where": "center_right"}]})
+    holding: dict[str, str] = {}
+    d._item_op(items, holding, keys, pos, {"kind": "give", "char": "benny", "target": "mia", "prop": "apple"}, 1.0, 1.5)
+    assert holding.get("mia", "").startswith("apple")
+    d._item_op(items, holding, keys, pos, {"kind": "eat", "char": "mia", "prop": "apple"}, 3.0, 2.5)
+    apple = items[holding["mia"]]
+    assert [k.get("state") for k in apple["keys"] if k.get("state")] == ["bitten", "eaten"]
+    d._item_op(items, holding, keys, pos, {"kind": "pick_up", "char": "mia", "prop": "ball"}, 6.0, 1.0)
+    d._item_op(items, holding, keys, pos, {"kind": "throw", "char": "mia", "target": "dot", "prop": "ball"}, 7.0, 1.0)
+    ball = items["ball0"]
+    assert ball["keys"][-1]["at"] == {"kind": "hand", "char": "dot"} and ball["keys"][-1]["anim"] == "throw"
+    assert any(k.get("action") == "catch" for k in keys["dot"])

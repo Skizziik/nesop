@@ -59,17 +59,17 @@ const BASE: Record<string, Palette> = {
     bed: "#E8B4FF", sheet: "#FFFFFF", sheetLine: "#D8CBE8", blanket: "#7FC6FF", blanketDot: "#FFFFFF", wood: "#C98F55", lamp: "#FFE9A0", lampLine: "#E5C467",
   },
   playground: {
-    sky1: "#62C2FF", sky2: "#D6F1FF", skySun: "#FFD93D", skySunRim: "#F5B700", skyCloud: "#FFFFFF", hillFar: "#8FD98A", trunk: "#8B5A2B", leafFar: "#5CC157",
+    sky1: "#62C2FF", sky2: "#D6F1FF", skySun: "#FFD93D", skySunRim: "#F5B700", skySunGlow: "#FFE45C", skyCloud: "#FFFFFF", skyCloudShade: "#E6F2FF", hillFar: "#8FD98A", trunk: "#8B5A2B", leafFar: "#5CC157",
     grassMid: "#6CCB5F", grass: "#5DBB52", frame: "#3D8BFF", deck: "#FF5E5B", slide: "#FFD23F", swingFrame: "#E8574C", rope: "#7A6A5A", seat: "#5DA9FF",
     wood: "#C98F55", sand: "#F5DB9A", toy: "#FF5E5B",
   },
   beach: {
-    sky1: "#4FB8FF", sky2: "#C7EEFF", skySun: "#FFDD44", skySunRim: "#F5B700", skyBird: "#3A3A5A", sea: "#2E9FE8", seaFoam: "#BDEBFF", surf: "#6CCBFF", surfLine: "#FFFFFF",
+    sky1: "#4FB8FF", sky2: "#C7EEFF", skySun: "#FFDD44", skySunRim: "#F5B700", skySunGlow: "#FFE45C", skyCloud: "#FFFFFF", skyCloudShade: "#E6F2FF", skyBird: "#3A3A5A", sea: "#2E9FE8", seaFoam: "#BDEBFF", surf: "#6CCBFF", surfLine: "#FFFFFF",
     sand: "#F7DFA5", sandDot: "#E3C27C", pole: "#FFFFFF", poleLine: "#CCCCCC", umbrella: "#FF5E5B", umbrellaStripe: "#FFFFFF", shell1: "#FFB3C6", shell2: "#FFD23F",
     bucket: "#3D8BFF", handle: "#333333",
   },
   forest: {
-    sky1: "#8ED6C5", sky2: "#E6F7E1", pineFar: "#7CC28A", pine: "#4FAE63", trunk: "#7A4E2A", grassMid: "#79C46B", grass: "#68B85A", water: "#6CCBFF", waterFoam: "#FFFFFF",
+    sky1: "#8ED6C5", sky2: "#E6F7E1", skySun: "#FFE45C", skySunRim: "#F5C400", skySunGlow: "#FFF3A0", skyCloud: "#FFFFFF", skyCloudShade: "#E3F2EA", pineFar: "#7CC28A", pine: "#4FAE63", trunk: "#7A4E2A", grassMid: "#79C46B", grass: "#68B85A", water: "#6CCBFF", waterFoam: "#FFFFFF",
     skyRay: "#FFFBE0", stalk: "#FFF3DD", stalkLine: "#D8C6A5", cap1: "#FF4D5A", cap2: "#FFB23F", capDot: "#FFFFFF",
   },
 };
@@ -178,7 +178,7 @@ export function resolvePalette(location: string, world: WorldState = DEFAULT_WOR
     if (wx) v = w.weather === "rain" ? desat(darken(v, 0.1), 0.2) : desat(v, w.weather === "snow" ? 0.08 : 0.14);
     if (w.time === "morning") v = mix(v, "#FFD9B0", 0.06);
     else if (w.time === "evening") v = darken(mix(v, "#FF8A4A", 0.14), 0.04);
-    else if (w.time === "night") v = indoor ? mix(v, "#2A2560", 0.3) : mix(v, "#1B2A6B", 0.52);
+    else if (w.time === "night") v = indoor ? mix(mix(v, "#4A3570", 0.24), "#FFC870", 0.05) : mix(v, "#1B2A6B", 0.52);
     out[k] = v;
   }
   return out;

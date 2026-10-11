@@ -32,9 +32,10 @@ export interface LocationEntry {
   llm: string;
   outdoor: boolean;
   tags: string[];
-  /** Состояния мира, которые локация умеет показывать. */
+  /** Состояния мира, которые локация умеет показывать (таблица совместимости; плюс общие правила в worldAllowed). */
   times: TimeOfDay[];
   weather: Weather[];
+  seasons: Season[];
 }
 export interface PropEntry {
   id: string;
@@ -45,13 +46,16 @@ export interface PropEntry {
   colors?: string[]; // имена цветов из палитры (для уроков про цвета)
   adult_only?: boolean;
   compat?: Compat;
+  /** Состояния, которые умеет рисовать предмет (надкушен, лопнул, открыт…); первое — обычный вид не указывается. */
+  states?: string[];
+  edible?: boolean;
 }
 export interface OutfitEntry {
   id: string;
   label: string;
   llm: string;
   slot: "head" | "body" | "feet" | "face" | "hand";
-  auto?: { weather?: Weather[]; locations?: string[]; times?: TimeOfDay[]; dressing?: string[] };
+  auto?: { weather?: Weather[]; seasons?: Season[]; outdoor?: boolean; locations?: string[]; times?: TimeOfDay[]; dressing?: string[] };
 }
 export interface SimpleEntry {
   id: string;
@@ -122,62 +126,102 @@ export const NARRATOR = {
 };
 
 const ALL_TIMES: TimeOfDay[] = ["morning", "day", "evening", "night"];
+const ALL_WEATHER: Weather[] = ["clear", "cloudy", "rain", "snow", "windy"];
+const ALL_SEASONS: Season[] = ["spring", "summer", "autumn", "winter"];
+
 export const LOCATION_CATALOG: LocationEntry[] = [
-  { id: "garden", label: "Сад у дома", llm: "the sunny garden outside Benny's house (fence, flowers, butterflies)", outdoor: true, tags: ["home", "nature"], times: ["day", "evening"], weather: ["clear", "rain", "snow"] },
-  { id: "garden_evening", label: "Сад вечером", llm: "the garden at sunset", outdoor: true, tags: ["home", "evening"], times: ["evening"], weather: ["clear"] },
-  { id: "living_room", label: "Гостиная", llm: "Benny's cosy living room (sofa, toys shelf, window)", outdoor: false, tags: ["home"], times: ALL_TIMES, weather: ["clear"] },
-  { id: "kitchen", label: "Кухня", llm: "the kitchen (table, fridge, fruit bowl, stove)", outdoor: false, tags: ["home", "food"], times: ALL_TIMES, weather: ["clear"] },
-  { id: "bedroom", label: "Детская ночью", llm: "Benny's bedroom at night (bed, moon in the window, night light)", outdoor: false, tags: ["home", "night"], times: ["night"], weather: ["clear"] },
-  { id: "playground", label: "Детская площадка", llm: "the playground (slide, swings, sandbox)", outdoor: true, tags: ["play"], times: ["day", "evening"], weather: ["clear", "rain", "snow"] },
-  { id: "beach", label: "Пляж", llm: "the beach (waves, umbrella, bucket, shells)", outdoor: true, tags: ["summer", "water"], times: ["day", "evening"], weather: ["clear"] },
-  { id: "forest", label: "Лес", llm: "the forest (tall trees, stream, mushrooms)", outdoor: true, tags: ["nature"], times: ["day", "evening"], weather: ["clear", "rain", "snow"] },
+  { id: "garden", label: "Сад у дома", llm: "the garden outside Benny's house (fence, flowers, butterflies)", outdoor: true, tags: ["home", "nature"], times: ALL_TIMES, weather: ALL_WEATHER, seasons: ALL_SEASONS },
+  { id: "garden_evening", label: "Сад вечером", llm: "the garden at sunset", outdoor: true, tags: ["home", "evening"], times: ["evening"], weather: ["clear", "cloudy", "windy"], seasons: ALL_SEASONS },
+  { id: "living_room", label: "Гостиная", llm: "Benny's cosy living room (sofa, toys shelf, lamp, big window)", outdoor: false, tags: ["home"], times: ALL_TIMES, weather: ALL_WEATHER, seasons: ALL_SEASONS },
+  { id: "kitchen", label: "Кухня", llm: "the kitchen (table, fridge, fruit bowl, stove, window)", outdoor: false, tags: ["home", "food"], times: ALL_TIMES, weather: ALL_WEATHER, seasons: ALL_SEASONS },
+  { id: "bedroom", label: "Детская", llm: "Benny's bedroom (bed, round window, night light) — mornings and bedtime", outdoor: false, tags: ["home", "night"], times: ALL_TIMES, weather: ALL_WEATHER, seasons: ALL_SEASONS },
+  { id: "playground", label: "Детская площадка", llm: "the playground (slide, swings, sandbox)", outdoor: true, tags: ["play"], times: ["morning", "day", "evening"], weather: ALL_WEATHER, seasons: ALL_SEASONS },
+  { id: "beach", label: "Пляж", llm: "the beach (waves, umbrella, bucket, shells)", outdoor: true, tags: ["summer", "water"], times: ALL_TIMES, weather: ["clear", "cloudy", "windy"], seasons: ["spring", "summer"] },
+  { id: "forest", label: "Лес", llm: "the forest (tall pine trees, stream, mushrooms, fireflies at night)", outdoor: true, tags: ["nature"], times: ALL_TIMES, weather: ALL_WEATHER, seasons: ALL_SEASONS },
 ];
+
+/** Общие правила мира: снег только зимой, дождь не зимой. */
+export function worldAllowed(loc: LocationEntry, w: { time: TimeOfDay; weather: Weather; season: Season }): boolean {
+  if (!loc.times.includes(w.time) || !loc.weather.includes(w.weather) || !loc.seasons.includes(w.season)) return false;
+  if (w.weather === "snow" && w.season !== "winter") return false;
+  if (w.weather === "rain" && w.season === "winter") return false;
+  return true;
+}
 
 export const PROP_CATALOG: PropEntry[] = [
   { id: "ball", label: "Мяч", llm: "a bouncy ball", group: "toys", colors: ["red", "blue", "yellow", "green"] },
-  { id: "balloon", label: "Воздушный шарик", llm: "a balloon on a string", group: "party", colors: ["red", "blue", "yellow", "pink", "purple"] },
+  { id: "balloon", label: "Воздушный шарик", llm: "a balloon on a string", group: "party", colors: ["red", "blue", "yellow", "pink", "purple"], states: ["popped"] },
   { id: "kite", label: "Воздушный змей", llm: "a kite", group: "toys", colors: ["blue", "red", "yellow"], compat: { outdoor: true, weather: ["clear", "windy"] } },
-  { id: "umbrella", label: "Зонтик", llm: "an umbrella", group: "clothes", colors: ["red", "yellow", "blue"] },
+  { id: "umbrella", label: "Зонтик", llm: "an umbrella", group: "clothes", colors: ["red", "yellow", "blue"], states: ["closed"] },
   { id: "toothbrush", label: "Зубная щётка", llm: "a toothbrush", group: "home", colors: ["blue", "pink", "green"] },
-  { id: "book", label: "Книжка", llm: "a picture book", group: "home", colors: ["purple", "blue", "red"] },
+  { id: "book", label: "Книжка", llm: "a picture book", group: "home", colors: ["purple", "blue", "red"], states: ["closed"] },
   { id: "teddy", label: "Плюшевый мишка", llm: "a teddy bear", group: "toys" },
-  { id: "apple", label: "Яблоко", llm: "an apple", group: "food", colors: ["red", "green"] },
-  { id: "banana", label: "Банан", llm: "a banana", group: "food" },
-  { id: "carrot", label: "Морковка", llm: "a carrot", group: "food" },
-  { id: "cake", label: "Торт со свечками", llm: "a birthday cake with candles", group: "party", ground: true },
-  { id: "cookie", label: "Печенье", llm: "a cookie", group: "food" },
-  { id: "ice_cream", label: "Мороженое", llm: "an ice cream cone", group: "food", colors: ["pink", "white", "brown"] },
+  { id: "apple", label: "Яблоко", llm: "an apple", group: "food", colors: ["red", "green"], states: ["bitten", "eaten"], edible: true },
+  { id: "banana", label: "Банан", llm: "a banana", group: "food", states: ["bitten", "eaten"], edible: true },
+  { id: "carrot", label: "Морковка", llm: "a carrot", group: "food", states: ["bitten", "eaten"], edible: true },
+  { id: "cake", label: "Торт со свечками", llm: "a birthday cake with candles", group: "party", ground: true, states: ["blown", "bitten", "eaten"], edible: true },
+  { id: "cookie", label: "Печенье", llm: "a cookie", group: "food", states: ["bitten", "eaten"], edible: true },
+  { id: "ice_cream", label: "Мороженое", llm: "an ice cream cone", group: "food", colors: ["pink", "white", "brown"], states: ["melting", "bitten", "eaten"], edible: true },
   { id: "cup", label: "Чашка", llm: "a cup", group: "home", colors: ["blue", "red", "yellow"] },
   { id: "bucket", label: "Ведёрко", llm: "a toy bucket", group: "toys", ground: true, colors: ["blue", "red", "yellow"] },
   { id: "spade", label: "Лопатка", llm: "a toy spade", group: "toys", colors: ["red", "blue", "green"] },
   { id: "flower", label: "Цветок", llm: "a flower", group: "nature", colors: ["pink", "yellow", "purple", "red"] },
   { id: "star", label: "Звёздочка", llm: "a shiny star", group: "party", colors: ["yellow"] },
-  { id: "gift", label: "Подарок", llm: "a wrapped present", group: "party", ground: true, colors: ["purple", "red", "blue"] },
+  { id: "gift", label: "Подарок", llm: "a wrapped present", group: "party", ground: true, colors: ["purple", "red", "blue"], states: ["open"] },
   { id: "crayon", label: "Карандаш", llm: "a crayon", group: "party", colors: ["red", "blue", "green", "yellow", "purple"] },
-  { id: "drawing", label: "Рисунок", llm: "a drawing on paper", group: "party" },
+  { id: "drawing", label: "Рисунок", llm: "a drawing on paper", group: "party", states: ["blank"] },
   { id: "blocks", label: "Кубики", llm: "toy blocks", group: "toys", ground: true },
   { id: "toy_car", label: "Машинка", llm: "a toy car", group: "toys", ground: true, colors: ["red", "blue", "yellow"] },
   { id: "drum", label: "Барабан", llm: "a toy drum", group: "toys", ground: true },
-  { id: "sandwich", label: "Бутерброд", llm: "a sandwich", group: "food" },
+  { id: "sandwich", label: "Бутерброд", llm: "a sandwich", group: "food", states: ["bitten", "eaten"], edible: true },
   { id: "bowl", label: "Миска", llm: "a bowl", group: "home", colors: ["blue", "red", "yellow"] },
   { id: "pillow", label: "Подушка", llm: "a pillow", group: "home", ground: true, colors: ["blue", "pink", "yellow"] },
   { id: "bubbles", label: "Мыльные пузыри", llm: "a bubble wand blowing bubbles", group: "toys" },
   { id: "leaf", label: "Листик", llm: "an autumn leaf", group: "nature", colors: ["orange", "red", "yellow"], compat: { seasons: ["autumn"] } },
   { id: "shell", label: "Ракушка", llm: "a sea shell", group: "nature", ground: true, colors: ["pink", "white"] },
-  { id: "sandcastle", label: "Замок из песка", llm: "a sandcastle", group: "toys", ground: true, compat: { outdoor: true } },
-  { id: "snowman", label: "Снеговик", llm: "a snowman", group: "nature", ground: true, compat: { outdoor: true, weather: ["snow"], seasons: ["winter"] } },
+  { id: "sandcastle", label: "Замок из песка", llm: "a sandcastle", group: "toys", ground: true, compat: { outdoor: true }, states: ["fallen"] },
+  { id: "snowman", label: "Снеговик", llm: "a snowman", group: "nature", ground: true, compat: { outdoor: true, seasons: ["winter"] }, states: ["melted"] },
   { id: "puddle", label: "Лужа", llm: "a puddle", group: "nature", ground: true, compat: { outdoor: true, weather: ["rain"] } },
   { id: "magnifier", label: "Лупа", llm: "a magnifying glass", group: "nature" },
   { id: "plaster", label: "Пластырь", llm: "a plaster (band-aid)", group: "home" },
+  { id: "orange", label: "Апельсин", llm: "an orange", group: "food", states: ["bitten", "eaten"], edible: true },
+  { id: "strawberry", label: "Клубника", llm: "a strawberry", group: "food", states: ["bitten", "eaten"], edible: true },
+  { id: "watermelon", label: "Арбуз", llm: "a slice of watermelon", group: "food", compat: { seasons: ["summer"] }, states: ["bitten", "eaten"], edible: true },
+  { id: "grapes", label: "Виноград", llm: "a bunch of grapes", group: "food", colors: ["purple", "green"] },
+  { id: "cupcake", label: "Капкейк", llm: "a cupcake with a cherry", group: "party", colors: ["pink", "blue", "yellow"], states: ["bitten", "eaten"], edible: true },
+  { id: "pancakes", label: "Блинчики", llm: "a stack of pancakes with butter", group: "food", ground: true },
+  { id: "juice", label: "Сок", llm: "a juice box", group: "food", colors: ["orange", "red", "green"] },
+  { id: "milk", label: "Молоко", llm: "a glass of milk", group: "food" },
+  { id: "egg", label: "Яйцо", llm: "an egg", group: "food", states: ["cracked"] },
+  { id: "rubber_duck", label: "Резиновая уточка", llm: "a rubber duck (bath toy)", group: "toys", colors: ["yellow"] },
+  { id: "soap", label: "Мыло", llm: "a bar of soap with bubbles (washing hands)", group: "home", colors: ["blue", "pink", "green"] },
+  { id: "towel", label: "Полотенце", llm: "a towel", group: "home", colors: ["pink", "blue", "yellow"] },
+  { id: "robot", label: "Робот", llm: "a toy robot", group: "toys", ground: true },
+  { id: "dinosaur", label: "Динозаврик", llm: "a toy dinosaur", group: "toys", ground: true, colors: ["green", "orange", "purple"] },
+  { id: "train", label: "Паровозик", llm: "a toy train", group: "toys", ground: true },
+  { id: "boat", label: "Кораблик", llm: "a toy sailboat", group: "toys", colors: ["blue", "red", "yellow"] },
+  { id: "trumpet", label: "Дудка", llm: "a toy trumpet", group: "toys" },
+  { id: "xylophone", label: "Ксилофон", llm: "a rainbow toy xylophone", group: "toys", ground: true },
+  { id: "jump_rope", label: "Скакалка", llm: "a jump rope", group: "toys", colors: ["pink", "blue"] },
+  { id: "magic_wand", label: "Волшебная палочка", llm: "a pretend magic wand with a star", group: "party" },
+  { id: "crown", label: "Корона", llm: "a paper crown", group: "party", colors: ["yellow"] },
+  { id: "backpack", label: "Рюкзак", llm: "a little backpack", group: "clothes", ground: true, colors: ["blue", "red", "green", "purple"] },
+  { id: "watering_can", label: "Лейка", llm: "a watering can (for watering flowers)", group: "nature", colors: ["green", "blue", "red"], states: ["pouring"] },
+  { id: "snowball", label: "Снежок", llm: "a snowball", group: "nature", compat: { outdoor: true, seasons: ["winter"] } },
+  { id: "acorn", label: "Жёлудь", llm: "an acorn", group: "nature", compat: { seasons: ["autumn"] } },
+  { id: "sled", label: "Санки", llm: "a sled", group: "toys", ground: true, compat: { outdoor: true, seasons: ["winter"] } },
+  { id: "tricycle", label: "Трёхколёсный велосипед", llm: "a tricycle", group: "toys", ground: true, compat: { outdoor: true }, colors: ["red", "blue", "yellow"] },
+  { id: "butterfly_net", label: "Сачок", llm: "a butterfly net", group: "nature", compat: { outdoor: true, seasons: ["spring", "summer"] } },
+  { id: "paper_plane", label: "Бумажный самолётик", llm: "a paper plane", group: "toys" },
 ];
 
 export const OUTFIT_CATALOG: OutfitEntry[] = [
-  { id: "raincoat", label: "Дождевик", llm: "a yellow raincoat with a hood", slot: "body", auto: { weather: ["rain"] } },
+  { id: "raincoat", label: "Дождевик", llm: "a yellow raincoat with a hood", slot: "body", auto: { weather: ["rain"], outdoor: true } },
   { id: "pajamas", label: "Пижама", llm: "striped pajamas", slot: "body", auto: { locations: ["bedroom"], times: ["night"] } },
   { id: "party_hat", label: "Праздничный колпак", llm: "a party hat", slot: "head", auto: { dressing: ["birthday"] } },
-  { id: "scarf", label: "Шарф", llm: "a warm scarf", slot: "body", auto: { weather: ["snow"] } },
-  { id: "sun_hat", label: "Панамка", llm: "a sun hat", slot: "head", auto: { locations: ["beach"] } },
-  { id: "winter_hat", label: "Зимняя шапка", llm: "a woolly winter hat", slot: "head", auto: { weather: ["snow"] } },
+  { id: "scarf", label: "Шарф", llm: "a warm scarf", slot: "body", auto: { seasons: ["winter"], outdoor: true } },
+  { id: "sun_hat", label: "Панамка", llm: "a sun hat", slot: "head", auto: { locations: ["beach"], times: ["morning", "day"] } },
+  { id: "winter_hat", label: "Зимняя шапка", llm: "a woolly winter hat", slot: "head", auto: { seasons: ["winter"], outdoor: true } },
 ];
 
 export const FX_CATALOG: SimpleEntry[] = [
