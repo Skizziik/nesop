@@ -11,7 +11,7 @@ import { useId, type ReactNode } from "react";
 import { Prop } from "./props";
 import { VISEME_OPEN, type Viseme } from "./lipsync";
 
-export type Species = "bunny" | "cat" | "bear" | "dog";
+export type Species = "bunny" | "cat" | "bear" | "dog" | "fox" | "mouse" | "elephant" | "lion";
 export type CEmotion = "neutral" | "happy" | "laugh" | "sad" | "surprised" | "angry" | "scared" | "thinking" | "sleepy";
 
 export interface CharacterSpec {
@@ -20,10 +20,13 @@ export interface CharacterSpec {
   species: Species;
   fur: string; // основной цвет
   belly: string; // мордочка / живот / внутренность ушей
-  outfit: { kind: "overalls" | "dress" | "tshirt" | "apron" | "none"; color: string; accent?: string };
+  /** motif — рисунок на груди футболки (по умолчанию кружок цвета accent). */
+  outfit: { kind: "overalls" | "dress" | "tshirt" | "apron" | "hoodie" | "sweater" | "none"; color: string; accent?: string; motif?: "star" };
   adult?: boolean;
   eye?: string;
   extra?: "collar" | "bow" | "glasses";
+  /** Второй цвет меха: грива льва; кончики ушей, лапки и носочки лисы. */
+  fur2?: string;
 }
 
 /** Куда тянется кисть (решается обратной кинематикой): к глазам (прятки), рту (еда), подбородку, груди (хлопок), животу, земле. */
@@ -147,6 +150,9 @@ export function blinkAt(id: string, t: number): number {
 /** Размеры скелета: одни и те же числа для отрисовки и для расчёта точек (руки, голова). */
 export function rigMetrics(spec: CharacterSpec) {
   const adult = !!spec.adult;
+  // мышка — самая маленькая в компании, слонёнок — крепкий и круглый (всё остальное — общий скелет ребёнка/взрослого)
+  if (!adult && spec.species === "mouse") return { adult, legH: 28, bodyH: 98, bw: 52, r: 80, armLen: 40 };
+  if (!adult && spec.species === "elephant") return { adult, legH: 36, bodyH: 116, bw: 64, r: 90, armLen: 44 };
   return {
     adult,
     legH: adult ? 58 : 34,
@@ -175,6 +181,20 @@ interface EyeSlot {
   near: boolean;
 }
 
+/**
+ * Геометрия мордочки по виду (в радиусах головы): где кончик мордочки/нос/рот в профиле (snoutX/noseX/mouthX — доля r при a=1),
+ * полуширина мордочки в анфасе→профиле (mz), её высота (mzy), высота носа и рта. Заяц и кошка — исторические числа в faceLayout.
+ * Слонёнок: нос — основание хобота, мордочки нет.
+ */
+const FACE_GEO: Partial<Record<Species, { snoutX: number; noseX: number; mouthX: number; mz: [number, number]; mzy: [number, number]; noseY: number; mouthY: number; eyeY?: number }>> = {
+  bear: { snoutX: 0.7, noseX: 0.99, mouthX: 0.72, mz: [0.42, 0.37], mzy: [0.27, 0.25], noseY: 0.32, mouthY: 0.54 },
+  dog: { snoutX: 0.7, noseX: 0.99, mouthX: 0.72, mz: [0.42, 0.37], mzy: [0.27, 0.25], noseY: 0.32, mouthY: 0.54 },
+  fox: { snoutX: 0.8, noseX: 1.12, mouthX: 0.8, mz: [0.44, 0.4], mzy: [0.26, 0.21], noseY: 0.3, mouthY: 0.52 },
+  mouse: { snoutX: 0.74, noseX: 1.06, mouthX: 0.76, mz: [0.36, 0.34], mzy: [0.24, 0.21], noseY: 0.31, mouthY: 0.52 },
+  elephant: { snoutX: 0.7, noseX: 0.8, mouthX: 0.58, mz: [0.4, 0.36], mzy: [0.26, 0.24], noseY: 0.08, mouthY: 0.68, eyeY: -0.04 },
+  lion: { snoutX: 0.68, noseX: 0.96, mouthX: 0.72, mz: [0.42, 0.36], mzy: [0.28, 0.25], noseY: 0.3, mouthY: 0.54 },
+};
+
 /** Где на голове черты лица при повороте u (-1..1). Координаты от центра головы. */
 function faceLayout(spec: CharacterSpec, r: number, u: number, pitch: number) {
   const adult = !!spec.adult;
@@ -186,25 +206,26 @@ function faceLayout(spec: CharacterSpec, r: number, u: number, pitch: number) {
   const near: EyeSlot = { x: s * (eyeDx + a * r * 0.14), sx: 1 + 0.04 * a, op: 1, side: s, near: true };
   const far: EyeSlot = { x: s * (-eyeDx + a * r * 0.6), sx: 1 - 0.7 * a, op: clamp((0.86 - a) / 0.16, 0, 1), side: -s as 1 | -1, near: false };
   const sp = spec.species;
-  const snoutX = sp === "cat" ? 0.62 : sp === "bunny" ? 0.72 : 0.7;
-  const noseX = sp === "cat" ? 0.9 : sp === "bunny" ? 1.02 : 0.99;
-  const mouthX = sp === "cat" ? 0.66 : sp === "bunny" ? 0.76 : 0.72;
+  const g = FACE_GEO[sp] ?? FACE_GEO.bear!;
+  const snoutX = sp === "cat" ? 0.62 : sp === "bunny" ? 0.72 : g.snoutX;
+  const noseX = sp === "cat" ? 0.9 : sp === "bunny" ? 1.02 : g.noseX;
+  const mouthX = sp === "cat" ? 0.66 : sp === "bunny" ? 0.76 : g.mouthX;
   return {
     a,
     s,
     er,
-    eyeY: r * 0.02 + py,
+    eyeY: r * (g.eyeY ?? 0.02) + py,
     py,
     near,
     far,
     muzzle: {
       x: s * a * snoutX * r,
       y: r * 0.44 + py - a * r * 0.04,
-      rx: r * lerp(sp === "cat" ? 0.38 : 0.42, sp === "cat" ? 0.32 : 0.37, a),
-      ry: r * lerp(0.27, 0.25, a),
+      rx: r * lerp(sp === "cat" ? 0.38 : g.mz[0], sp === "cat" ? 0.32 : g.mz[1], a),
+      ry: r * lerp(g.mzy[0], g.mzy[1], a),
     },
-    nose: { x: s * a * noseX * r, y: r * (sp === "bunny" ? 0.3 : 0.32) + py - a * r * 0.05 },
-    mouth: { x: s * a * mouthX * r, y: r * (sp === "bunny" ? 0.5 : 0.54) + py - a * r * 0.03, w: 1 - 0.35 * a },
+    nose: { x: s * a * noseX * r, y: r * (sp === "bunny" ? 0.3 : g.noseY) + py - a * r * 0.05 },
+    mouth: { x: s * a * mouthX * r, y: r * (sp === "bunny" ? 0.5 : g.mouthY) + py - a * r * 0.03, w: 1 - 0.35 * a },
     cheekNear: s * lerp(0.62, 0.3, a) * r,
     cheekFar: s * lerp(-0.62, 0.05, a) * r,
     cheekFarOp: clamp(1 - a / 0.7, 0, 1),
@@ -382,7 +403,7 @@ function stepCycle(phase: number) {
   return { x: -1 + 2 * smooth(v), y: Math.sin(Math.PI * v), v };
 }
 
-function Leg({ hipX, phase, f, k, stride, color, foot, h, footRx }: { hipX: number; phase: number; f: 1 | -1; k: number; stride: number; color: string; foot: string; h: number; footRx: number }) {
+function Leg({ hipX, phase, f, k, stride, color, foot, h, footRx, nails }: { hipX: number; phase: number; f: 1 | -1; k: number; stride: number; color: string; foot: string; h: number; footRx: number; nails?: boolean }) {
   const walking = !Number.isNaN(phase);
   let dx = 0;
   let up = 0;
@@ -404,6 +425,12 @@ function Leg({ hipX, phase, f, k, stride, color, foot, h, footRx }: { hipX: numb
       <path d={d} stroke={shade(color, 0.35)} strokeWidth={33} strokeLinecap="round" fill="none" />
       <path d={d} stroke={color} strokeWidth={26} strokeLinecap="round" fill="none" />
       <ellipse cx={fx} cy={-up - 5} rx={footRx + k * 3} ry={12} fill={foot} stroke={shade(foot, 0.35)} strokeWidth="3.5" transform={rot ? `rotate(${rot} ${ax} ${-up - 5})` : undefined} />
+      {nails ? (
+        // ноготки слонёнка: три светлых полукруга спереди стопы (в профиле — у носка)
+        <g fill="#FFF8EE" stroke={shade(foot, 0.3)} strokeWidth="1.8" transform={rot ? `rotate(${rot} ${ax} ${-up - 5})` : undefined}>
+          {[-1, 0, 1].map((i) => (k > 0.5 && i === -f ? null : <ellipse key={i} cx={fx + lerp(i * 9, f * (footRx - 6) + i * 4, k)} cy={-up + 1} rx={lerp(4.5, 3.4, k)} ry={3.6} />))}
+        </g>
+      ) : null}
     </g>
   );
 }
@@ -524,6 +551,17 @@ function FxLayer({ fx, x, y, t }: { fx: Fx; x: number; y: number; t: number }) {
   );
 }
 
+/** Пятиконечная звезда (центр, внешний и внутренний радиус). */
+function starPath(cx: number, cy: number, R: number, ri: number): string {
+  const pts: string[] = [];
+  for (let i = 0; i < 10; i++) {
+    const ang = -Math.PI / 2 + (i * Math.PI) / 5;
+    const rr = i % 2 ? ri : R;
+    pts.push(`${(cx + Math.cos(ang) * rr).toFixed(2)} ${(cy + Math.sin(ang) * rr).toFixed(2)}`);
+  }
+  return `M${pts.join(" L")} Z`;
+}
+
 function Outfit({ spec, bw, top, bottom, fwd }: { spec: CharacterSpec; bw: number; top: number; bottom: number; fwd: number }) {
   const o = spec.outfit;
   const line = shade(o.color, 0.35);
@@ -549,9 +587,45 @@ function Outfit({ spec, bw, top, bottom, fwd }: { spec: CharacterSpec; bw: numbe
     return (
       <g>
         <path d={`M${-bw * 0.8} ${top + 14} Q0 ${top + 2} ${bw * 0.8} ${top + 14} L${bw * 0.92} ${top + 92} Q0 ${top + 104} ${-bw * 0.92} ${top + 92} Z`} fill={o.color} stroke={line} strokeWidth="3.5" />
-        <circle cx={fwd * 16} cy={top + 52} r={14} fill={o.accent ?? "#FFFFFF"} opacity={0.9} />
+        {o.motif === "star" ? (
+          <path d={starPath(fwd * 16, top + 52, 17, 7.5)} fill={o.accent ?? "#FFFFFF"} stroke={shade(o.accent ?? "#FFFFFF", 0.3)} strokeWidth="2.5" strokeLinejoin="round" />
+        ) : (
+          <circle cx={fwd * 16} cy={top + 52} r={14} fill={o.accent ?? "#FFFFFF"} opacity={0.9} />
+        )}
       </g>
     );
+  if (o.kind === "hoodie") {
+    // худи: длиннее футболки, капюшон складкой у шеи, шнурки и карман-кенгуру
+    const ac = o.accent ?? "#FFFFFF";
+    return (
+      <g>
+        <path d={`M${-bw * 0.82} ${top + 14} Q0 ${top + 2} ${bw * 0.82} ${top + 14} L${bw * 0.96} ${top + 100} Q0 ${top + 113} ${-bw * 0.96} ${top + 100} Z`} fill={o.color} stroke={line} strokeWidth="3.5" />
+        <path d={`M${-bw * 0.96} ${top + 96} Q0 ${top + 109} ${bw * 0.96} ${top + 96}`} stroke={shade(o.color, 0.14)} strokeWidth="7" fill="none" />
+        <path d={`M${-bw * 0.66} ${top + 12} Q0 ${top + 42} ${bw * 0.66} ${top + 12}`} stroke={line} strokeWidth="19" fill="none" strokeLinecap="round" />
+        <path d={`M${-bw * 0.66} ${top + 12} Q0 ${top + 42} ${bw * 0.66} ${top + 12}`} stroke={shade(o.color, 0.1)} strokeWidth="13" fill="none" strokeLinecap="round" />
+        {[-1, 1].map((sd) => (
+          <g key={sd}>
+            <path d={`M${fwd * 8 + sd * 9} ${top + 30} l${sd * 1.5} 22`} stroke={ac} strokeWidth="4" strokeLinecap="round" />
+            <circle cx={fwd * 8 + sd * 10.5} cy={top + 54} r={3.6} fill={ac} />
+          </g>
+        ))}
+        <path d={`M${-23 + fwd * 12} ${top + 66} L${23 + fwd * 12} ${top + 66} L${30 + fwd * 12} ${top + 92} L${-30 + fwd * 12} ${top + 92} Z`} fill={shade(o.color, 0.1)} stroke={line} strokeWidth="2.5" strokeLinejoin="round" />
+      </g>
+    );
+  }
+  if (o.kind === "sweater") {
+    // свитер: до пояса, круглый ворот и резинка по низу, полоска узора на груди
+    const ac = o.accent ?? "#FFFFFF";
+    const hem = bottom - 10;
+    return (
+      <g>
+        <path d={`M${-bw * 0.8} ${top + 14} Q0 ${top + 2} ${bw * 0.8} ${top + 14} Q${bw * 1.04} ${(top + hem) / 2} ${bw * 0.95} ${hem} Q0 ${hem + 16} ${-bw * 0.95} ${hem} Q${-bw * 1.04} ${(top + hem) / 2} ${-bw * 0.8} ${top + 14} Z`} fill={o.color} stroke={line} strokeWidth="3.5" />
+        <path d={`M${-bw * 0.93} ${hem - 9} Q0 ${hem + 7} ${bw * 0.93} ${hem - 9}`} stroke={shade(o.color, 0.16)} strokeWidth="9" fill="none" />
+        <path d={`M${-bw * 0.9} ${top + 58} Q0 ${top + 70} ${bw * 0.9} ${top + 58}`} stroke={ac} strokeWidth="7" fill="none" strokeDasharray="10 7" />
+        <path d={`M${-bw * 0.5} ${top + 13} Q0 ${top + 34} ${bw * 0.5} ${top + 13}`} stroke={shade(o.color, 0.16)} strokeWidth="8" fill="none" strokeLinecap="round" />
+      </g>
+    );
+  }
   if (o.kind === "apron")
     return (
       <g>
@@ -671,10 +745,13 @@ function Eye({ x, y, er, sx, op, inner, emo, closed, look, iris, lid }: { lid: s
   );
 }
 
+/** У кого спокойный рот — «ω» и черта от носа ко рту (у остальных — улыбка). */
+const OMEGA = new Set<Species>(["bunny", "cat", "fox", "mouse", "lion"]);
+
 /** Рот по эмоции и открытости (голос/действие). Центр — (x, y), ширина w (в радиусах головы, с учётом ракурса). */
 function Mouth({ spec, e, open, x, y, r, wk }: { spec: CharacterSpec; e: CEmotion; open: number; x: number; y: number; r: number; wk: number }) {
   const w = r * 0.17 * wk;
-  const bunny = spec.species === "bunny";
+  const bunny = spec.species === "bunny" || spec.species === "mouse";
   const teeth = (top: number, ww: number) => (bunny ? <rect x={x - ww * 0.32} y={top} width={ww * 0.64} height={r * 0.07} rx={3} fill="#FFFFFF" stroke={shade("#FFFFFF", 0.3)} strokeWidth="1.5" /> : null);
   if (open > 0.12) {
     if (e === "surprised" || e === "scared") {
@@ -728,8 +805,8 @@ function Mouth({ spec, e, open, x, y, r, wk }: { spec: CharacterSpec; e: CEmotio
     case "sleepy":
       return <ellipse cx={x} cy={y + 3} rx={w * 0.3} ry={r * 0.045} fill={MOUTH} stroke={INK} strokeWidth="3" />;
     default:
-      // зайчик и котёнок — «ω», мишка и щенок — улыбка
-      if (spec.species === "bunny" || spec.species === "cat")
+      // зайчик, котёнок, лисёнок, мышка, львёнок — «ω», мишка, щенок, слонёнок — улыбка
+      if (OMEGA.has(spec.species))
         return <path d={`M${x - w * 0.8} ${y - 1} Q${x - w * 0.4} ${y + w * 0.62} ${x} ${y - 1} Q${x + w * 0.4} ${y + w * 0.62} ${x + w * 0.8} ${y - 1}`} {...stroke} />;
       return <path d={`M${x - w * 0.85} ${y} Q${x} ${y + r * 0.13} ${x + w * 0.85} ${y}`} {...stroke} />;
   }
@@ -788,7 +865,7 @@ function lipPath(x: number, y: number, wl: number, wr: number, ht: number, hb: n
 function VisemeMouth({ spec, e, vis, amp, x, y, r, s, a }: { spec: CharacterSpec; e: CEmotion; vis: Viseme; amp: number; x: number; y: number; r: number; s: 1 | -1; a: number }) {
   const uid = useId().replace(/[^A-Za-z0-9_-]/g, "");
   const em = VIS_EMO[e] ?? VIS_EMO.neutral;
-  const bunny = spec.species === "bunny";
+  const bunny = spec.species === "bunny" || spec.species === "mouse";
   const w0 = r * 0.17;
   // половины ширины: передняя (к носу) сжимается в профиле, задняя чуть длиннее
   const halves = (W: number): [number, number] => {
@@ -805,7 +882,7 @@ function VisemeMouth({ spec, e, vis, amp, x, y, r, s, a }: { spec: CharacterSpec
     const [wl, wr] = halves(w0 * 0.78 * em.wk);
     const [cl, cr] = corners(-lift * 0.9);
     const smile = r * (0.012 + Math.max(0, em.lift) * 0.04) - Math.max(0, -em.lift) * r * 0.05;
-    const omega = (spec.species === "bunny" || spec.species === "cat") && (e === "neutral" || e === "thinking");
+    const omega = OMEGA.has(spec.species) && (e === "neutral" || e === "thinking");
     const d = omega
       ? `M${x - wl} ${y - 1 + cl} Q${x - wl * 0.5} ${y + wl * 0.36} ${x} ${y} Q${x + wr * 0.5} ${y + wr * 0.36} ${x + wr} ${y - 1 + cr}`
       : `M${x - wl} ${y + cl} Q${x} ${y + smile * 2} ${x + wr} ${y + cr}`;
@@ -882,8 +959,166 @@ function VisemeMouth({ spec, e, vis, amp, x, y, r, s, a }: { spec: CharacterSpec
   );
 }
 
+/** Нос мишки/щенка и гостей: тёмная пуговка (медведь, собака, лиса), розовая бусинка (мышка), треугольник (лев); у слона — хобот. */
+function GuestNose({ spec, n, r }: { spec: CharacterSpec; n: { x: number; y: number }; r: number }) {
+  const sp = spec.species;
+  if (sp === "elephant") return null;
+  if (sp === "mouse")
+    return (
+      <g>
+        <ellipse cx={n.x} cy={n.y} rx={r * 0.085} ry={r * 0.07} fill="#FF8FAE" stroke={shade("#FF8FAE", 0.35)} strokeWidth="2.5" />
+        <ellipse cx={n.x - r * 0.028} cy={n.y - r * 0.026} rx={r * 0.028} ry={r * 0.018} fill="#FFFFFF" opacity={0.6} />
+      </g>
+    );
+  if (sp === "lion") {
+    const c = "#B8645A";
+    return (
+      <g>
+        <path d={`M${n.x - r * 0.1} ${n.y - r * 0.045} Q${n.x} ${n.y - r * 0.085} ${n.x + r * 0.1} ${n.y - r * 0.045} Q${n.x + r * 0.08} ${n.y + r * 0.035} ${n.x} ${n.y + r * 0.065} Q${n.x - r * 0.08} ${n.y + r * 0.035} ${n.x - r * 0.1} ${n.y - r * 0.045} Z`} fill={c} stroke={shade(c, 0.35)} strokeWidth="2.5" strokeLinejoin="round" />
+        <ellipse cx={n.x - r * 0.03} cy={n.y - r * 0.035} rx={r * 0.03} ry={r * 0.016} fill="#FFFFFF" opacity={0.5} />
+      </g>
+    );
+  }
+  if (sp === "fox") {
+    const k = 0.82;
+    return (
+      <g>
+        <ellipse cx={n.x} cy={n.y} rx={r * 0.13 * k} ry={r * 0.09 * k} fill="#4A2E36" stroke={shade("#4A2E36", 0.3)} strokeWidth="2" />
+        <ellipse cx={n.x - r * 0.04 * k} cy={n.y - r * 0.035 * k} rx={r * 0.04 * k} ry={r * 0.022 * k} fill="#FFFFFF" opacity={0.55} />
+      </g>
+    );
+  }
+  return (
+    <g>
+      <ellipse cx={n.x} cy={n.y} rx={r * 0.13} ry={r * 0.09} fill="#4A2E36" stroke={shade("#4A2E36", 0.3)} strokeWidth="2" />
+      <ellipse cx={n.x - r * 0.04} cy={n.y - r * 0.035} rx={r * 0.04} ry={r * 0.022} fill="#FFFFFF" opacity={0.55} />
+    </g>
+  );
+}
+
+type Pt = [number, number];
+/** Точка и касательная кубической Безье при u. */
+function bez(p: Pt[], u: number): { x: number; y: number; dx: number; dy: number } {
+  const [a, b, c, d] = p as [Pt, Pt, Pt, Pt];
+  const v = 1 - u;
+  const x = v * v * v * a[0] + 3 * v * v * u * b[0] + 3 * v * u * u * c[0] + u * u * u * d[0];
+  const y = v * v * v * a[1] + 3 * v * v * u * b[1] + 3 * v * u * u * c[1] + u * u * u * d[1];
+  const dx = 3 * v * v * (b[0] - a[0]) + 6 * v * u * (c[0] - b[0]) + 3 * u * u * (d[0] - c[0]);
+  const dy = 3 * v * v * (b[1] - a[1]) + 6 * v * u * (c[1] - b[1]) + 3 * u * u * (d[1] - c[1]);
+  return { x, y, dx, dy };
+}
+
+/** Хобот: точки кривой в радиусах головы, x — в сторону взгляда. Анфас / профиль × опущен / поднят (основание — в носе faceLayout). */
+const TRUNK: Record<"front" | "prof" | "frontUp" | "profUp", Pt[]> = {
+  front: [[0, 0.08], [-0.01, 0.3], [0.01, 0.46], [0.11, 0.54]],
+  prof: [[0.8, 0.06], [1.14, 0.32], [1.34, 0.6], [1.5, 0.38]],
+  frontUp: [[0, 0.08], [0.02, 0.4], [0.44, 0.52], [0.6, 0.24]],
+  profUp: [[0.8, 0.06], [1.18, 0.1], [1.34, -0.2], [1.26, -0.5]],
+};
+
+/**
+ * Хобот слонёнка вместо носа: короткий, сужается к кончику, мягко покачивается.
+ * В анфасе свисает между глазами к улыбке (рот виден под ним), в профиле — вперёд от мордочки, кончик загнут вверх.
+ * Радость поднимает хобот («тру-у!»): смех — вверх, удивление — наполовину; грусть и сон — опускают.
+ * Рисуется заливкой по кривой с переменной шириной; контур не замыкается у основания — хобот «растёт» из мордочки.
+ */
+function Trunk({ spec, r, fl, e, t }: { spec: CharacterSpec; r: number; fl: ReturnType<typeof faceLayout>; e: CEmotion; t: number }) {
+  const { s, a } = fl;
+  const up = e === "laugh" ? 1 : e === "surprised" ? 0.55 : e === "happy" ? 0.12 : e === "sad" || e === "sleepy" ? -0.25 : 0;
+  const sw = Math.sin(t * 1.7) * 0.03 + Math.sin(t * 0.9 + 1) * 0.012;
+  const kU = clamp(up, 0, 1);
+  const pts: Pt[] = TRUNK.front.map((f0, i) => {
+    const pr = TRUNK.prof[i]!;
+    const fu = TRUNK.frontUp[i]!;
+    const pu = TRUNK.profUp[i]!;
+    let x = lerp(lerp(f0[0], pr[0], a), lerp(fu[0], pu[0], a), kU);
+    let y = lerp(lerp(f0[1], pr[1], a), lerp(fu[1], pu[1], a), kU);
+    if (i >= 2) {
+      const tipK = i === 3 ? 1 : 0.5;
+      x += sw * tipK;
+      y += -Math.min(0, up) * 0.14 * tipK;
+    }
+    return [s * x * r, y * r];
+  });
+  pts[0] = [fl.nose.x + s * a * r * 0.04, fl.nose.y + a * r * 0.18]; // в профиле хобот растёт ниже глаза, ближе ко рту
+  const W0 = r * 0.36;
+  const W1 = r * 0.24;
+  const N = 20;
+  const Ls: Pt[] = [];
+  const Rs: Pt[] = [];
+  const at = (u: number) => {
+    const q = bez(pts, u);
+    const len = Math.hypot(q.dx, q.dy) || 1;
+    return { ...q, tx: q.dx / len, ty: q.dy / len, w: lerp(W0, W1, Math.sqrt(u)) / 2 };
+  };
+  for (let i = 0; i <= N; i++) {
+    const q = at(i / N);
+    Ls.push([q.x - q.ty * q.w, q.y + q.tx * q.w]);
+    Rs.push([q.x + q.ty * q.w, q.y - q.tx * q.w]);
+  }
+  const end = at(1);
+  const hk = end.w * 1.33;
+  const lN = Ls[N]!;
+  const rN = Rs[N]!;
+  const cap = `C${lN[0] + end.tx * hk} ${lN[1] + end.ty * hk} ${rN[0] + end.tx * hk} ${rN[1] + end.ty * hk} ${rN[0]} ${rN[1]}`;
+  const run = (arr: Pt[]) => arr.map((p) => `${p[0].toFixed(2)} ${p[1].toFixed(2)}`).join(" L");
+  const K = 4; // контур — от этой точки (у основания контура нет)
+  const fill = `M${run(Ls)} ${cap} L${run([...Rs].reverse())} Z`;
+  const outline = `M${run(Ls.slice(K))} ${cap} L${run(Rs.slice(K).reverse())}`;
+  const line = shade(spec.fur, 0.35);
+  const ridges = [0.48, 0.62, 0.76].map((u) => {
+    const q = at(u);
+    const nx = -q.ty * q.w * 0.62;
+    const ny = q.tx * q.w * 0.62;
+    return <path key={u} d={`M${q.x - nx} ${q.y - ny} Q${q.x + q.tx * 3} ${q.y + q.ty * 3} ${q.x + nx} ${q.y + ny}`} />;
+  });
+  // ноздри у кончика: две точки в анфасе, одна в профиле
+  const nq = at(0.96);
+  const nost = a > 0.6 ? [0] : [-1, 1];
+  return (
+    <g>
+      <path d={fill} fill={spec.fur} />
+      <path d={outline} fill="none" stroke={line} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+      <g stroke={line} strokeWidth="2.6" fill="none" strokeLinecap="round" opacity={0.5}>
+        {ridges}
+      </g>
+      <g fill={shade(spec.fur, 0.42)} opacity={0.8}>
+        {nost.map((k) => (
+          <ellipse key={k} cx={nq.x - nq.ty * nq.w * 0.38 * k + nq.tx * 2} cy={nq.y + nq.tx * nq.w * 0.38 * k + nq.ty * 2} rx={W1 * 0.1} ry={W1 * 0.13} />
+        ))}
+      </g>
+    </g>
+  );
+}
+
+/** Очки (папа): круглые оправы цвета ореха, перемычка над носом; в профиле — одно стекло и дужка к уху. */
+function Glasses({ fl, r }: { fl: ReturnType<typeof faceLayout>; r: number }) {
+  const frame = "#6B4A3A";
+  const { er, eyeY, s, a } = fl;
+  const rx = (slot: EyeSlot) => er * 1.24 * slot.sx;
+  const lens = (slot: EyeSlot) => (slot.op > 0.3 ? <ellipse key={slot.side} cx={slot.x} cy={eyeY} rx={rx(slot)} ry={er * 1.2} opacity={slot.near ? 1 : slot.op} /> : null);
+  const inN = fl.near.x - s * rx(fl.near);
+  const inF = fl.far.x + s * rx(fl.far);
+  return (
+    <g>
+      <g fill="#FFFFFF" opacity={0.16}>
+        {lens(fl.far)}
+        {lens(fl.near)}
+      </g>
+      <g fill="none" stroke={frame} strokeWidth="4.5" strokeLinecap="round">
+        {lens(fl.far)}
+        {lens(fl.near)}
+        {fl.far.op > 0.3 ? <path d={`M${inF} ${eyeY - er * 0.25} Q${(inF + inN) / 2} ${eyeY - er * 0.6} ${inN} ${eyeY - er * 0.25}`} opacity={fl.far.op} /> : null}
+        {/* дужка к уху — только когда дальнее стекло скрылось (иначе она перечёркивает его в 3/4) */}
+        {a > 0.5 && fl.far.op < 0.6 ? <path d={`M${inN} ${eyeY - er * 0.2} L${-s * r * 0.5} ${eyeY - er * 0.5}`} opacity={1 - fl.far.op / 0.6} /> : null}
+      </g>
+      <path d={`M${fl.near.x - er * 0.8 * fl.near.sx} ${eyeY - er * 0.55} q${er * 0.25} ${-er * 0.35} ${er * 0.6} ${-er * 0.4}`} stroke="#FFFFFF" strokeWidth="3" fill="none" strokeLinecap="round" opacity={0.55} />
+    </g>
+  );
+}
+
 /** Мордочка: щёки, глаза, брови, нос, рот, усы. Центр — середина головы. */
-function Face({ spec, st, r, fl, open, closed, puff, vis, amp = 0.5 }: { spec: CharacterSpec; st: CharState; r: number; fl: ReturnType<typeof faceLayout>; open: number; closed: number; puff: number; vis?: Viseme; amp?: number }) {
+function Face({ spec, st, r, fl, open, closed, puff, vis, amp = 0.5, t = 0 }: { spec: CharacterSpec; st: CharState; r: number; fl: ReturnType<typeof faceLayout>; open: number; closed: number; puff: number; vis?: Viseme; amp?: number; t?: number }) {
   const e = st.emotion;
   const { er, eyeY, s, a } = fl;
   const look: [number, number] = [clamp(st.look[0] + s * a * 0.6 + (e === "thinking" ? s * 0.5 : 0), -1, 1), clamp(st.look[1] + (e === "thinking" ? -0.9 : 0), -1, 1)];
@@ -914,15 +1149,12 @@ function Face({ spec, st, r, fl, open, closed, puff, vis, amp = 0.5 }: { spec: C
         strokeLinejoin="round"
       />
     ) : (
-      <g>
-        <ellipse cx={n.x} cy={n.y} rx={r * 0.13} ry={r * 0.09} fill="#4A2E36" stroke={shade("#4A2E36", 0.3)} strokeWidth="2" />
-        <ellipse cx={n.x - r * 0.04} cy={n.y - r * 0.035} rx={r * 0.04} ry={r * 0.022} fill="#FFFFFF" opacity={0.55} />
-      </g>
+      <GuestNose spec={spec} n={n} r={r} />
     );
   // «филтрум» от носа ко рту — у зайчика и котёнка (пока говорит — постоянно, без мигания между звуками; в профиле — нет)
-  const philtrum = (spec.species === "bunny" || spec.species === "cat") && (st.viseme !== undefined && (st.pose.mouth ?? 0) < 0.35 ? a < 0.5 : open < 0.12) && (e === "neutral" || e === "thinking") ? <path d={`M${n.x} ${n.y + r * 0.05} L${fl.mouth.x} ${fl.mouth.y - 1}`} stroke={INK} strokeWidth="4" strokeLinecap="round" /> : null;
+  const philtrum = OMEGA.has(spec.species) && (st.viseme !== undefined && (st.pose.mouth ?? 0) < 0.35 ? a < 0.5 : open < 0.12) && (e === "neutral" || e === "thinking") ? <path d={`M${n.x} ${n.y + r * 0.05} L${fl.mouth.x} ${fl.mouth.y - 1}`} stroke={INK} strokeWidth="4" strokeLinecap="round" /> : null;
   const whiskers =
-    spec.species === "cat" ? (
+    spec.species === "cat" || spec.species === "mouse" ? (
       <g stroke={shade(spec.fur, 0.5)} strokeWidth="2.5" strokeLinecap="round">
         {[-1, 1].map((sd) => {
           const wx = mz.x + sd * mz.rx * 0.78;
@@ -934,6 +1166,15 @@ function Face({ spec, st, r, fl, open, closed, puff, vis, amp = 0.5 }: { spec: C
             </g>
           );
         })}
+      </g>
+    ) : spec.species === "lion" ? (
+      // львёнок: точки у основания усов
+      <g fill={shade(spec.belly, 0.38)}>
+        {[-1, 1].map((sd) =>
+          sd === -s && a > 0.5
+            ? null
+            : [0, 1, 2].map((i) => <circle key={`${sd}${i}`} cx={mz.x + sd * mz.rx * (0.42 + (i % 2) * 0.16) * (1 - 0.3 * a)} cy={mz.y - r * 0.06 + i * r * 0.055} r={r * 0.022} />),
+        )}
       </g>
     ) : null;
   const cheek = (cx: number, op: number, key: string) =>
@@ -950,6 +1191,7 @@ function Face({ spec, st, r, fl, open, closed, puff, vis, amp = 0.5 }: { spec: C
     <g>
       {cheek(fl.cheekFar, fl.cheekFarOp, "cf")}
       {cheek(fl.cheekNear, 1, "cn")}
+      {spec.species === "elephant" ? <Trunk spec={spec} r={r} fl={fl} e={e} t={t} /> : null}
       {eyes.map((slot) => (
         <Eye key={slot.side} x={slot.x} y={eyeY} er={er} sx={slot.sx} op={slot.op} inner={innerOf(slot)} emo={e} closed={closed} look={look} iris={spec.eye} lid={spec.fur} />
       ))}
@@ -959,11 +1201,7 @@ function Face({ spec, st, r, fl, open, closed, puff, vis, amp = 0.5 }: { spec: C
       {whiskers}
       {vis ? <VisemeMouth spec={spec} e={e} vis={vis} amp={amp} x={fl.mouth.x} y={fl.mouth.y} r={r} s={s} a={a} /> : <Mouth spec={spec} e={e} open={open} x={fl.mouth.x} y={fl.mouth.y} r={r} wk={fl.mouth.w} />}
       {tear}
-      {spec.extra === "glasses" ? (
-        <g fill="none" stroke={INK} strokeWidth="4">
-          {eyes.map((slot) => (slot.op > 0.3 ? <ellipse key={slot.side} cx={slot.x} cy={eyeY} rx={er * 1.25 * slot.sx} ry={er * 1.25} /> : null))}
-        </g>
-      ) : null}
+      {spec.extra === "glasses" ? <Glasses fl={fl} r={r} /> : null}
     </g>
   );
 }
@@ -1043,9 +1281,182 @@ function EarsBack({ spec, r, t, e, s, a, follow }: { spec: CharacterSpec; r: num
       </>
     );
   }
+  if (spec.species === "fox") return <FoxEars spec={spec} r={r} t={t} droop={droop} s={s} a={a} follow={follow} />;
+  if (spec.species === "mouse") {
+    const wob = Math.sin(t * 2.6) * 2 + follow * 6;
+    return (
+      <>
+        {order.map((side) => {
+          const x = earX(side, s, a, 0.7, 0.14, 0.52) * r;
+          const y = (side === s ? lerp(-0.66, -0.8, a) : lerp(-0.66, -0.74, a)) * r + droop * r * 0.08;
+          const R = r * 0.5;
+          const fur = shade(spec.fur, dark(side));
+          const rot = side * (wob + droop * 18) * (side === s ? 1 : 0.7);
+          return (
+            <g key={side} transform={`rotate(${rot} ${x} ${y + R * 0.6})`}>
+              <circle cx={x} cy={y} r={R} fill={fur} stroke={line} strokeWidth="4" />
+              <circle cx={x + side * R * 0.06 * (1 - a)} cy={y + R * 0.06} r={R * 0.68} fill={shade(EAR_PINK, dark(side))} />
+              <ellipse cx={x - R * 0.35} cy={y - R * 0.42} rx={R * 0.18} ry={R * 0.1} fill="#FFFFFF" opacity={0.22} transform={`rotate(-30 ${x - R * 0.35} ${y - R * 0.42})`} />
+            </g>
+          );
+        })}
+      </>
+    );
+  }
+  if (spec.species === "elephant") return <ElephantEars spec={spec} r={r} t={t} droop={droop} s={s} a={a} follow={follow} layer="back" />;
+  if (spec.species === "lion") {
+    const bounce = follow * 3;
+    return (
+      <>
+        <Mane spec={spec} r={r} t={t} s={s} a={a} follow={follow} />
+        {order.map((side) => {
+          const x = earX(side, s, a, 0.6, 0.2, 0.5) * r;
+          const y = side === s ? lerp(-0.74, -0.84, a) * r : lerp(-0.74, -0.78, a) * r;
+          const fur = shade(spec.fur, dark(side));
+          return (
+            <g key={side}>
+              <circle cx={x} cy={y - bounce} r={r * 0.24} fill={fur} stroke={line} strokeWidth="4" />
+              <circle cx={x} cy={y - bounce} r={r * 0.13} fill={shade(spec.belly, dark(side))} />
+            </g>
+          );
+        })}
+      </>
+    );
+  }
   // собака: дальнее ухо в профиле — за головой
   if (a > 0.45) return <DogEar side={-s as 1 | -1} ax={-s * 0.4 * r} ay={-r * 0.72} r={r} t={t} follow={follow} color={shade("#4A3426", 0.15)} />;
   return null;
+}
+
+const EAR_PINK = "#FFB8CB";
+
+/**
+ * Уши лисёнка: высокие острые с тёмными кончиками (fur2) и светлой серединкой. Ближнее в профиле, как у кошки,
+ * перескакивает на затылок в середине поворота (без «щепки» нулевой ширины).
+ */
+function FoxEars({ spec, r, t, droop, s, a, follow }: { spec: CharacterSpec; r: number; t: number; droop: number; s: 1 | -1; a: number; follow: number }) {
+  const uid = useId().replace(/[^A-Za-z0-9_-]/g, "");
+  const line = shade(spec.fur, 0.35);
+  const tipC = spec.fur2 ?? shade(spec.fur, 0.5);
+  const order: (1 | -1)[] = [-s as 1 | -1, s];
+  const tw = (() => {
+    const ph = ((t + 1.3) % 4.3) / 4.3;
+    return ph < 0.05 ? Math.sin((ph / 0.05) * Math.PI) * 9 : 0;
+  })();
+  // ухо в локальных координатах: основание на (0,0), остриё вверх и чуть наружу (+x)
+  const outer = `M${-r * 0.27} ${r * 0.06} Q${-r * 0.2} ${-r * 0.42} ${r * 0.06} ${-r * 0.74} Q${r * 0.13} ${-r * 0.78} ${r * 0.15} ${-r * 0.68} Q${r * 0.26} ${-r * 0.34} ${r * 0.3} ${r * 0.2} Z`;
+  const inner = `M${-r * 0.13} ${r * 0.04} Q${-r * 0.08} ${-r * 0.28} ${r * 0.06} ${-r * 0.48} Q${r * 0.15} ${-r * 0.24} ${r * 0.18} ${r * 0.12} Z`;
+  return (
+    <>
+      {order.map((side) => {
+        const ax = earX(side, s, a, 0.52, 0.06, 0.38) * r;
+        const ay = -r * 0.7 - (side === s ? a * r * 0.1 : a * r * 0.03);
+        const mx = side === s ? (a < 0.5 ? side * (1 - a * 0.6) : -s * (0.7 + (a - 0.5) * 0.6)) : lerp(side, -s, a);
+        const rot = mx * (droop * 30 - follow * 8 + 6) + (side === s ? tw : 0);
+        const dk = side === s ? 0 : 0.07 * a;
+        const id = `fe${uid}${side === 1 ? "r" : "l"}`;
+        return (
+          <g key={side} transform={`translate(${ax} ${ay}) rotate(${rot}) scale(${Math.abs(mx) < 0.08 ? 0.08 * Math.sign(mx || 1) : mx} 1)`}>
+            <defs>
+              <clipPath id={id}>
+                <path d={outer} />
+              </clipPath>
+            </defs>
+            <path d={outer} fill={shade(spec.fur, dk)} />
+            <path d={inner} fill={shade(spec.belly, dk)} />
+            <g clipPath={`url(#${id})`}>
+              <path d={`M${-r * 0.4} ${-r * 0.44} Q${r * 0.05} ${-r * 0.54} ${r * 0.4} ${-r * 0.4} L${r * 0.4} ${-r * 0.9} L${-r * 0.4} ${-r * 0.9} Z`} fill={shade(tipC, dk)} />
+            </g>
+            <path d={outer} fill="none" stroke={line} strokeWidth="4" strokeLinejoin="round" />
+          </g>
+        );
+      })}
+    </>
+  );
+}
+
+/**
+ * Большие мягкие уши слонёнка. В анфасе — оба за головой по бокам. При повороте ухо со стороны затылка
+ * переезжает на бок головы и в профиле рисуется поверх неё (layer="front"), ближнее уходит за голову.
+ * Уши плавно «обмахиваются» (сжатие по ширине) и опускаются, когда грустно.
+ */
+function ElephantEars({ spec, r, t, droop, s, a, follow, layer }: { spec: CharacterSpec; r: number; t: number; droop: number; s: 1 | -1; a: number; follow: number; layer: "back" | "front" }) {
+  const line = shade(spec.fur, 0.35);
+  const flap = Math.sin(t * 2.1) * 0.05 + follow * 0.1;
+  const SWITCH = 0.5;
+  const ear = (side: 1 | -1, onHead: boolean) => {
+    const near = side === s;
+    const ax = (near ? lerp(side * 0.8, side * 0.45, a) : lerp(side * 0.8, side * 0.08, a)) * r;
+    const ay = lerp(-0.1, -0.12, a) * r;
+    const w = (onHead ? lerp(0.95, 1.05, a) : 1) * (1 + flap * (near ? 1 : 0.8));
+    const dk = onHead ? 0 : near ? 0 : 0.06 * a;
+    const fur = shade(spec.fur, dk);
+    const rot = side * (droop * 14 + Math.sin(t * 2.1 + 0.5) * 1.5);
+    return (
+      <g key={`${side}${onHead ? "h" : "b"}`} transform={`translate(${ax} ${ay}) rotate(${rot}) scale(${side * w} 1)`}>
+        <path d={`M0 ${-r * 0.42} C${r * 0.36} ${-r * 0.7} ${r * 0.8} ${-r * 0.52} ${r * 0.74} ${-r * 0.02} C${r * 0.7} ${r * 0.44} ${r * 0.34} ${r * 0.66} ${r * 0.02} ${r * 0.4} Z`} fill={fur} stroke={line} strokeWidth="4" strokeLinejoin="round" />
+        <path d={`M${r * 0.12} ${-r * 0.3} C${r * 0.38} ${-r * 0.5} ${r * 0.66} ${-r * 0.36} ${r * 0.6} ${-r * 0.02} C${r * 0.56} ${r * 0.3} ${r * 0.34} ${r * 0.46} ${r * 0.12} ${r * 0.26} Z`} fill={shade(EAR_PINK, dk)} opacity={0.9} />
+        <ellipse cx={r * 0.42} cy={-r * 0.44} rx={r * 0.12} ry={r * 0.06} fill="#FFFFFF" opacity={0.2} transform={`rotate(-12 ${r * 0.42} ${-r * 0.44})`} />
+      </g>
+    );
+  };
+  const back = -s as 1 | -1;
+  if (layer === "front") return a > SWITCH ? ear(back, true) : null;
+  return (
+    <>
+      {a <= SWITCH ? ear(back, false) : null}
+      {ear(s, false)}
+    </>
+  );
+}
+
+/** Грива львёнка: пушистый круг с фестонами за головой; в профиле сдвигается к затылку. */
+function Mane({ spec, r, t, s, a, follow }: { spec: CharacterSpec; r: number; t: number; s: 1 | -1; a: number; follow: number }) {
+  const c = spec.fur2 ?? shade(spec.fur, 0.25);
+  const cx = -s * a * 0.2 * r;
+  const cy = r * 0.06;
+  const rx = r * lerp(1.34, 1.2, a) * (1 + follow * 0.03);
+  const ry = r * 1.24 * (1 + follow * 0.03);
+  const N = 14;
+  const ph = Math.sin(t * 1.6) * 0.012;
+  const pt = (i: number, k: number): Pt => {
+    const th = (i / N) * Math.PI * 2 - Math.PI / 2;
+    return [cx + Math.cos(th) * rx * k, cy + Math.sin(th) * ry * k];
+  };
+  let d = "";
+  for (let i = 0; i < N; i++) {
+    const [x0, y0] = pt(i, 0.9);
+    const [qx, qy] = pt(i + 0.5, 1.08 + ph * (i % 2 ? 1 : -1));
+    const [x1, y1] = pt(i + 1, 0.9);
+    d += `${i === 0 ? `M${x0} ${y0}` : ""} Q${qx} ${qy} ${x1} ${y1}`;
+  }
+  return (
+    <g>
+      <path d={d + " Z"} fill={c} stroke={shade(c, 0.32)} strokeWidth="4" strokeLinejoin="round" />
+      <ellipse cx={cx} cy={cy} rx={rx * 0.84} ry={ry * 0.84} fill={shade(c, 0.1)} opacity={0.5} />
+      <ellipse cx={cx - rx * 0.45} cy={cy - ry * 0.55} rx={rx * 0.2} ry={ry * 0.09} fill="#FFFFFF" opacity={0.16} transform={`rotate(-35 ${cx - rx * 0.45} ${cy - ry * 0.55})`} />
+    </g>
+  );
+}
+
+/** Чёлка гривы на макушке львёнка — три пушистых завитка поверх головы, едут к носу при повороте. */
+function ManeTuft({ spec, r, s, a }: { spec: CharacterSpec; r: number; s: 1 | -1; a: number }) {
+  const c = spec.fur2 ?? shade(spec.fur, 0.25);
+  const x0 = s * a * 0.12 * r;
+  const curls: [number, number, number][] = [
+    [-0.15, -0.8, -28],
+    [0.15, -0.8, 28],
+    [0, -0.86, 0],
+  ];
+  return (
+    <g fill={c} stroke={shade(c, 0.32)} strokeWidth="3.5">
+      {curls.map(([dx, dy, rot], i) => {
+        const x = x0 + dx * r * (1 - 0.45 * a);
+        const y = dy * r;
+        return <ellipse key={i} cx={x} cy={y} rx={r * 0.12} ry={r * 0.2} transform={`rotate(${rot + s * a * 15} ${x} ${y + r * 0.12})`} />;
+      })}
+    </g>
+  );
 }
 
 function DogEar({ side, ax, ay, r, t, follow, color }: { side: 1 | -1; ax: number; ay: number; r: number; t: number; follow: number; color: string }) {
@@ -1094,7 +1505,62 @@ function Tail({ spec, t, follow }: { spec: CharacterSpec; t: number; follow: num
         <path d="M46 -70 q34 -18 30 -54" stroke={spec.fur} strokeWidth="10" fill="none" strokeLinecap="round" />
       </g>
     );
+  if (spec.species === "fox") return <FoxTail spec={spec} t={t} follow={follow} />;
+  if (spec.species === "mouse") {
+    const c = "#F4A7B9";
+    const d = "M44 -46 q44 14 58 -18 q10 -26 -10 -36 q-16 -6 -18 10";
+    return (
+      <g transform={`rotate(${Math.sin(t * 2.2) * 7 + follow * 10} 44 -46)`}>
+        <path d={d} stroke={shade(c, 0.35)} strokeWidth="10" fill="none" strokeLinecap="round" />
+        <path d={d} stroke={c} strokeWidth="5" fill="none" strokeLinecap="round" />
+      </g>
+    );
+  }
+  if (spec.species === "elephant") {
+    const d = "M50 -66 q22 8 24 34";
+    return (
+      <g transform={`rotate(${Math.sin(t * 2.6) * 9 + follow * 10} 50 -66)`}>
+        <path d={d} stroke={line} strokeWidth="11" fill="none" strokeLinecap="round" />
+        <path d={d} stroke={spec.fur} strokeWidth="6" fill="none" strokeLinecap="round" />
+        <path d="M74 -36 q-9 8 -4 18 q6 -6 10 -2 q2 -9 -6 -16 Z" fill={shade(spec.fur, 0.3)} stroke={shade(spec.fur, 0.45)} strokeWidth="2" strokeLinejoin="round" />
+      </g>
+    );
+  }
+  if (spec.species === "lion") {
+    const d = "M46 -58 q48 6 54 -40 q3 -22 18 -30";
+    const tuft = spec.fur2 ?? shade(spec.fur, 0.25);
+    return (
+      <g transform={`rotate(${Math.sin(t * 2.3) * 8 + follow * 12} 46 -58)`}>
+        <path d={d} stroke={line} strokeWidth="13" fill="none" strokeLinecap="round" />
+        <path d={d} stroke={spec.fur} strokeWidth="7.5" fill="none" strokeLinecap="round" />
+        <path d="M118 -128 q4 -20 18 -22 q-2 12 8 16 q-8 4 -6 16 q-10 -6 -20 -2 Z" transform="rotate(10 118 -128)" fill={tuft} stroke={shade(tuft, 0.32)} strokeWidth="3" strokeLinejoin="round" />
+      </g>
+    );
+  }
   return <circle cx={50} cy={-66 - follow * 2} r={14} fill={spec.fur} stroke={line} strokeWidth="3.5" />;
+}
+
+/** Пушистый хвост лисёнка с белым кончиком (кончик — обрезкой по силуэту хвоста). */
+function FoxTail({ spec, t, follow }: { spec: CharacterSpec; t: number; follow: number }) {
+  const uid = useId().replace(/[^A-Za-z0-9_-]/g, "");
+  const line = shade(spec.fur, 0.35);
+  const wag = Math.sin(t * 2.4) * 7 + follow * 12;
+  const d = "M40 -52 C70 -44 112 -60 126 -104 C136 -136 122 -168 104 -176 C96 -150 92 -128 76 -108 C64 -92 52 -84 38 -80 Z";
+  return (
+    <g transform={`rotate(${wag} 40 -64)`}>
+      <defs>
+        <clipPath id={`ft${uid}`}>
+          <path d={d} />
+        </clipPath>
+      </defs>
+      <path d={d} fill={spec.fur} />
+      <g clipPath={`url(#ft${uid})`}>
+        <path d="M80 -150 Q110 -128 150 -140 L150 -200 L80 -200 Z" fill={spec.belly} />
+      </g>
+      <path d={d} fill="none" stroke={line} strokeWidth="4" strokeLinejoin="round" />
+      <path d="M112 -150 q6 -10 2 -20" stroke="#FFFFFF" strokeWidth="4" fill="none" strokeLinecap="round" opacity={0.35} />
+    </g>
+  );
 }
 
 /* ───────────────────────────── персонаж ───────────────────────────── */
@@ -1106,7 +1572,14 @@ export function Character({ spec, st, t }: { spec: CharacterSpec; st: CharState;
   const { m, f, k, fl, bodyTop, bodyBottom, headY } = sk;
   const { adult, legH, bodyH, bw, r } = m;
   const line = shade(spec.fur, 0.35);
-  const sleeve = spec.outfit.kind === "tshirt" || spec.outfit.kind === "dress" ? spec.outfit.color : spec.fur;
+  const sp = spec.species;
+  const ok = spec.outfit.kind;
+  const sleeve = ok === "tshirt" || ok === "dress" || ok === "hoodie" || ok === "sweater" ? spec.outfit.color : spec.fur;
+  // лисёнок: тёмные лапки и носочки (fur2)
+  const paw = sp === "fox" && spec.fur2 ? spec.fur2 : spec.fur;
+  const legC = sp === "fox" && spec.fur2 ? spec.fur2 : spec.fur;
+  const footC = sp === "fox" && spec.fur2 ? shade(spec.fur2, 0.12) : shade(spec.fur, 0.12);
+  const footRx = sp === "bunny" ? 24 : sp === "elephant" ? 25 : sp === "mouse" ? 20 : 22;
   const follow = p.follow ?? 0;
   const back = clamp(p.back ?? 0, 0, 1);
   const s = fl.s;
@@ -1129,7 +1602,7 @@ export function Character({ spec, st, t }: { spec: CharacterSpec; st: CharState;
   const coverK = p.reach?.L?.at === "eyes" || p.reach?.R?.at === "eyes" ? (p.reach?.k ?? 1) : 0;
   const armNode = (side: 1 | -1, dark: boolean) => {
     const g = side === 1 ? sk.R : sk.L;
-    return <ArmView key={side} g={g} color={dark ? farShade(sleeve) : sleeve} hand={dark ? farShade(spec.fur) : spec.fur} side={side} f={f} k={k} />;
+    return <ArmView key={side} g={g} color={dark ? farShade(sleeve) : sleeve} hand={dark ? farShade(paw) : paw} side={side} f={f} k={k} />;
   };
   const profile = k > 0.5;
   const armsBehind = profile ? [armNode(-1, true)] : [];
@@ -1145,14 +1618,25 @@ export function Character({ spec, st, t }: { spec: CharacterSpec; st: CharState;
   // голова: наклон, кивок, лёгкое растяжение при открытом рте
   const hsx = 1 - open * 0.02 + (p.puff ?? 0) * 0.035;
   const hsy = 1 + open * 0.035;
-  const headRx = r * (spec.species === "cat" ? 1.04 : 1);
-  const headRy = r * (spec.species === "bunny" ? 0.96 : 0.9);
+  const headRx = r * (sp === "cat" || sp === "fox" || sp === "elephant" ? 1.04 : 1);
+  const headRy = r * (sp === "bunny" ? 0.96 : sp === "elephant" ? 0.94 : 0.9);
   const mz = fl.muzzle;
-  const hasMuzzle = spec.species !== "bunny";
-  const snout = hasMuzzle ? null : { x: s * a * 0.8 * r, y: r * 0.32 + fl.py, rx: r * 0.27, ry: r * 0.23 };
+  const hasMuzzle = sp !== "bunny" && sp !== "elephant"; // у слонёнка вместо мордочки — хобот
+  const snout = sp === "bunny" ? { x: s * a * 0.8 * r, y: r * 0.32 + fl.py, rx: r * 0.27, ry: r * 0.23 } : null;
+  // лисёнок: пушистые щёчки-«бакенбарды» по бокам головы (в профиле — только со стороны затылка)
+  const tufts =
+    sp === "fox" && back < 0.5
+      ? ([-1, 1] as const)
+          .filter((side) => side === -s || a < 0.45)
+          .map((side) => {
+            const o = side === -s ? lerp(side, -s * 0.92, a) : side;
+            return <path key={`tf${side}`} d={`M${o * 0.8 * r} ${r * 0.08} Q${o * 1.08 * r} ${r * 0.2} ${o * 1.2 * r} ${r * 0.44} Q${o * 0.98 * r} ${r * 0.42} ${o * 0.9 * r} ${r * 0.52} Q${o * 0.8 * r} ${r * 0.56} ${o * 0.62 * r} ${r * 0.6} Z`} strokeLinejoin="round" />;
+          })
+      : null;
   const silhouette = (fill: string, stroke?: string, sw?: number) => (
     <g fill={fill} stroke={stroke} strokeWidth={sw}>
       <ellipse cx={0} cy={0} rx={headRx} ry={headRy} />
+      {tufts}
       {snout && a > 0.2 ? <ellipse cx={snout.x} cy={snout.y} rx={snout.rx} ry={snout.ry} /> : null}
       {hasMuzzle && back < 0.5 ? <ellipse cx={mz.x} cy={mz.y} rx={mz.rx} ry={mz.ry} fill={stroke ? undefined : spec.belly} /> : null}
     </g>
@@ -1171,8 +1655,8 @@ export function Character({ spec, st, t }: { spec: CharacterSpec; st: CharState;
       <g transform={`translate(0 ${-sk.lift}) rotate(${sk.lean} 0 ${-legH}) scale(${sk.sx} ${sk.sy})`}>
         {back < 0.5 ? tail : null}
         {armsBehind}
-        <Leg hipX={lerp(-hipX, -f * 5, k)} phase={p.walk} f={f} k={k} stride={stride} color={farShade(spec.fur)} foot={farShade(shade(spec.fur, 0.12))} h={legH} footRx={spec.species === "bunny" ? 24 : 22} />
-        <Leg hipX={lerp(hipX, f * 3, k)} phase={Number.isNaN(p.walk) ? p.walk : p.walk + Math.PI} f={f} k={k} stride={stride} color={spec.fur} foot={shade(spec.fur, 0.12)} h={legH} footRx={spec.species === "bunny" ? 24 : 22} />
+        <Leg hipX={lerp(-hipX, -f * 5, k)} phase={p.walk} f={f} k={k} stride={stride} color={farShade(legC)} foot={farShade(footC)} h={legH} footRx={footRx} nails={sp === "elephant"} />
+        <Leg hipX={lerp(hipX, f * 3, k)} phase={Number.isNaN(p.walk) ? p.walk : p.walk + Math.PI} f={f} k={k} stride={stride} color={legC} foot={footC} h={legH} footRx={footRx} nails={sp === "elephant"} />
         {/* тело (в профиле чуть уже, живот вперёд) */}
         <g transform={`translate(0 ${bodyBottom}) scale(${1 - 0.14 * k} ${breathe}) translate(0 ${-bodyBottom})`}>
           <path
@@ -1210,9 +1694,11 @@ export function Character({ spec, st, t }: { spec: CharacterSpec; st: CharState;
                 })()
               : null}
             {spec.species === "dog" ? <DogEarsFront r={r} t={t} s={s} a={a} follow={follow} /> : null}
+            {sp === "elephant" ? <ElephantEars spec={spec} r={r} t={t} droop={st.emotion === "sad" || st.emotion === "scared" ? 1 : st.emotion === "sleepy" ? 0.5 : 0} s={s} a={a} follow={follow} layer="front" /> : null}
+            {sp === "lion" && back < 0.9 ? <ManeTuft spec={spec} r={r} s={s} a={a} /> : null}
             {back < 0.98 ? (
               <g opacity={1 - back}>
-                <Face spec={spec} st={st} r={r} fl={fl} open={open} closed={closed} puff={p.puff ?? 0} vis={vis} amp={amp} />
+                <Face spec={spec} st={st} r={r} fl={fl} open={open} closed={closed} puff={p.puff ?? 0} vis={vis} amp={amp} t={t} />
               </g>
             ) : null}
             {st.wear?.length ? <WearHead wear={st.wear} r={r} /> : null}

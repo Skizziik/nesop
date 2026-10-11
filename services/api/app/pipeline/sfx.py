@@ -183,19 +183,23 @@ def thump() -> F32:
     return _out(x, 0.85)
 
 
-STEP_PITCH = {"benny": 1.15, "mia": 1.32, "ollie": 0.78, "dot": 1.02, "mama": 0.9}
+STEP_PITCH = {"benny": 1.15, "mia": 1.32, "ollie": 0.78, "dot": 1.02, "mama": 0.9,
+              "papa": 0.82, "finn": 1.22, "molly": 1.6, "ellie": 0.62, "leo": 1.0}
+# «вес» шага: слонёнок — длинный тяжёлый «бум», мышка — короткий тихий «тап»
+STEP_WEIGHT = {"ellie": 1.5, "molly": 0.55, "papa": 1.1, "ollie": 1.0}
 
 
 @lru_cache(maxsize=64)
 def footstep(char: str = "benny", variant: int = 0) -> F32:
     """Мультяшный мягкий шаг: низкий «топ» + тихий шорох; высота — по герою, 4 вариации (не «пулемёт»)."""
     p = STEP_PITCH.get(char, 1.0) * (1.0, 1.06, 0.95, 1.03)[variant % 4]
-    dur = 0.12
+    w = STEP_WEIGHT.get(char, 1.0)
+    dur = 0.12 * (1 + 0.5 * (w - 1))
     t = _t(dur)
-    x = _sweep(150 * p, 85 * p, dur, 6) * _env(t, 0.002, 0.03)
+    x = _sweep(150 * p, 85 * p, dur, 6) * _env(t, 0.002, 0.03 * w)
     rng = _rng(f"step:{char}:{variant}")
-    x += 0.35 * fft_filter(rng.standard_normal(len(t)), lo=400 * p, hi=2200 * p) * _env(t, 0.001, 0.012)
-    return _out(x, 0.85)
+    x += 0.35 / max(w, 0.7) * fft_filter(rng.standard_normal(len(t)), lo=400 * p, hi=2200 * p) * _env(t, 0.001, 0.012)
+    return _out(x, 0.85 * min(1.0, 0.45 + 0.55 * w))
 
 
 def sparkle() -> F32:

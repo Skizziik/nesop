@@ -36,7 +36,10 @@ log = logging.getLogger("farm.cartoon")
 # packages/templates/src/cartoon/catalog → `pnpm --filter @ipt/templates catalog:export` → cartoon_catalog.json
 CATALOG: dict[str, Any] = json.loads((Path(__file__).with_name("cartoon_catalog.json")).read_text(encoding="utf-8"))
 
-CAST = {c["id"]: {"name": c["name"], "who": c["llm"], "catch": c["catchphrase"], "adult": bool(c.get("adult"))} for c in CATALOG["characters"]}
+CAST = {c["id"]: {"name": c["name"], "who": c["llm"], "catch": c["catchphrase"], "adult": bool(c.get("adult")), "guest": bool(c.get("guest"))}
+        for c in CATALOG["characters"]}
+MAIN_KIDS = [k for k, v in CAST.items() if not v["adult"] and not v["guest"]]  # benny, mia, ollie, dot — заставка, финал, песни
+GUESTS = [k for k, v in CAST.items() if v["guest"]]
 VOICES: dict[str, tuple[str, float]] = {c["id"]: (c["voice"]["description"], float(c["voice"]["speed"])) for c in CATALOG["characters"]}
 VOICES["narrator"] = (CATALOG["narrator"]["voice"]["description"], float(CATALOG["narrator"]["voice"]["speed"]))
 LOCATIONS = {loc["id"]: loc["llm"] for loc in CATALOG["locations"]}
@@ -69,9 +72,11 @@ RULES = (
     "- Make it VISUAL and varied: every story has its own season, and scenes change the time of day (a sunny morning, a rainy afternoon, "
     "a sunset, a starry bedtime) and the weather (rain: puddles and raincoats; snow: snowmen and hats; wind: kites and flying leaves). "
     "Use the story's key object (props), outfits that fit, and little effects (hearts when happy, zzz when sleepy, sparkles for magic, ! when surprised).\n"
+    f"- You may invite ONE guest friend per story from the guests ({', '.join(GUESTS)}) when it helps the plot; Papa and Mama Bunny appear at home.\n"
 )
 BIBLE = (
-    "Series: friends Benny (bunny), Mia (kitten), Ollie (bear cub) and Dot (puppy), with Mama Bunny.\n"
+    "Series: friends Benny (bunny), Mia (kitten), Ollie (bear cub) and Dot (puppy), with Mama and Papa Bunny; "
+    "guest friends (neighbours and nursery classmates): Finn (fox cub), Molly (mouse), Ellie (elephant) and Leo (lion cub).\n"
     + "\n".join(f"- {k}: {v['name']} — {v['who']}. Catchphrase: «{v['catch']}»" for k, v in CAST.items())
     + "\nLocations (use ONLY these ids): " + "; ".join(f"{k} = {v}" for k, v in LOCATIONS.items())
     + "\nProps (use ONLY these ids): " + PROPS_LLM
@@ -500,7 +505,7 @@ class Director:
         holding: dict[str, str] = {}  # герой → uid предмета в руке
         if title:
             for c in cast:
-                keys[c].append({"t": 0.3, "action": "cheer" if c != "mama" else "wave", "emotion": "laugh"})
+                keys[c].append({"t": 0.3, "action": "cheer" if not CAST.get(c, {}).get("adult") else "wave", "emotion": "laugh"})
             overlays.append({"t": 0.4, "dur": 3.2, "kind": "title", "text": title, **({"sub": sub} if sub else {})})
             lt = 0.6
         shots = {int(x["beat"]): x["shot"] for x in (look or {}).get("special_shots") or [] if isinstance(x, dict) and isinstance(x.get("beat"), int)}
@@ -782,7 +787,7 @@ async def build_cartoon(project_id: str) -> None:
 
         await progress("озвучка и режиссура", 0.32)
         d = Director(project_id)
-        everyone = list(CAST)[:4]
+        everyone = MAIN_KIDS[:4]
         d.static("intro", 7.0)  # ритуал: одна и та же заставка «Benny & Friends» в каждом эпизоде
         await d.scene("garden", everyone, [{"speaker": "narrator", "text": plan.get("intro") or "Hello, friends! Welcome!", "shot": "wide"}],
                       kind="title", title=plan.get("title") or theme)

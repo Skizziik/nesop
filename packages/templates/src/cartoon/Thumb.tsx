@@ -54,6 +54,11 @@ const HERO_BG: Record<string, { a: string; b: string; text: [string, string] }> 
   ollie: { a: "#00A8D6", b: "#2CC7EE", text: ["#FFF04D", "#FFFFFF"] },
   dot: { a: "#7A3DFF", b: "#9A68FF", text: ["#FFF04D", "#FFFFFF"] },
   mama: { a: "#FF3D8B", b: "#FF6BA8", text: ["#FFFFFF", "#FFF04D"] },
+  papa: { a: "#FF8A00", b: "#FFB02E", text: ["#FFFFFF", "#7DF3FF"] },
+  finn: { a: "#1E9BFF", b: "#52B6FF", text: ["#FFF04D", "#FFFFFF"] },
+  molly: { a: "#14B8A6", b: "#3FD0BF", text: ["#FFF04D", "#FFFFFF"] },
+  ellie: { a: "#FFB300", b: "#FFC93D", text: ["#FFFFFF", "#7A3DFF"] },
+  leo: { a: "#6A4CFF", b: "#8C74FF", text: ["#FFF04D", "#FFFFFF"] },
 };
 
 const EMOJI_PROP: Record<string, string> = {
