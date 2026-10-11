@@ -46,6 +46,16 @@ def download() -> None:
     snapshot_download(BASE)
 
 
+def max_tokens(text: str) -> int:
+    """Потолок длины генерации (кодек ~12.5 токенов/с): медленная речь ~1.6 слова/с + 3 с запаса, ×2.
+
+    По умолчанию у Qwen3 2048 токенов (~170 с звука): если модель «не закончила» фразу, одна реплика генерировалась 10+ минут
+    вхолостую, потом Whisper её всё равно бракует. С потолком такой дубль обрывается за секунды и идёт следующий.
+    """
+    words = max(1, len(text.split()))
+    return int(min(2048, max(160, (words / 1.6 + 3) * 12.5 * 2)))
+
+
 class Engine:
     def __init__(self, device: str) -> None:
         import torch
@@ -103,10 +113,10 @@ class Engine:
             b = self.model(BASE)
             if key not in self.prompts:
                 self.prompts[key] = b.create_voice_clone_prompt(ref_audio=ref, ref_text=ref_text, x_vector_only_mode=ref_text is None)
-            wavs, sr = b.generate_voice_clone(text=text, language=lang, voice_clone_prompt=self.prompts[key])
+            wavs, sr = b.generate_voice_clone(text=text, language=lang, voice_clone_prompt=self.prompts[key], max_new_tokens=max_tokens(text))
         else:
             m = self.model(CUSTOM)
-            wavs, sr = m.generate_custom_voice(text=text, language=lang, speaker=req.get("voice") or "Serena")
+            wavs, sr = m.generate_custom_voice(text=text, language=lang, speaker=req.get("voice") or "Serena", max_new_tokens=max_tokens(text))
         audio = wavs[0].astype(np.float32)
         # фазовый вокодер (librosa) даёт «металлический» звук и путает распознавание — для мелких поправок темпа не растягиваем
         return (audio if abs(speed - 1.0) <= 0.1 else time_stretch(audio, speed)), int(sr)
