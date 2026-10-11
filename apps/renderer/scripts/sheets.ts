@@ -1,7 +1,7 @@
 /**
  * Листы ассетов мультиков (AssetSheet) в png — визуальная проверка каталога после добавления ассета.
  *   tsx scripts/sheets.ts <outDir> [kind...] [--seed N]
- *   kind = locations | props | outfits | fx | actions | characters | world:<location>[:season] (лист мира: все совместимые состояния)
+ *   kind = locations | props | outfits | fx | actions | characters | faces | visemes (липсинк) | world:<location>[:season] (лист мира: все совместимые состояния)
  */
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";

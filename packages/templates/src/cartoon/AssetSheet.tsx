@@ -1,7 +1,8 @@
 /**
  * Лист ассетов (docs/cartoon-visual-variety.md, «Как добавляется ассет»): каждый ассет каталога рядом с героем для масштаба —
  * локации с героем, предметы в руке или на земле, костюмы на всех героях, эффекты, действия, эмоции;
- * walk / walk_left — цикл шага в 8 фазах (вправо / влево) для всех героев, faces — крупные мордочки во всех эмоциях и ракурсах.
+ * walk / walk_left — цикл шага в 8 фазах (вправо / влево) для всех героев, faces — крупные мордочки во всех эмоциях и ракурсах,
+ * visemes — формы рта липсинка (X A B C D E F G H) и они же с эмоциями, в 3/4 и в профиле.
  * Режим only — один ассет на маленьком холсте (превью для страницы «Каталог» в дашборде).
  */
 import type { ReactNode } from "react";
@@ -14,9 +15,10 @@ import { DEFAULT_WORLD, type WorldState } from "./palette";
 import { Prop, PROP_STATES } from "./props";
 import { Character, REST, type CEmotion, type CharState, type Fx, type Wear } from "./rig";
 import { GROUND } from "./scenes";
+import { VISEMES, type Viseme } from "./lipsync";
 
 export const ASSET_SHEET_ID = "AssetSheet";
-export const SHEET_KINDS = ["locations", "props", "outfits", "fx", "actions", "characters", "walk", "walk_left", "faces", "states"] as const;
+export const SHEET_KINDS = ["locations", "props", "outfits", "fx", "actions", "characters", "walk", "walk_left", "faces", "visemes", "states"] as const;
 export type SheetKind = (typeof SHEET_KINDS)[number];
 
 export interface AssetSheetProps {
@@ -153,6 +155,8 @@ function item(kind: SheetKind, id: string, t: number, seed: number, world: World
     }
     case "walk":
     case "walk_left":
+    case "visemes":
+      return { label: id, sub: "", node: <VisemesRow id={id} t={t} /> };
     case "faces":
       return { label: id, sub: "", node: kind === "faces" ? <FacesRow id={id} t={t} /> : <WalkRow id={id} t={t} facing={kind === "walk_left" ? -1 : 1} /> };
   }
@@ -202,6 +206,37 @@ function FacesRow({ id, t }: { id: string; t: number }) {
   );
 }
 
+/** Липсинк: все виземы в анфасе, с эмоциями (уголки от эмоции), в 3/4 и профиль. */
+function VisemesRow({ id, t }: { id: string; t: number }) {
+  const v = (vis: Viseme, emotion: CEmotion = "neutral", turn?: number) => ({ label: `${vis}${emotion === "neutral" ? "" : ` ${emotion}`}${turn ? (turn >= 1 ? " prof" : " 3/4") : ""}`, st: state({ emotion, viseme: vis, mouth: 0.6, turn }) });
+  const cells: { label: string; st: CharState }[] = [
+    ...VISEMES.map((x) => v(x)),
+    v("A", "happy"),
+    v("D", "happy"),
+    v("C", "laugh"),
+    v("B", "sad"),
+    v("E", "surprised"),
+    v("H", "angry"),
+    v("C", "neutral", 0.55),
+    v("A", "happy", 1),
+    v("D", "happy", 1),
+    v("F", "neutral", 1),
+    v("G", "neutral", 1),
+  ];
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: `repeat(${cells.length}, 1fr)`, height: "100%" }}>
+      {cells.map((c, i) => (
+        <svg key={i} viewBox="-150 -470 300 230" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+          <Hero id={id} st={c.st} t={t} />
+          <text x={-142} y={-446} fontFamily="monospace" fontSize={24} fill="#7A6E8A">
+            {c.label}
+          </text>
+        </svg>
+      ))}
+    </div>
+  );
+}
+
 function ids(kind: SheetKind): string[] {
   switch (kind) {
     case "locations":
@@ -218,13 +253,14 @@ function ids(kind: SheetKind): string[] {
     case "walk":
     case "walk_left":
     case "faces":
+    case "visemes":
       return CHARACTERS.map((c) => c.id);
     case "states":
       return Object.entries(PROP_STATES).flatMap(([id, sts]) => [id, ...sts.map((st) => `${id}:${st}`)]);
   }
 }
 
-const COLS: Record<SheetKind, number> = { states: 8, locations: 4, props: 10, outfits: 4, fx: 4, actions: 9, characters: 5, walk: 1, walk_left: 1, faces: 1 };
+const COLS: Record<SheetKind, number> = { states: 8, locations: 4, props: 10, outfits: 4, fx: 4, actions: 9, characters: 5, walk: 1, walk_left: 1, faces: 1, visemes: 1 };
 
 /** Эмоции всех героев — отдельной строкой листа characters. */
 function EmotionsRow({ t }: { t: number }) {

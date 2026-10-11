@@ -8,6 +8,7 @@ import { resolveAsset } from "../lib/assets";
 import { actionPose, type ActionKind } from "./actions";
 import { CAST } from "./cast";
 import { Character, handPositions, type CEmotion, type Fx, type Pose, type Wear } from "./rig";
+import { visemeFor } from "./lipsync";
 import { heldBy, itemAt, type HandOf, type SceneItem } from "./items";
 import { Prop } from "./props";
 import { locationDef, locationProps } from "./locations";
@@ -276,6 +277,7 @@ function Scene({ sc, t, fps }: { sc: SceneDoc; t: number; fps: number }) {
               pose: actorPose(a, s, t, held[a.id]),
               emotion: s.emotion,
               mouth: mouthAt(sc.lines, a.id, t, fps),
+              viseme: visemeFor(sc.lines, a.id, t), // липсинк: форма рта по тексту + огибающей (lipsync.ts)
               blink: false, // скелет моргает сам (blinkAt: каждые 2-6 с, у каждого героя свой ритм)
               look: [MOVING.has(s.action) ? s.facing : lookX, 0] as [number, number],
               facing: actorFacing(sc, a, s, t),

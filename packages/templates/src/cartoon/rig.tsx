@@ -7,8 +7,9 @@
  * Скелет (плечи, кисти, голова) считается одной функцией skeleton() и для отрисовки, и для handPositions — предмет в руке
  * всегда там, где нарисована кисть.
  */
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { Prop } from "./props";
+import { VISEME_OPEN, type Viseme } from "./lipsync";
 
 export type Species = "bunny" | "cat" | "bear" | "dog";
 export type CEmotion = "neutral" | "happy" | "laugh" | "sad" | "surprised" | "angry" | "scared" | "thinking" | "sleepy";
@@ -82,6 +83,8 @@ export interface CharState {
   pose: Pose;
   emotion: CEmotion;
   mouth: number; // 0..1 — открытость рта по голосу
+  /** Форма рта по липсинку (lipsync.ts): задана — рот рисуется по виземе (уголки — по эмоции), mouth — только громкость. */
+  viseme?: Viseme;
   blink: boolean;
   look: [number, number]; // взгляд -1..1
   facing: 1 | -1; // куда повернута мордочка (лёгкий поворот 3/4, в профиле — направление)
@@ -732,8 +735,155 @@ function Mouth({ spec, e, open, x, y, r, wk }: { spec: CharacterSpec; e: CEmotio
   }
 }
 
+/* ───────────────────────────── липсинк: рот по виземе ───────────────────────────── */
+
+/** Эмоция поверх виземы: ширина, подъём уголков (+ вверх, в r·0.045), высота открытия, добавочная округлость. */
+const VIS_EMO: Record<CEmotion, { wk: number; lift: number; hk: number; ro: number }> = {
+  neutral: { wk: 1, lift: 0.15, hk: 1, ro: 0 },
+  happy: { wk: 1.14, lift: 0.75, hk: 1, ro: 0 },
+  laugh: { wk: 1.26, lift: 1, hk: 1.15, ro: 0 },
+  sad: { wk: 0.92, lift: -0.7, hk: 0.9, ro: 0.1 },
+  surprised: { wk: 0.8, lift: 0, hk: 1.15, ro: 0.45 },
+  scared: { wk: 0.9, lift: -0.4, hk: 1.05, ro: 0.25 },
+  angry: { wk: 0.96, lift: -0.45, hk: 0.92, ro: 0 },
+  thinking: { wk: 0.92, lift: 0, hk: 0.9, ro: 0 },
+  sleepy: { wk: 0.86, lift: 0, hk: 0.75, ro: 0.2 },
+};
+
+/**
+ * Форма каждой виземы (в радиусах головы): полуширина W (от r·0.17), верх ht и низ hb открытия от линии рта,
+ * округлость уголков ro (0 — острые, 1 — овал), зубы и язык.
+ */
+const VIS_SHAPE: Record<Exclude<Viseme, "X" | "A">, { W: number; ht: number; hb: number; ro: number; teeth?: number; tongue?: "low" | "up"; amp?: boolean }> = {
+  B: { W: 0.92, ht: 0.012, hb: 0.065, ro: 0.15, teeth: 0.032 },
+  C: { W: 1.0, ht: 0.03, hb: 0.15, ro: 0.25, tongue: "low", amp: true },
+  D: { W: 1.08, ht: 0.045, hb: 0.25, ro: 0.4, tongue: "low", amp: true },
+  E: { W: 0.66, ht: 0.06, hb: 0.15, ro: 0.92, tongue: "low", amp: true },
+  F: { W: 0.42, ht: 0.05, hb: 0.08, ro: 1 },
+  G: { W: 0.84, ht: 0.01, hb: 0.058, ro: 0.1, teeth: 0.05 },
+  H: { W: 0.94, ht: 0.03, hb: 0.135, ro: 0.3, tongue: "up", amp: true },
+};
+
+const KAPPA = 0.5523;
+/** Контур рта: уголки (x−wl, y+cl) и (x+wr, y+cr), верх y−ht и низ y+hb по центру, ro — округлость уголков. */
+function lipPath(x: number, y: number, wl: number, wr: number, ht: number, hb: number, cl: number, cr: number, ro: number, top = true, bottom = true) {
+  const Lx = x - wl;
+  const Ly = y + cl;
+  const Rx = x + wr;
+  const Ry = y + cr;
+  const Ty = y - ht;
+  const By = y + hb;
+  const k = KAPPA;
+  const up = `C${Lx} ${Ly - k * (Ly - Ty) * ro} ${x - k * wl} ${Ty} ${x} ${Ty} C${x + k * wr} ${Ty} ${Rx} ${Ry - k * (Ry - Ty) * ro} ${Rx} ${Ry}`;
+  const down = `C${Rx} ${Ry + k * (By - Ry) * ro} ${x + k * wr} ${By} ${x} ${By} C${x - k * wl} ${By} ${Lx} ${Ly + k * (By - Ly) * ro} ${Lx} ${Ly}`;
+  if (top && bottom) return `M${Lx} ${Ly} ${up} ${down} Z`;
+  return top ? `M${Lx} ${Ly} ${up}` : `M${Rx} ${Ry} ${down}`;
+}
+
+/**
+ * Рот по виземе липсинка: форма — от звука, уголки и ширина — от эмоции (улыбается и говорит).
+ * В профиле видна половина рта: передний уголок прижат к кончику мордочки, задний уходит к щеке.
+ * Чернила (INK) — только контур, внутри — тёмно-малиновый рот, розовый язык, у зайчика — два передних зуба.
+ */
+function VisemeMouth({ spec, e, vis, amp, x, y, r, s, a }: { spec: CharacterSpec; e: CEmotion; vis: Viseme; amp: number; x: number; y: number; r: number; s: 1 | -1; a: number }) {
+  const uid = useId().replace(/[^A-Za-z0-9_-]/g, "");
+  const em = VIS_EMO[e];
+  const bunny = spec.species === "bunny";
+  const w0 = r * 0.17;
+  // половины ширины: передняя (к носу) сжимается в профиле, задняя чуть длиннее
+  const halves = (W: number): [number, number] => {
+    const front = W * (1 - 0.55 * a);
+    const back = W * (1 + 0.12 * a);
+    return s === 1 ? [back, front] : [front, back];
+  };
+  const lift = em.lift * r * 0.045;
+  // уголок спереди в профиле не поднимается (он на кончике мордочки)
+  const corners = (c: number): [number, number] => (s === 1 ? [c, c * (1 - a)] : [c * (1 - a), c]);
+  const line = { stroke: INK, strokeWidth: 4.5, fill: "none", strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+  if (vis === "A") {
+    // губы сомкнуты (M/B/P): короткая сжатая линия с изгибом по эмоции + пухлая нижняя губка
+    const [wl, wr] = halves(w0 * 0.78 * em.wk);
+    const [cl, cr] = corners(-lift * 0.9);
+    const smile = r * (0.012 + Math.max(0, em.lift) * 0.04) - Math.max(0, -em.lift) * r * 0.05;
+    const omega = (spec.species === "bunny" || spec.species === "cat") && (e === "neutral" || e === "thinking");
+    const d = omega
+      ? `M${x - wl} ${y - 1 + cl} Q${x - wl * 0.5} ${y + wl * 0.36} ${x} ${y} Q${x + wr * 0.5} ${y + wr * 0.36} ${x + wr} ${y - 1 + cr}`
+      : `M${x - wl} ${y + cl} Q${x} ${y + smile * 2} ${x + wr} ${y + cr}`;
+    const lipW = (wl + wr) * 0.22;
+    const lipY = y + (omega ? wl * 0.2 : smile) + r * 0.05;
+    return (
+      <g>
+        <path d={d} {...line} />
+        <path d={`M${x - lipW} ${lipY} Q${x} ${lipY + r * 0.035} ${x + lipW} ${lipY}`} stroke={INK} strokeWidth={3} fill="none" strokeLinecap="round" opacity={0.55} />
+      </g>
+    );
+  }
+  if (vis === "X") return null;
+  const sh = VIS_SHAPE[vis];
+  const ak = sh.amp ? 0.78 + 0.4 * amp : 1;
+  const W = w0 * sh.W * em.wk * (sh.amp ? 0.96 + 0.08 * amp : 1);
+  const [wl, wr] = halves(W);
+  const ht = r * sh.ht;
+  const hb = r * sh.hb * em.hk * ak;
+  const ro = clamp(sh.ro + em.ro, 0, 1);
+  // уголки: чуть выше линии рта, поднятые улыбкой (у округлых визем — меньше)
+  const cLift = -lift * (1 - sh.ro * 0.7) - ht * 0.2;
+  const [cl, cr] = corners(cLift);
+  const d = lipPath(x, y, wl, wr, ht, hb, cl, cr, ro);
+  const cx = x + (wr - wl) * 0.3;
+  const Ty = y - ht;
+  const By = y + hb;
+  const inner: ReactNode[] = [];
+  if (sh.tongue === "low") inner.push(<ellipse key="t" cx={cx} cy={By - (hb + ht) * 0.12} rx={Math.min(wl, wr) * 0.62 + W * 0.1} ry={(hb + ht) * 0.38} fill={TONGUE} />);
+  if (sh.tongue === "up")
+    inner.push(
+      <g key="t">
+        <ellipse cx={cx} cy={By + (hb + ht) * 0.05} rx={W * 0.62} ry={(hb + ht) * 0.4} fill={TONGUE} />
+        <ellipse cx={cx} cy={Ty + (hb + ht) * 0.42} rx={W * 0.3} ry={(hb + ht) * 0.4} fill={TONGUE} />
+        <path d={`M${cx} ${Ty + (hb + ht) * 0.3} V${By}`} stroke={shade(TONGUE, 0.18)} strokeWidth={2} />
+      </g>,
+    );
+  if (sh.teeth && !bunny) {
+    // ряд верхних зубов вдоль верхней губы (на F/V — до нижней губы)
+    const th = r * sh.teeth;
+    inner.push(<path key="z" d={`${lipPath(x, y, wl, wr, ht, hb, cl, cr, ro, true, false)} L${x + wr} ${y + cr + th * 0.4} Q${x} ${Ty + th * 1.6} ${x - wl} ${y + cl + th * 0.4} Z`} fill="#FFFFFF" />);
+  }
+  // зайчик: два передних зуба из-под верхней губы (на F/V — лежат на нижней губе)
+  const buck =
+    bunny && vis !== "F" && vis !== "E"
+      ? (() => {
+          const tw = Math.min(W * 0.3, r * 0.06) * (1 - 0.3 * a);
+          const tH = vis === "G" ? hb + ht + r * 0.03 : Math.min(r * 0.075, (hb + ht) * 0.75 + r * 0.02);
+          const tx = x + (s === 1 ? 1 : -1) * a * W * 0.15;
+          const ty = Ty + 1.2;
+          const tooth = (ox: number) => <rect key={ox} x={tx + ox} y={ty} width={tw} height={tH} rx={Math.min(3.5, tw * 0.35)} fill="#FFFFFF" stroke={shade("#FFFFFF", 0.28)} strokeWidth="1.6" />;
+          return <g>{a > 0.7 ? tooth(-tw * 0.5) : [tooth(-tw - 0.6), tooth(0.6)]}</g>;
+        })()
+      : null;
+  return (
+    <g>
+      <defs>
+        <clipPath id={`m${uid}`}>
+          <path d={d} />
+        </clipPath>
+      </defs>
+      <path d={d} fill={MOUTH} />
+      <g clipPath={`url(#m${uid})`}>{inner}</g>
+      <path d={d} fill="none" stroke={INK} strokeWidth="3.5" strokeLinejoin="round" />
+      {vis === "F" ? (
+        // трубочка: маленькие складочки губ по бокам
+        <g stroke={INK} strokeWidth={2.5} strokeLinecap="round" opacity={0.5} fill="none">
+          <path d={`M${x - wl - r * 0.045} ${y - r * 0.01} q${-r * 0.02} ${r * 0.04} 0 ${r * 0.075}`} opacity={s === -1 ? 1 - a : 1} />
+          <path d={`M${x + wr + r * 0.045} ${y - r * 0.01} q${r * 0.02} ${r * 0.04} 0 ${r * 0.075}`} opacity={s === 1 ? 1 - a : 1} />
+        </g>
+      ) : null}
+      {buck}
+    </g>
+  );
+}
+
 /** Мордочка: щёки, глаза, брови, нос, рот, усы. Центр — середина головы. */
-function Face({ spec, st, r, fl, open, closed, puff }: { spec: CharacterSpec; st: CharState; r: number; fl: ReturnType<typeof faceLayout>; open: number; closed: number; puff: number }) {
+function Face({ spec, st, r, fl, open, closed, puff, vis, amp = 0.5 }: { spec: CharacterSpec; st: CharState; r: number; fl: ReturnType<typeof faceLayout>; open: number; closed: number; puff: number; vis?: Viseme; amp?: number }) {
   const e = st.emotion;
   const { er, eyeY, s, a } = fl;
   const look: [number, number] = [clamp(st.look[0] + s * a * 0.6 + (e === "thinking" ? s * 0.5 : 0), -1, 1), clamp(st.look[1] + (e === "thinking" ? -0.9 : 0), -1, 1)];
@@ -769,8 +919,8 @@ function Face({ spec, st, r, fl, open, closed, puff }: { spec: CharacterSpec; st
         <ellipse cx={n.x - r * 0.04} cy={n.y - r * 0.035} rx={r * 0.04} ry={r * 0.022} fill="#FFFFFF" opacity={0.55} />
       </g>
     );
-  // «филтрум» от носа ко рту — у зайчика и котёнка
-  const philtrum = (spec.species === "bunny" || spec.species === "cat") && open < 0.12 && (e === "neutral" || e === "thinking") ? <path d={`M${n.x} ${n.y + r * 0.05} L${fl.mouth.x} ${fl.mouth.y - 1}`} stroke={INK} strokeWidth="4" strokeLinecap="round" /> : null;
+  // «филтрум» от носа ко рту — у зайчика и котёнка (пока говорит — постоянно, без мигания между звуками; в профиле — нет)
+  const philtrum = (spec.species === "bunny" || spec.species === "cat") && (st.viseme !== undefined && (st.pose.mouth ?? 0) < 0.35 ? a < 0.5 : open < 0.12) && (e === "neutral" || e === "thinking") ? <path d={`M${n.x} ${n.y + r * 0.05} L${fl.mouth.x} ${fl.mouth.y - 1}`} stroke={INK} strokeWidth="4" strokeLinecap="round" /> : null;
   const whiskers =
     spec.species === "cat" ? (
       <g stroke={shade(spec.fur, 0.5)} strokeWidth="2.5" strokeLinecap="round">
@@ -807,7 +957,7 @@ function Face({ spec, st, r, fl, open, closed, puff }: { spec: CharacterSpec; st
       {nose}
       {philtrum}
       {whiskers}
-      <Mouth spec={spec} e={e} open={open} x={fl.mouth.x} y={fl.mouth.y} r={r} wk={fl.mouth.w} />
+      {vis ? <VisemeMouth spec={spec} e={e} vis={vis} amp={amp} x={fl.mouth.x} y={fl.mouth.y} r={r} s={s} a={a} /> : <Mouth spec={spec} e={e} open={open} x={fl.mouth.x} y={fl.mouth.y} r={r} wk={fl.mouth.w} />}
       {tear}
       {spec.extra === "glasses" ? (
         <g fill="none" stroke={INK} strokeWidth="4">
@@ -961,7 +1111,12 @@ export function Character({ spec, st, t }: { spec: CharacterSpec; st: CharState;
   const back = clamp(p.back ?? 0, 0, 1);
   const s = fl.s;
   const a = fl.a;
-  const open = Math.max(0, Math.min(1, Math.max(st.mouth, p.mouth ?? 0)));
+  // рот: визема липсинка (если герой говорит и действие не держит рот открытым — зевок, смех, еда), иначе — по громкости
+  const actOpen = p.mouth ?? 0;
+  const speaking = st.viseme !== undefined && actOpen < 0.35;
+  const vis = speaking && st.viseme !== "X" ? st.viseme : undefined;
+  const amp = clamp(st.mouth, 0, 1);
+  const open = vis ? VISEME_OPEN[vis] * (0.75 + 0.25 * amp) : clamp(speaking ? actOpen : Math.max(st.mouth, actOpen), 0, 1);
   const auto = st.autoBlink === false ? 0 : blinkAt(spec.id, t);
   const closed = st.blink || p.shut ? 1 : auto;
   const stride = p.stride ?? 1;
@@ -1057,7 +1212,7 @@ export function Character({ spec, st, t }: { spec: CharacterSpec; st: CharState;
             {spec.species === "dog" ? <DogEarsFront r={r} t={t} s={s} a={a} follow={follow} /> : null}
             {back < 0.98 ? (
               <g opacity={1 - back}>
-                <Face spec={spec} st={st} r={r} fl={fl} open={open} closed={closed} puff={p.puff ?? 0} />
+                <Face spec={spec} st={st} r={r} fl={fl} open={open} closed={closed} puff={p.puff ?? 0} vis={vis} amp={amp} />
               </g>
             ) : null}
             {st.wear?.length ? <WearHead wear={st.wear} r={r} /> : null}
