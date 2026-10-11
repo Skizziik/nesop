@@ -107,7 +107,8 @@ function camAt(keys: CamKey[], t: number): Camera {
 }
 
 /** Состояние актёра: позиция — линейно между ключами с x; действие/эмоция/взгляд — последний ключ до t. */
-function actorAt(keys: ActorKey[], t: number) {
+function actorAt(keys0: ActorKey[], t: number) {
+  const keys = [...keys0].sort((a, b) => a.t - b.t); // устойчивая сортировка: при равном t побеждает ключ, записанный позже
   let x = 960;
   let facing: 1 | -1 = 1;
   let action: ActionKind = "idle";

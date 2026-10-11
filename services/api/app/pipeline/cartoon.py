@@ -125,6 +125,11 @@ BEAT = {
         "hold": {"type": "object", "description": "optional: a character picks up (or drops with prop='none') an object at this beat",
                  "properties": {"char": {"type": "string", "enum": list(CAST)}, "prop": {"type": "string", "enum": [*PROPS, "none"]},
                                 "color": {"type": "string", "enum": list(COLORS)}}},
+        "item": {"type": "object", "description": "optional: something happens with an object at this beat: give (char hands prop to target), "
+                 "throw (char throws prop to target, target catches it), eat (char takes bites; food), pick_up (from the ground), put_down",
+                 "properties": {"kind": {"type": "string", "enum": ["give", "throw", "eat", "pick_up", "put_down"]},
+                                "char": {"type": "string", "enum": list(CAST)}, "target": {"type": "string", "enum": list(CAST)},
+                                "prop": {"type": "string", "enum": PROPS}, "color": {"type": "string", "enum": list(COLORS)}}},
         "fx": {"type": "object", "description": "optional: a little effect over a character's head",
                "properties": {"char": {"type": "string", "enum": list(CAST)}, "kind": {"type": "string", "enum": FX}}},
         "word": {"type": "string", "description": "optional key word to show BIG on screen when it is first taught"},
@@ -278,6 +283,92 @@ class Director:
         self.t = 0.0  # глобальное время
         self.chapters: list[tuple[float, str]] = []
 
+    @staticmethod
+    def _items_init(look: dict[str, Any]) -> dict[str, dict[str, Any]]:
+        """Предметы на земле из сценария сцены → предметы с историей (их можно поднять, передать, бросить)."""
+        items: dict[str, dict[str, Any]] = {}
+        for i, pp in enumerate((look.get("props") or [])[:4]):
+            if pp.get("prop") not in PROPS:
+                continue
+            uid = f"{pp['prop']}{i}"
+            x = SLOTS.get(pp.get("where") or "center", 960.0) + 60
+            items[uid] = {"uid": uid, "prop": pp["prop"], **({"color": COLORS[pp["color"]]} if pp.get("color") in COLORS else {}),
+                          "keys": [{"t": 0, "at": {"kind": "ground", "x": x}}]}
+        return items
+
+    @staticmethod
+    def _item_op(items: dict[str, dict[str, Any]], holding: dict[str, str], keys: dict[str, list[dict[str, Any]]], pos: dict[str, float],
+                 op: dict[str, Any], lt: float, dur: float) -> None:
+        """Действие с предметом в бите: give / throw / eat / pick_up / put_down (+ старое hold). Ключи предмета и позы героев."""
+        kind, ch, prop = op.get("kind"), op.get("char"), op.get("prop")
+        if ch not in keys:
+            return
+        color = {"color": COLORS[op["color"]]} if op.get("color") in COLORS else {}
+
+        def in_hand() -> str | None:
+            uid = holding.get(ch)
+            if uid and (prop in (None, items[uid]["prop"])):
+                return uid
+            if prop not in PROPS:
+                return None
+            # предмета нет в руке: берём с земли, если лежит, иначе он «уже был в руках»
+            ground = next((u for u, it in items.items() if it["prop"] == prop and u not in holding.values()), None)
+            if ground:
+                items[ground]["keys"].append({"t": round(max(0.0, lt - 0.3), 3), "at": {"kind": "hand", "char": ch}, "anim": "pass"})
+                holding[ch] = ground
+                return ground
+            uid = f"{prop}{len(items)}"
+            items[uid] = {"uid": uid, "prop": prop, **color, "keys": [{"t": round(max(0.0, lt - 0.2), 3), "at": {"kind": "hand", "char": ch}}]}
+            holding[ch] = uid
+            return uid
+
+        def act(c: str, action: str, at: float, until: float) -> None:
+            keys[c].append({"t": round(at, 3), "action": action})
+            keys[c].append({"t": round(until, 3), "action": "idle"})
+
+        if kind == "pick_up":
+            ground = next((u for u, it in items.items() if it["prop"] == prop and u not in holding.values()), None)
+            if ground:
+                act(ch, "pick_up", lt, lt + 0.8)
+                items[ground]["keys"].append({"t": round(lt + 0.35, 3), "at": {"kind": "hand", "char": ch}, "anim": "pass"})
+                holding[ch] = ground
+            else:
+                in_hand()
+        elif kind == "put_down":
+            uid = holding.pop(ch, None)
+            if uid:
+                act(ch, "put_down", lt, lt + 0.8)
+                items[uid]["keys"].append({"t": round(lt + 0.35, 3), "at": {"kind": "ground", "x": pos.get(ch, 960.0) + 80}, "anim": "drop"})
+        elif kind in ("give", "throw"):
+            tg = op.get("target")
+            uid = in_hand()
+            if not uid or tg not in keys or tg == ch:
+                return
+            holding.pop(ch, None)
+            if kind == "give":
+                act(ch, "give", lt, lt + 1.0)
+                items[uid]["keys"].append({"t": round(lt + 0.45, 3), "at": {"kind": "hand", "char": tg}, "anim": "pass"})
+            else:
+                act(ch, "throw", lt, lt + 0.9)
+                items[uid]["keys"].append({"t": round(lt + 0.4, 3), "at": {"kind": "hand", "char": tg}, "anim": "throw"})
+                act(tg, "catch", lt + 0.75, lt + 1.6)
+            holding[tg] = uid
+        elif kind == "eat":
+            uid = in_hand()
+            if not uid:
+                return
+            act(ch, "eat", lt + 0.05, lt + max(1.2, dur))
+            items[uid]["keys"].append({"t": round(lt + 0.6, 3), "state": "bitten"})
+            if dur > 2.2:
+                items[uid]["keys"].append({"t": round(lt + dur, 3), "state": "eaten"})
+
+    def static(self, kind: str, duration: float, text: str | None = None, sub: str | None = None, location: str = "garden") -> None:
+        """Сцена без героев и реплик: заставка сериала (intro), плашка «Story time!» (bumper). Рисует Episode (ShowIntro / ShowBumper)."""
+        overlays = [{"t": 0, "dur": duration, "kind": "title", "text": text, **({"sub": sub} if sub else {})}] if text else []
+        self.scenes.append({"location": location, "kind": kind, "seed": self._seed(), "start": round(self.t, 3), "duration": duration,
+                            "camera": [], "actors": [], "lines": [], "overlays": overlays})
+        self.t += duration
+
     def _seed(self) -> int:
         """Сид сцены: хэш проекта + номер сцены — мелочи локации (цвета игрушек, цветы, облака) разные, но рендер детерминирован."""
         return zlib.crc32(f"{self.project_id}:{len(self.scenes)}".encode()) % 1_000_000 + 1
@@ -319,6 +410,8 @@ class Director:
         shot_since = -MIN_SHOT  # когда камера последний раз сменила план
         last_spk: str | None = None
         lines_same = 0  # сколько реплик подряд у текущего говорящего / диалога без смены плана
+        items = self._items_init(look or {})
+        holding: dict[str, str] = {}  # герой → uid предмета в руке
         if title:
             for c in cast:
                 keys[c].append({"t": 0.3, "action": "cheer" if c != "mama" else "wave", "emotion": "laugh"})
@@ -353,9 +446,12 @@ class Director:
                 keys[spk].append({"t": round(lt, 3), "action": b.get("action") or "talk", "emotion": b.get("emotion") or "happy"})
                 keys[spk].append({"t": round(lt + dur, 3), "action": "idle"})
             hd = b.get("hold") or {}
-            if hd.get("char") in keys:
+            if hd.get("char") in keys:  # старое поле hold → взять / положить предмет сцены
                 pr = hd.get("prop")
-                keys[hd["char"]].append({"t": round(lt, 3), "hold": None if pr in (None, "none") else {"id": pr, **({"color": COLORS[hd["color"]]} if hd.get("color") in COLORS else {})}})
+                op = {"kind": "put_down", "char": hd["char"]} if pr in (None, "none") else {"kind": "pick_up", "char": hd["char"], "prop": pr, "color": hd.get("color")}
+                self._item_op(items, holding, keys, pos, op, lt, dur)
+            if isinstance(b.get("item"), dict):
+                self._item_op(items, holding, keys, pos, b["item"], lt, dur)
             fx = b.get("fx") or {}
             if fx.get("char") in keys and fx.get("kind") in FX:
                 keys[fx["char"]].append({"t": round(lt + 0.2, 3), "fx": fx["kind"]})
@@ -401,15 +497,17 @@ class Director:
         explicit = {w.get("char"): [x for x in (w.get("items") or []) if x in WEAR] for w in (lk.get("wear") or []) if w.get("char") in CAST}
         auto = auto_wear(CATALOG, location, world, dressing)
         wear = {c: merge_wear([x for x in auto if not (x == "pajamas" and CAST.get(c, {}).get("adult"))], explicit.get(c, []), CATALOG) for c in keys}
-        props = [{"id": pp["prop"], "x": SLOTS.get(pp.get("where") or "center", 960.0) + 60, **({"color": COLORS[pp["color"]]} if pp.get("color") in COLORS else {})}
-                 for pp in (lk.get("props") or []) if pp.get("prop") in PROPS][:4]
+        for it in items.values():  # ключи по времени; предметы сцены рисует Episode (items)
+            it["keys"].sort(key=lambda k: k["t"])
+        for k in keys.values():  # ключи героев по времени (сортировка устойчивая: при равном t побеждает поздний — «дать» поверх «говорить»)
+            k.sort(key=lambda x: x["t"])
         self.scenes.append({
             "location": location, "kind": kind, "seed": self._seed(), "start": round(self.t, 3), "duration": dur_total,
             "camera": cam, "actors": [{"id": c, "keys": k, **({"wear": wear[c]} if wear.get(c) else {})} for c, k in keys.items()],
             "lines": lines, "overlays": overlays,
             "world": {**world, **({"dressing": dressing} if dressing else {})},
             **({"decor": "birthday"} if dressing else {}),
-            **({"props": props} if props else {}),
+            **({"items": list(items.values())} if items else {}),
         })
         self.t += dur_total
 
@@ -489,10 +587,12 @@ async def build_cartoon(project_id: str) -> None:
         await progress("озвучка и режиссура", 0.32)
         d = Director(project_id)
         everyone = list(CAST)[:4]
+        d.static("intro", 7.0)  # ритуал: одна и та же заставка «Benny & Friends» в каждом эпизоде
         await d.scene("garden", everyone, [{"speaker": "narrator", "text": plan.get("intro") or "Hello, friends! Welcome!", "shot": "wide"}],
                       kind="title", title=plan.get("title") or theme)
         song_starts: list[dict[str, Any]] = []
         for i, (story, script) in enumerate(zip(stories, scripts, strict=False)):
+            d.static("bumper", 2.5, "Story time!")
             d.chapters.append((d.t, str(story.get("title", f"Story {i + 1}"))))
             d.season = str(story.get("season") or "") if story.get("season") in SEASONS else ["summer", "autumn", "winter", "spring"][i % 4]
             scenes = script.get("scenes") or []
@@ -504,10 +604,11 @@ async def build_cartoon(project_id: str) -> None:
                 await d.scene(sc.get("location") or "garden", sc.get("cast") or story.get("cast") or ["benny"], sc.get("beats") or [], look=sc)
             for k, sg in enumerate(songs):
                 if int(sg.get("after_story", -1)) == i + 1 and k < len(lyrics):
+                    d.static("bumper", 2.5, "Song time!")
                     d.chapters.append((d.t, f"Song: {sg.get('title', '')}"))
                     song_starts.append(await d.song(str(sg.get("title", "Let's sing!")), lyrics[k], "playground" if k % 2 == 0 else "garden", everyone))
         await d.scene("garden_evening", everyone, [{"speaker": "narrator", "text": plan.get("outro") or "Bye bye, friends! See you next time!", "shot": "wide", "action": "wave"}],
-                      kind="title", title="Bye bye!", sub="See you next time")
+                      kind="outro", title="Bye bye!", sub="See you next time!")
         for c in everyone:
             d.scenes[-1]["actors"][everyone.index(c)]["keys"].append({"t": 1.0, "action": "wave", "emotion": "laugh"})
 
