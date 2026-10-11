@@ -172,6 +172,34 @@ async def create_cartoon(body: CartoonIn, s: Session) -> dict[str, Any]:
     return project_out(p)
 
 
+class CompilationIn(BaseModel):
+    ids: list[str] = Field(min_length=2, max_length=12, description="Готовые эпизоды по порядку")
+    title: str | None = Field(default=None, max_length=200)
+    auto_render: bool = False
+
+
+@router.post("/projects/cartoon/compilation", status_code=202)
+async def create_compilation(body: CompilationIn, s: Session) -> dict[str, Any]:
+    """Сборник: несколько готовых мультиков подряд одним роликом (30-60+ минут) со своими главами и YouTube-пакетом."""
+    from ..pipeline.compilation import merge_cartoons
+
+    eps = []
+    for pid in body.ids:
+        e = await s.get(Project, pid)
+        if e is None or e.kind != "cartoon" or not (e.doc or {}).get("scenes"):
+            raise HTTPException(400, f"Эпизод {pid} не найден или ещё не готов")
+        eps.append((str((e.doc or {}).get("title") or e.title), dict(e.doc), dict(e.meta or {})))
+    minutes = round(sum(float(d.get("duration") or 0) for _, d, _ in eps) / 60)
+    title = body.title or f"Benny & Friends — {minutes} minutes of cartoons and songs"
+    doc, meta = merge_cartoons(eps, title)
+    p = Project(title=title[:200], kind="cartoon", aspect="16:9", doc=doc, meta=meta, status="generating", stage="обложки и описание",
+                params={"compilation": body.ids, "auto_render": body.auto_render})
+    s.add(p)
+    await s.commit()
+    await enqueue("run_compilation", p.id)
+    return project_out(p)
+
+
 @router.get("/projects/{pid}")
 async def get_project(pid: str, s: Session) -> dict[str, Any]:
     p = await s.get(Project, pid)

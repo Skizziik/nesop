@@ -3,7 +3,7 @@
 import { CartoonEpisode } from "@ipt/templates";
 import { Player } from "@remotion/player";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Download, Film, LayoutGrid, Loader2, Rabbit, Trash2, Wand2 } from "lucide-react";
+import { ArrowLeft, Download, Film, Layers, LayoutGrid, Loader2, Rabbit, Trash2, Wand2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -51,6 +51,13 @@ export function Cartoons() {
     onError: onErr,
   });
   const del = useMutation({ mutationFn: api.deleteProject, onSuccess: () => void qc.invalidateQueries({ queryKey: ["cartoons"] }), onError: onErr });
+  const [pick, setPick] = useState<string[]>([]);
+  const togglePick = (id: string) => setPick((x) => (x.includes(id) ? x.filter((y) => y !== id) : [...x, id]));
+  const compile = useMutation({
+    mutationFn: () => api.createCompilation({ ids: pick, auto_render: true }),
+    onSuccess: (p) => (toast.success("Сборник собирается: обложки, описание, потом рендер"), setPick([]), void qc.invalidateQueries({ queryKey: ["cartoons"] }), router.push(`/cartoons/${p.id}`)),
+    onError: onErr,
+  });
 
   return (
     <div className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)] gap-6">
@@ -108,7 +115,19 @@ export function Cartoons() {
         </div>
       </Card>
       <Card>
-        <CardTitle>Эпизоды</CardTitle>
+        <CardTitle
+          extra={
+            pick.length >= 2 ? (
+              <Button onClick={() => compile.mutate()} disabled={compile.isPending}>
+                <Layers size={15} /> Собрать сборник из {pick.length}
+              </Button>
+            ) : (
+              <span className="text-xs text-mute">отметь 2+ готовых эпизода — получится сборник на 30-60 минут</span>
+            )
+          }
+        >
+          Эпизоды
+        </CardTitle>
         {isLoading ? (
           <div className="text-sm text-mute">Загрузка…</div>
         ) : !data.length ? (
@@ -138,6 +157,12 @@ export function Cartoons() {
                   </div>
                 </Link>
                 <div className="flex items-center gap-1 border-t border-line px-2 py-1">
+                  {p.status === "draft" || p.status === "ready" ? (
+                    <label className="flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs text-mute hover:bg-panel" title="В сборник">
+                      <input type="checkbox" checked={pick.includes(p.id)} onChange={() => togglePick(p.id)} />
+                      {pick.includes(p.id) ? `№${pick.indexOf(p.id) + 1}` : "в сборник"}
+                    </label>
+                  ) : null}
                   {p.video_url ? (
                     <a href={p.video_url} download className="rounded px-2 py-1 text-xs font-bold text-verde-2 hover:bg-panel">
                       скачать mp4

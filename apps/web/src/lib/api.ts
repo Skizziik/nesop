@@ -305,6 +305,8 @@ export const api = {
   project: (id: string) => request<ProjectFull>(`/api/projects/${id}`),
   createProject: (body: { title: string; aspect: "16:9" | "9:16" }) => request<ProjectFull>("/api/projects", { method: "POST", body: JSON.stringify(body) }),
   cartoonCatalog: () => request<CartoonCatalog>("/api/cartoon/catalog"),
+  createCompilation: (body: { ids: string[]; title?: string; auto_render: boolean }) =>
+    request<Project>("/api/projects/cartoon/compilation", { method: "POST", body: JSON.stringify(body) }),
   createCartoon: (body: { theme: string; minutes: number; stories: number; auto_render: boolean }) =>
     request<Project>("/api/projects/cartoon", { method: "POST", body: JSON.stringify(body) }),
   createLecture: (body: LectureInput) => request<Project>("/api/projects/lecture", { method: "POST", body: JSON.stringify(body) }),
