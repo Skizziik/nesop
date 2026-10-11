@@ -154,6 +154,8 @@ async function renderChunked(job: RenderJob, composition: Awaited<ReturnType<typ
 }
 
 async function renderOnce(job: RenderJob): Promise<void> {
+  // задача пришла сразу после перезапуска — ждём сборки бандла (до 3 минут), а не падаем
+  for (let i = 0; i < 180 && !serveUrl && !bundleError; i++) await new Promise((r) => setTimeout(r, 1000));
   if (!serveUrl) throw new Error(bundleError ?? "бандл шаблонов ещё не готов");
   const { __composition, ...rest } = job.props as Record<string, unknown> & { __composition?: string };
   const compId = __composition ?? COMPOSITION_ID;
