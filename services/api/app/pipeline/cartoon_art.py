@@ -205,7 +205,7 @@ def qa_checks(doc: dict[str, Any], gap: float = 230.0) -> dict[str, Any]:
             # план = промежуток между началами движений камеры (ключ, после которого камера едет в другое место)
             cam = sorted(sc.get("camera") or [], key=lambda c: float(c["t"]))
             starts = [float(a["t"]) for a, b in zip(cam, cam[1:], strict=False)
-                      if abs(float(a["x"]) - float(b["x"])) + abs(float(a["zoom"]) - float(b["zoom"])) * 400 > 20]
+                      if abs(float(a.get("x", 960)) - float(b.get("x", 960))) + abs(float(a.get("zoom", 1)) - float(b.get("zoom", 1))) * 400 > 20]
             bounds = [0.0, *starts, float(sc.get("duration") or 0)]
             shots += [b - a for a, b in zip(bounds, bounds[1:], strict=False) if b - a > 0.3]
     seen: set[str] = set()
