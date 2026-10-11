@@ -72,6 +72,69 @@ const BASE: Record<string, Palette> = {
     sky1: "#8ED6C5", sky2: "#E6F7E1", skySun: "#FFE45C", skySunRim: "#F5C400", skySunGlow: "#FFF3A0", skyCloud: "#FFFFFF", skyCloudShade: "#E3F2EA", pineFar: "#7CC28A", pine: "#4FAE63", trunk: "#7A4E2A", grassMid: "#79C46B", grass: "#68B85A", water: "#6CCBFF", waterFoam: "#FFFFFF",
     skyRay: "#FFFBE0", stalk: "#FFF3DD", stalkLine: "#D8C6A5", cap1: "#FF4D5A", cap2: "#FFB23F", capDot: "#FFFFFF",
   },
+  /* ---- этап 5: новые локации (locations_more.tsx) ---- */
+  bathroom: {
+    wall: "#DDF3F8", wallDot: "#C8EAF3", tile1: "#FFFFFF", tile2: "#BFE6F1", tileBand: "#FF9FB2", tileBandDot: "#FFFFFF", grout: "#A9D7E4",
+    skyWindow: "#9ADBFF", skyWindowSun: "#FFE04D", skyWindowCloud: "#FFFFFF", windowHill: "#7ED36E", windowFrame: "#FFFFFF", frost: "#F2FBFF",
+    tub: "#FFFFFF", tubLine: "#9CCBDD", tubFoot: "#FFC94D", foam: "#FFFFFF", foamShade: "#DDF2FB", water: "#8FDCFF", bubbleRim: "#9ED8F0",
+    curtain: "#B9A2FF", curtainDot: "#FFFFFF", rail: "#C9D6E2", sink: "#FFFFFF", sinkLine: "#9CCBDD", tap: "#C9D6E2", mirror: "#CDEFFF", mirrorShine: "#FFFFFF",
+    mirrorFrame: "#FFB86B", duck: "#FFD23F", duckBeak: "#FF8A2A", towel1: "#FF8FA3", towel2: "#7FC6FF", towelStripe: "#FFFFFF", rack: "#D9B98A",
+    shelf: "#F2D9A8", bottle1: "#8E5CFF", bottle2: "#4CB944", bottle3: "#FF6FA8", cup: "#5DA9FF", brush1: "#FF6FA8", brush2: "#FFD23F", plant: "#4CB944", pot: "#FF8A5B",
+    floor: "#FFE6BF", floorTile: "#F6D6A2", mat: "#9EDB8A", matDot: "#FFFFFF", stool: "#3D8BFF", lamp: "#FFF1C4", glowLamp: "#FFE9A0", ink: "#3A2A44",
+  },
+  classroom: {
+    wall: "#FFF2CF", wallLow: "#BFE3FF", wallRail: "#FFFFFF", skirting: "#E9C99A", floor: "#E8B983", plank: "#D9A46A",
+    skyWindow: "#9ADBFF", skyWindowSun: "#FFE04D", skyWindowCloud: "#FFFFFF", windowHill: "#7ED36E", windowFrame: "#FFFFFF", windowSill: "#F2D9A8",
+    card: "#FFFFFF", cork: "#E8BE85", corkDot: "#D6A66A", paper: "#FFFFFF", easel: "#C98F55", table: "#FFD23F", tableLeg: "#F2A93B",
+    chair1: "#FF5E5B", chair2: "#3D8BFF", chair3: "#4CB944", chair4: "#B38BFF", cubby: "#F7DDB0", cubbyIn: "#E6C38C", hook: "#FF8A5B",
+    rug: "#9FD3FF", rugEdge: "#FFFFFF", shape1: "#FF6B6B", shape2: "#FFD23F", shape3: "#4CB944", shape4: "#8E5CFF",
+    clock: "#FFFFFF", clockRim: "#FF6FA8", plant: "#4CB944", pot: "#FF8A5B", bowl: "#D6F2FF", fish: "#FF8A2A", ink: "#3A2A44",
+  },
+  farm: {
+    sky1: "#6EC6FF", sky2: "#D4F0FF", skySun: "#FFD93D", skySunRim: "#F5B700", skySunGlow: "#FFE45C", skyCloud: "#FFFFFF", skyCloudShade: "#E6F2FF",
+    hillFar: "#9ADB86", hillMid: "#79CC62", grassMid: "#6CC45A", grass: "#5DBB52", grassBlade: "#4CA442", leafFar: "#5CC157", leaf: "#4CB944", trunk: "#8B5A2B",
+    bush1: "#4FB04A", bushLine: "#3E9139", field1: "#F4D56A", field2: "#B7E07A", field3: "#E9C25A", fruit: "#FF4D5A",
+    barn: "#E8574C", barnTrim: "#FFFFFF", barnRoof: "#9C4A44", barnDark: "#B9453D", silo: "#D7DDE8", siloTop: "#8FA6C8", hay: "#F5CE5A", hayLine: "#D9A93A",
+    fence: "#E3B479", windmill: "#FFFFFF", blade: "#FF8A5B", path: "#E9D3A8", pathEdge: "#D2B886", mud: "#B98A5E",
+    cow: "#FFFFFF", cowSpot: "#6A5470", cowNose: "#FFB3C6", horn: "#FFE9B0", sheep: "#FFFFFF", sheepFace: "#6A5470", hen: "#FFFFFF", comb: "#FF4D5A",
+    beak: "#FFB23F", chick: "#FFE04D", pig: "#FFB3C6", pigDark: "#FF94B0", tractor: "#4CB944", tractorCab: "#FFD23F", wheel: "#5A4E66", hub: "#FFD23F",
+    flower1: "#FF6FA8", flower2: "#FFFFFF", flower3: "#FFB23F", flowerCenter: "#FFD54A", stem: "#3E9B3A", glass: "#BDE6FF", glowWindow: "#FFD97A", ink: "#3A2A44",
+  },
+  park_pond: {
+    sky1: "#68C3FF", sky2: "#D2F0FF", skySun: "#FFD93D", skySunRim: "#F5B700", skySunGlow: "#FFE45C", skyCloud: "#FFFFFF", skyCloudShade: "#E6F2FF",
+    hillFar: "#94D98A", hillMid: "#73CB64", grassMid: "#68C25B", grass: "#5DBB52", grassBlade: "#4CA442", leafFar: "#62C45A", leaf: "#4CB944", trunk: "#8B5A2B",
+    bush1: "#4FB04A", bush2: "#5ABD52", bushLine: "#3E9139", fruit: "#FF7AB0", water: "#6CCBFF", waterDeep: "#52B6F0", waterFoam: "#FFFFFF", lily: "#5DBB6A", lilyFlower: "#FF9FC4",
+    reed: "#6DAE4F", cattail: "#A8703E", path: "#EED9AE", pathEdge: "#D6BC8A", bench: "#D08C4E", benchMetal: "#5C6E91", lampPost: "#5C6E91", lampGlass: "#E8F4FF", glowLamp: "#FFE9A0",
+    bridge: "#C98F55", bridgeRail: "#E8A15C", duck: "#FFFFFF", duckHead: "#4FB57A", beak: "#FFA63D", duckling: "#FFE04D", stone: "#C9C4D6",
+    flower1: "#FF6FA8", flower2: "#FFFFFF", flower3: "#FFB23F", flower4: "#C38BFF", flowerCenter: "#FFD54A", stem: "#3E9B3A", ink: "#3A2A44",
+  },
+  snowy_hill: {
+    sky1: "#7CC8FF", sky2: "#E2F4FF", skySun: "#FFE45C", skySunRim: "#F5C400", skySunGlow: "#FFF3A0", skyCloud: "#FFFFFF", skyCloudShade: "#E3EEF8",
+    mountain: "#A9C3EC", mountainShade: "#93B0E0", peak: "#FFFFFF", snowFar: "#EEF5FC", snowMid: "#F6FAFE", snow: "#FFFFFF", snowShade: "#D7E7F5", snowLine: "#BFD5EA",
+    pineFar: "#6FB38A", pine: "#4FA066", trunk: "#7A4E2A", cabin: "#C98F55", cabinLog: "#A86F3E", cabinRoof: "#E8574C", cabinDoor: "#6B4BB0", glass: "#BDE6FF", glowWindow: "#FFD97A",
+    smoke: "#FFFFFF", sled: "#FF4D5A", sledRunner: "#5C6E91", flag: "#FFD23F", pole: "#A86F3E", carrot: "#FF8A2A", coal: "#5A4E66", scarf: "#3D8BFF", ink: "#3A2A44",
+  },
+  campsite: {
+    sky1: "#72C4FF", sky2: "#D8F1FF", skySun: "#FFD93D", skySunRim: "#F5B700", skySunGlow: "#FFE45C", skyCloud: "#FFFFFF", skyCloudShade: "#E6F2FF",
+    mountainFar: "#A9BFEA", mountain: "#8EA9DF", peak: "#FFFFFF", lake: "#7FD0F5", lakeShine: "#FFFFFF", pineFar: "#76BC86", pine: "#4FAE63", trunk: "#7A4E2A",
+    hillFar: "#8ED68A", grassMid: "#70C462", grass: "#62BA55", grassBlade: "#4FA545", tent: "#FF8A2A", tentSide: "#E86F1E", tentFlap: "#FFD23F", tentIn: "#9B4A1F", rope: "#B59A7A",
+    log: "#A8703E", logEnd: "#EDC98E", stone: "#BDB8CC", stoneShade: "#A39DB6", glowFire1: "#FF5A3C", glowFire2: "#FF9F2A", glowFire3: "#FFE04D",
+    flag1: "#FF4D5A", flag2: "#3D8BFF", flag3: "#FFD23F", flag4: "#4CB944", glowLamp: "#FFE29A", lanternFrame: "#5C6E91", kettle: "#5DA9FF", backpack: "#8E5CFF", ink: "#3A2A44",
+  },
+  space: {
+    sky1: "#2E2A7E", sky2: "#6A48C2", skyNebula1: "#C063D9", skyNebula2: "#4FA0F0", skyStar: "#FFF6C8",
+    planet1: "#FF9A5B", planet1Band: "#FFC27A", ring: "#FFD23F", planet2: "#FF7AB8", planet2Spot: "#FFB3D6", earth: "#4FA3F5", earthLand: "#6CD36A",
+    moonFar: "#9C8FD8", moonMid: "#B4A9E6", ground: "#D2CBF2", groundShade: "#BDB3EA", crater: "#AFA4E0", rock: "#9F95D6",
+    rocket: "#FFFFFF", rocketLine: "#B9C2D8", rocketRed: "#FF4D5A", rocketBlue: "#3D8BFF", window: "#7FD6FF", flame1: "#FFD23F", flame2: "#FF8A2A",
+    gem1: "#5DE0D0", gem2: "#FF8AD0", gem3: "#FFE04D", satellite: "#E6EAF2", panel: "#5DA9FF", comet: "#FFFFFF", ink: "#3A2A44",
+  },
+  underwater: {
+    sky1: "#62D2F5", sky2: "#2A8ED8", skyRay: "#EAFDFF", surface: "#A8ECFF",
+    reefFar: "#5DB3E0", reefMid: "#4FA9D9", sand: "#F7DFA5", sandShade: "#EACB8A", sandDot: "#E0BC78", rock: "#8C9FD8", rockShade: "#7A8DCB",
+    coral1: "#FF6FA8", coral2: "#FF8A5B", coral3: "#B38BFF", coral4: "#FFD23F", weed1: "#4CC77A", weed2: "#36B36E",
+    fish1: "#FFB23F", fish2: "#FF6B6B", fish3: "#FFE04D", fish4: "#B38BFF", fishStripe: "#FFFFFF", jelly: "#FFA8D8", whale: "#4F86D8", whaleBelly: "#BFE2FF",
+    turtle: "#7FCB6A", shell: "#C98F55", starfish: "#FF8A2A", seashell: "#FFC1D6", chest: "#C98F55", gold: "#FFD23F", bubble: "#EAFDFF", ink: "#3A2A44",
+  },
 };
 
 /** Ночные палитры помещений, нарисованные вручную (детская ночью — свой глубокий синий, а не затемнённый день). */
@@ -80,6 +143,9 @@ const NIGHT: Record<string, Palette> = {
 };
 
 const INDOOR = new Set(["living_room", "kitchen", "bedroom"]);
+INDOOR.add("bathroom").add("classroom");
+/** Воображаемые миры («понарошку»): своя яркая палитра, модификаторы времени/погоды/сезона не применяются. */
+export const IMAGINARY = new Set(["space", "underwater"]);
 const GROUND_T = new Set(["grass", "grassBlade", "grassMid", "hillFar", "hillMid", "windowHill"]);
 const LEAF_T = new Set(["leaf", "leafFar", "bush1", "bush2", "bush3", "fg1", "fg2", "fg3"]);
 const PINE_T = new Set(["pine", "pineFar"]);
@@ -145,9 +211,10 @@ function seasonal(k: string, v: string, season: Season, pal: Palette): string {
  * Палитра локации для состояния мира: база × сезон (растения, вода) × погода (небо, приглушение) × время суток (небо, свет).
  * Небо (токены sky*) и «земля» меняются по-разному; помещения ночью темнеют меньше — горит свет.
  */
-export function resolvePalette(location: string, world: WorldState = DEFAULT_WORLD): Palette {
+export function resolvePalette(location: string, world: WorldState = DEFAULT_WORLD, extra?: Palette): Palette {
   const w: WorldState = location === "garden_evening" ? { ...world, time: world.time === "day" ? "evening" : world.time } : world;
-  const base = BASE[location] ?? GARDEN;
+  const base = extra ?? BASE[location] ?? GARDEN; // extra — свои цвета (например, выбранные по сиду) в освещении этой локации
+  if (IMAGINARY.has(location)) return { ...base };
   const indoor = INDOOR.has(location);
   const night = w.time === "night" ? NIGHT[location] : undefined;
   const out: Palette = {};
@@ -162,6 +229,10 @@ export function resolvePalette(location: string, world: WorldState = DEFAULT_WOR
   for (const [k, v0] of Object.entries(base)) {
     if (night?.[k]) {
       out[k] = night[k]!;
+      continue;
+    }
+    if (k.startsWith("glow")) {
+      out[k] = v0; // источники света (огонь, фонари, окна) не темнеют ночью и не тускнеют в дождь
       continue;
     }
     let v = seasonal(k, v0, w.season, base);
@@ -185,3 +256,6 @@ export function resolvePalette(location: string, world: WorldState = DEFAULT_WOR
 }
 
 export const PALETTE_LOCATIONS = Object.keys(BASE);
+
+/** Тонировщик для цветов вне палитры (выбранных по сиду): тот же свет, погода и время суток, что у палитры локации. */
+export const worldTone = (location: string, world: WorldState) => (c: string): string => resolvePalette(location, world, { c }).c ?? c;

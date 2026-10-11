@@ -295,6 +295,217 @@
         "autumn",
         "winter"
       ]
+    },
+    {
+      "id": "bathroom",
+      "label": "Ванная",
+      "llm": "the bathroom (bubble bath with a rubber duck, sink and mirror, towels) — bath time and brushing teeth",
+      "outdoor": false,
+      "tags": [
+        "home",
+        "routine"
+      ],
+      "times": [
+        "morning",
+        "day",
+        "evening",
+        "night"
+      ],
+      "weather": [
+        "clear",
+        "cloudy",
+        "rain",
+        "snow",
+        "windy"
+      ],
+      "seasons": [
+        "spring",
+        "summer",
+        "autumn",
+        "winter"
+      ]
+    },
+    {
+      "id": "classroom",
+      "label": "Детский сад",
+      "llm": "the nursery classroom (little tables, colourful chairs, alphabet cards, easel, cubbies, shape rug)",
+      "outdoor": false,
+      "tags": [
+        "learning",
+        "friends"
+      ],
+      "times": [
+        "morning",
+        "day",
+        "evening"
+      ],
+      "weather": [
+        "clear",
+        "cloudy",
+        "rain",
+        "snow",
+        "windy"
+      ],
+      "seasons": [
+        "spring",
+        "summer",
+        "autumn",
+        "winter"
+      ]
+    },
+    {
+      "id": "farm",
+      "label": "Ферма",
+      "llm": "the farm (red barn, hay bales, tractor, cows, sheep, hens and a pig in the mud)",
+      "outdoor": true,
+      "tags": [
+        "animals",
+        "nature"
+      ],
+      "times": [
+        "morning",
+        "day",
+        "evening"
+      ],
+      "weather": [
+        "clear",
+        "cloudy",
+        "rain",
+        "snow",
+        "windy"
+      ],
+      "seasons": [
+        "spring",
+        "summer",
+        "autumn",
+        "winter"
+      ]
+    },
+    {
+      "id": "park_pond",
+      "label": "Парк с прудом",
+      "llm": "the park with a duck pond (ducks, little bridge, bench, lamp post, trees)",
+      "outdoor": true,
+      "tags": [
+        "nature",
+        "animals",
+        "water"
+      ],
+      "times": [
+        "morning",
+        "day",
+        "evening",
+        "night"
+      ],
+      "weather": [
+        "clear",
+        "cloudy",
+        "rain",
+        "snow",
+        "windy"
+      ],
+      "seasons": [
+        "spring",
+        "summer",
+        "autumn",
+        "winter"
+      ]
+    },
+    {
+      "id": "snowy_hill",
+      "label": "Снежная горка",
+      "llm": "a snowy sledding hill (pine trees, snowman, cosy cabin with smoke) — winter only",
+      "outdoor": true,
+      "tags": [
+        "winter",
+        "play"
+      ],
+      "times": [
+        "morning",
+        "day",
+        "evening",
+        "night"
+      ],
+      "weather": [
+        "clear",
+        "cloudy",
+        "snow",
+        "windy"
+      ],
+      "seasons": [
+        "winter"
+      ]
+    },
+    {
+      "id": "campsite",
+      "label": "Поход с палаткой",
+      "llm": "a campsite (tent, crackling campfire, logs to sit on, mountains and a lake, stars at night)",
+      "outdoor": true,
+      "tags": [
+        "nature",
+        "adventure",
+        "night"
+      ],
+      "times": [
+        "morning",
+        "day",
+        "evening",
+        "night"
+      ],
+      "weather": [
+        "clear",
+        "cloudy",
+        "windy"
+      ],
+      "seasons": [
+        "spring",
+        "summer",
+        "autumn"
+      ]
+    },
+    {
+      "id": "space",
+      "label": "Космос (понарошку)",
+      "llm": "pretend outer space (friendly rocket, colourful planets, twinkly stars, bouncy moon ground) — an imagination game",
+      "outdoor": false,
+      "tags": [
+        "imagination",
+        "adventure"
+      ],
+      "times": [
+        "day"
+      ],
+      "weather": [
+        "clear"
+      ],
+      "seasons": [
+        "spring",
+        "summer",
+        "autumn",
+        "winter"
+      ]
+    },
+    {
+      "id": "underwater",
+      "label": "Под водой (понарошку)",
+      "llm": "pretend under the sea (coral, swaying seaweed, friendly fish, bubbles, treasure chest) — an imagination game",
+      "outdoor": false,
+      "tags": [
+        "imagination",
+        "water"
+      ],
+      "times": [
+        "day"
+      ],
+      "weather": [
+        "clear"
+      ],
+      "seasons": [
+        "spring",
+        "summer",
+        "autumn",
+        "winter"
+      ]
     }
   ],
   "props": [
