@@ -213,7 +213,10 @@ async def llm_story(s: Any, plan: dict[str, Any], i: int, seconds: int) -> dict[
         "Start with a short narrator line, end with the lesson and a happy moment (cheer, hug or dance). "
         "Use moves, reactions, shots and the key-word cards to make it lively. Ask the viewer 2-3 questions."
     )
-    r = await prov.complete_json(SYSTEM_KIDS, user, STORY_SCHEMA, purpose="cartoon_story", max_tokens=16000, effort="medium")
+    try:
+        r = await prov.complete_json(SYSTEM_KIDS, user, STORY_SCHEMA, purpose="cartoon_story", max_tokens=24000, effort="medium")
+    except LLMError:  # обрезано/сбой — одна попытка ещё раз, с меньшим «размышлением»
+        r = await prov.complete_json(SYSTEM_KIDS, user, STORY_SCHEMA, purpose="cartoon_story", max_tokens=32000, effort="low")
     return dict(r.data)
 
 
@@ -248,7 +251,10 @@ async def llm_verify(s: Any, story: dict[str, Any]) -> tuple[dict[str, Any], lis
         "Fix problems without changing the structure.\n"
         + json.dumps(story, ensure_ascii=False)
     )
-    r = await prov.complete_json(SYSTEM_KIDS, user, VERIFY_SCHEMA, purpose="cartoon_verify", max_tokens=16000, effort="high")
+    try:
+        r = await prov.complete_json(SYSTEM_KIDS, user, VERIFY_SCHEMA, purpose="cartoon_verify", max_tokens=32000, effort="high")
+    except LLMError as e:  # редактор — улучшение: при сбое остаётся сценарий как есть
+        return story, [f"standards editor skipped: {e}"]
     fixed = story
     raw = r.data.get("fixed_story_json") or ""
     if raw.strip():
