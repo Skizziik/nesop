@@ -1,7 +1,7 @@
 /**
  * Вертикальный шортс 1080×1920 из готового эпизода: окно [from, to] перерисовывается из тех же сцен (не кроп видео) —
  * сцена масштабируется по высоте кадра, камера едет за говорящим/действием (shortFocus.ts), герои крупные.
- * Сверху — баннер-хук, значок сериала; снизу — субтитры/караоке выше зоны интерфейса YouTube (≥ 380 px от низа).
+ * Сверху — баннер-хук, значок сериала, под ним субтитры/караоке (низ кадра занят крупными героями и интерфейсом YouTube).
  * Звук — те же стемы эпизода со сдвигом на −from. Детский контент: никаких призывов подписаться.
  */
 import { AbsoluteFill, Sequence, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
@@ -29,7 +29,8 @@ export interface CartoonShortProps {
 export const shortFrames = (p: Partial<CartoonShortProps>): number => Math.max(1, Math.round(((p.to ?? 15) - (p.from ?? 0)) * (p.doc?.fps ?? 30)));
 
 /** Нижняя граница текста: выше неё — подписи, ниже — интерфейс YouTube (название, канал, кнопки). */
-const BOTTOM_SAFE = 380;
+/** Караоке и субтитры — под баннером, над головами: герои в шортсе крупные, низ кадра занят телами и интерфейсом YouTube. */
+const TEXT_TOP = 385;
 /** Справа колонка кнопок YouTube (лайк, комментарии) — текст туда не заходит. */
 const RIGHT_SAFE = 150;
 const XFADE = 0.25;
@@ -54,7 +55,7 @@ function ShortKaraoke({ o, lt, fps }: { o: Overlay; lt: number; fps: number }) {
   const fs = rows.length <= 2 ? 76 : 66;
   const hop = Math.sin(p * Math.PI);
   return (
-    <div style={{ position: "absolute", left: 40, right: RIGHT_SAFE, bottom: BOTTOM_SAFE, display: "flex", justifyContent: "center", opacity: out }}>
+    <div style={{ position: "absolute", left: 40, right: RIGHT_SAFE, top: TEXT_TOP, display: "flex", justifyContent: "center", opacity: out }}>
       <div
         style={{
           transform: `translateY(${(1 - k) * 90}px) scale(${0.85 + 0.15 * k})`,
@@ -114,7 +115,7 @@ function ShortCaption({ lines, lt, fps }: { lines: Line[]; lt: number; fps: numb
   const name = CAST[l.char]?.name ?? "";
   const fs = l.text.length > 70 ? 46 : 54;
   return (
-    <div style={{ position: "absolute", left: 40, right: RIGHT_SAFE, bottom: BOTTOM_SAFE, display: "flex", justifyContent: "center" }}>
+    <div style={{ position: "absolute", left: 40, right: RIGHT_SAFE, top: TEXT_TOP, display: "flex", justifyContent: "center" }}>
       <div
         style={{
           position: "relative",
@@ -147,7 +148,7 @@ function ShortOverlays({ sc, lt, fps, captions }: { sc: SceneDoc; lt: number; fp
   return (
     <>
       {top.length ? (
-        <div style={{ position: "absolute", left: 0, top: 380, width: SHORT_W / box, height: 700, transform: `scale(${box})`, transformOrigin: "0 0" }}>
+        <div style={{ position: "absolute", left: 0, top: 600, width: SHORT_W / box, height: 700, transform: `scale(${box})`, transformOrigin: "0 0" }}>
           <Overlays overlays={top} lt={lt} fps={fps} />
         </div>
       ) : null}
