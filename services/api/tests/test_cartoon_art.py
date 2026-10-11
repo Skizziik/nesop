@@ -53,3 +53,17 @@ def test_enforce_variety_changes_a_scene_when_all_look_the_same() -> None:
     assert notes and scenes[1]["time"] != "day"
     varied = [{"location": "garden", "time": "day", "beats": [{}]}, {"location": "forest", "time": "evening", "beats": [{}]}]
     assert art.enforce_variety(varied) == []
+
+
+def test_qa_checks_find_overlaps_absent_speakers_and_busy_camera() -> None:
+    doc = {"scenes": [{"kind": "story", "duration": 10, "camera": [{"t": 0}, {"t": 1}, {"t": 2}, {"t": 3}],
+                       "actors": [{"id": "benny", "keys": [{"t": 0, "x": 900}]}, {"id": "mia", "keys": [{"t": 0, "x": 1000}]}],
+                       "lines": [{"char": "dot", "text": "Woof woof", "dur": 1.0}],
+                       "items": [{"prop": "ball", "keys": [{"t": 1, "at": {"kind": "hand", "char": "ollie"}}]}]}]}
+    qa = art.qa_checks(doc)
+    text = " | ".join(qa["issues"])
+    assert "benny and mia overlap" in text and "dot speaks but is not in the scene" in text and "absent ollie" in text
+    ok = {"scenes": [{"kind": "story", "duration": 12, "camera": [{"t": 0}],
+                      "actors": [{"id": "benny", "keys": [{"t": 0, "x": 700}]}, {"id": "mia", "keys": [{"t": 0, "x": 1100}]}],
+                      "lines": [{"char": "mia", "text": "Hello Benny, look at this", "dur": 2.5}]}]}
+    assert art.qa_checks(ok)["issues"] == []

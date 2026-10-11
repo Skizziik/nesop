@@ -704,7 +704,10 @@ async def build_cartoon(project_id: str) -> None:
         sims = [art.similarity(fp, f) for f in fps_recent]
         if sims:
             report.append(f"similarity to recent episodes: max {max(sims):.2f} (target ≤ 0.35)")
-        meta = {"plan": plan, "scripts": scripts, "report": report, "chapters": chapters, "kind": "cartoon", "fingerprint": fp}
+        qa = art.qa_checks(doc, GAP - 20)
+        report += [f"qa: {x}" for x in qa["issues"]]
+        report.append(f"qa stats: {qa['stats']}")
+        meta = {"plan": plan, "scripts": scripts, "report": report, "chapters": chapters, "kind": "cartoon", "fingerprint": fp, "qa": qa}
         await progress("обложки и описание для YouTube", 0.96, doc=doc, meta=meta, title=str(doc["title"])[:200])
         from .youtube import build_youtube_cartoon
 

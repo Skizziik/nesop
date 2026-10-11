@@ -160,3 +160,55 @@ def enforce_variety(scenes: list[dict[str, Any]], min_looks: int = 2) -> list[st
 
 def dumps(x: Any) -> str:
     return json.dumps(x, ensure_ascii=False)
+
+
+def qa_checks(doc: dict[str, Any], gap: float = 230.0) -> dict[str, Any]:
+    """Автопроверки готового эпизода (без рендера): пересечения героев, говорящий в сцене, длина планов, темп речи, предметы.
+
+    Возвращает {"issues": [...], "stats": {...}} — пишется в meta.qa и в отчёт.
+    """
+    issues: list[str] = []
+    shots: list[float] = []
+    words = 0
+    speech = 0.0
+    for si, sc in enumerate(doc.get("scenes") or []):
+        if sc.get("kind") not in (None, "story", "song", "title", "outro"):
+            continue
+        actors = {a["id"]: a for a in sc.get("actors") or []}
+        # пересечения: позиции героев в моменты их ключей
+        times = sorted({float(k["t"]) for a in actors.values() for k in a.get("keys") or [] if "x" in k})
+        for t in times:
+            xs = []
+            for aid, a in actors.items():
+                ks = [k for k in a.get("keys") or [] if "x" in k]
+                prev = [k for k in ks if float(k["t"]) <= t]
+                if prev:
+                    xs.append((float(prev[-1]["x"]), aid))
+            xs.sort()
+            for (x1, a1), (x2, a2) in zip(xs, xs[1:], strict=False):
+                if 0 <= x1 <= 1920 and 0 <= x2 <= 1920 and x2 - x1 < gap:
+                    issues.append(f"scene {si}: {a1} and {a2} overlap at t={t:.1f} ({x2 - x1:.0f} < {gap:.0f})")
+                    break
+        for ln in sc.get("lines") or []:
+            if ln.get("char") not in actors and ln.get("char") != "narrator":
+                issues.append(f"scene {si}: {ln.get('char')} speaks but is not in the scene")
+            words += len(str(ln.get("text", "")).split())
+            speech += float(ln.get("dur") or 0)
+        for it in sc.get("items") or []:
+            for k in it.get("keys") or []:
+                at = k.get("at") or {}
+                if at.get("kind") == "hand" and at.get("char") not in actors:
+                    issues.append(f"scene {si}: {it.get('prop')} in the hand of absent {at.get('char')}")
+        cam = sc.get("camera") or []
+        moves = [float(c["t"]) for c in cam]
+        bounds = [0.0, *moves, float(sc.get("duration") or 0)]
+        shots += [b - a for a, b in zip(bounds, bounds[1:], strict=False) if b - a > 0.95]
+    seen: set[str] = set()
+    issues = [x for x in issues if not (x in seen or seen.add(x))][:30]
+    avg_shot = round(sum(shots) / len(shots), 1) if shots else 0.0
+    wpm = round(words / speech * 60) if speech else 0
+    if shots and avg_shot < 4:
+        issues.append(f"average shot {avg_shot}s < 4s — camera too busy")
+    if wpm > 150:
+        issues.append(f"speech rate {wpm} wpm > 150 — lines too long/fast for 2-5 year olds")
+    return {"issues": issues, "stats": {"avg_shot_s": avg_shot, "wpm": wpm, "words": words, "speech_s": round(speech, 1)}}
