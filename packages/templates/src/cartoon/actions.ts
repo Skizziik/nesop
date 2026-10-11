@@ -148,8 +148,8 @@ export function actionPose(kind: ActionKind, tl: number, t: number, dur = 2, pre
     }
     case "dance": {
       const b = Math.sin(tl * 6);
-      p.armL = [130 + b * 25, 30 + b * 20];
-      p.armR = [130 - b * 25, 30 - b * 20];
+      p.armL = [115 + b * 22, 30 + b * 20];
+      p.armR = [115 - b * 22, 30 - b * 20];
       p.lean = b * 7;
       p.tilt = -b * 6;
       p.lift = Math.max(0, Math.sin(tl * 12)) * 10;
