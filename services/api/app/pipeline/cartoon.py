@@ -279,13 +279,28 @@ async def llm_song(s: Any, song: dict[str, Any], plan: dict[str, Any]) -> dict[s
 
 
 # ------------------------------------------------------------------ озвучка
+async def tts_retry(text: str, speed: float, variant: int, design: str, tries: int = 3) -> dict[str, Any]:
+    """TTS с повтором: холодная загрузка модели с HDD или занятый диск дают таймаут — ждём и пробуем снова, а не роняем эпизод."""
+    import httpx
+
+    for k in range(tries):
+        try:
+            return await clients.tts_synthesize(text, "qwen3", None, speed, variant, None, None, design, language="en")
+        except (httpx.HTTPError, clients.ServiceError) as e:
+            if k == tries - 1:
+                raise clients.ServiceError(f"TTS не ответил после {tries} попыток: {type(e).__name__}") from e
+            log.warning("tts retry %s/%s after %s", k + 1, tries, type(e).__name__)
+            await asyncio.sleep(20 * (k + 1))
+    raise clients.ServiceError("TTS: нет ответа")
+
+
 async def voice_line(text: str, speaker: str) -> tuple[np.ndarray, dict[str, Any]]:
     """Реплика голосом героя; до 3 дублей, если Whisper слышит не то."""
     st = get_settings()
     design, speed = VOICES.get(speaker, VOICES["narrator"])
     best: tuple[float, np.ndarray] | None = None
     for variant in range(3):
-        r = await clients.tts_synthesize(text, "qwen3", None, speed, variant, None, None, design, language="en")
+        r = await tts_retry(text, speed, variant, design)
         clip = trim_silence(load_mono(st.data_dir / r["path"].lstrip("/")))
         heard = await clients.tts_transcribe(r["path"], "en")
         score = clients.speech_match(text, heard, "en") if heard is not None else 1.0
