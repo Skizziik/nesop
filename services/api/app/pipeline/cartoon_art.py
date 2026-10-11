@@ -177,6 +177,7 @@ def qa_checks(doc: dict[str, Any], gap: float = 230.0) -> dict[str, Any]:
         actors = {a["id"]: a for a in sc.get("actors") or []}
         # пересечения: позиции героев в моменты их ключей
         times = sorted({float(k["t"]) for a in actors.values() for k in a.get("keys") or [] if "x" in k})
+        pairs: set[tuple[str, str]] = set()
         for t in times:
             xs = []
             for aid, a in actors.items():
@@ -186,9 +187,9 @@ def qa_checks(doc: dict[str, Any], gap: float = 230.0) -> dict[str, Any]:
                     xs.append((float(prev[-1]["x"]), aid))
             xs.sort()
             for (x1, a1), (x2, a2) in zip(xs, xs[1:], strict=False):
-                if 0 <= x1 <= 1920 and 0 <= x2 <= 1920 and x2 - x1 < gap:
+                if 0 <= x1 <= 1920 and 0 <= x2 <= 1920 and x2 - x1 < gap and tuple(sorted((a1, a2))) not in pairs:
+                    pairs.add(tuple(sorted((a1, a2))))  # type: ignore[arg-type]
                     issues.append(f"scene {si}: {a1} and {a2} overlap at t={t:.1f} ({x2 - x1:.0f} < {gap:.0f})")
-                    break
         for ln in sc.get("lines") or []:
             if ln.get("char") not in actors and ln.get("char") != "narrator":
                 issues.append(f"scene {si}: {ln.get('char')} speaks but is not in the scene")
