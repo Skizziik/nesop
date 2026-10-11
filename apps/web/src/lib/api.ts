@@ -304,6 +304,7 @@ export const api = {
   projects: (kind?: string) => request<Project[]>(`/api/projects${kind ? `?kind=${kind}` : ""}`),
   project: (id: string) => request<ProjectFull>(`/api/projects/${id}`),
   createProject: (body: { title: string; aspect: "16:9" | "9:16" }) => request<ProjectFull>("/api/projects", { method: "POST", body: JSON.stringify(body) }),
+  cartoonCatalog: () => request<CartoonCatalog>("/api/cartoon/catalog"),
   createCartoon: (body: { theme: string; minutes: number; stories: number; auto_render: boolean }) =>
     request<Project>("/api/projects/cartoon", { method: "POST", body: JSON.stringify(body) }),
   createLecture: (body: LectureInput) => request<Project>("/api/projects/lecture", { method: "POST", body: JSON.stringify(body) }),
@@ -429,3 +430,28 @@ export const STAGE_LABEL: Record<string, string> = {
   done: "готово",
   "": "в очереди",
 };
+
+export type CatalogKind = "locations" | "props" | "outfits" | "fx" | "actions" | "characters";
+export interface CatalogEntry {
+  id: string;
+  label: string;
+  llm: string;
+  name?: string;
+  tags?: string[];
+  group?: string;
+  slot?: string;
+  outdoor?: boolean;
+  ground?: boolean;
+  colors?: string[];
+  adult_only?: boolean;
+  times?: string[];
+  weather?: string[];
+  compat?: Record<string, unknown>;
+}
+export interface CartoonCatalog {
+  version: string;
+  catalog: Record<CatalogKind, CatalogEntry[]>;
+  episodes_total: number;
+  usage: Record<CatalogKind, Record<string, number>>;
+  episodes: Record<CatalogKind, Record<string, number>>;
+}

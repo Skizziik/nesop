@@ -5,7 +5,7 @@
 import { AbsoluteFill } from "remotion";
 import { actionPose, type ActionKind } from "./actions";
 import { CAST } from "./cast";
-import { LOCATIONS } from "./locations";
+import { locationDef, locationProps } from "./locations";
 import { Character, type CEmotion } from "./rig";
 import { GROUND } from "./scenes";
 
@@ -24,7 +24,7 @@ export const CARTOON_THUMB_ID = "CartoonThumb";
 const ACCENTS = ["#FFE45C", "#FF6FA8", "#7CF29A"];
 
 export function CartoonThumb({ text, chars, emotions = [], actions = [], location = "garden", emoji, variant = 0 }: CartoonThumbProps) {
-  const loc = LOCATIONS[location] ?? LOCATIONS.garden!;
+  const loc = locationDef(location);
   const cam = { x: 960, y: 640, zoom: 1.1 };
   const list = chars.filter((c) => CAST[c]).slice(0, 3);
   const n = Math.max(1, list.length);
@@ -35,7 +35,7 @@ export function CartoonThumb({ text, chars, emotions = [], actions = [], locatio
     <AbsoluteFill style={{ overflow: "hidden", background: "#000" }}>
       {/* фон и герои рисуем в мире 1920×1080 и масштабируем в 1280×720 */}
       <svg viewBox="0 0 1920 1080" width={1280} height={720} style={{ position: "absolute", inset: 0 }}>
-        {loc.Back({ cam, t: 2 })}
+        <loc.Back {...locationProps(location, cam, 2, { uid: "thumb" })} />
         <rect x={0} y={0} width={1920} height={1080} fill="rgba(0,0,0,0.12)" />
         {list.map((id, i) => {
           const spec = CAST[id]!;

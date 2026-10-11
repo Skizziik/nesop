@@ -9,7 +9,8 @@ import { actionPose, type ActionKind } from "./actions";
 import { CAST } from "./cast";
 import { Character, type CEmotion, type Fx, type Wear } from "./rig";
 import { Prop } from "./props";
-import { LOCATIONS } from "./locations";
+import { locationDef, locationProps } from "./locations";
+import type { WorldState } from "./palette";
 import { GROUND, type Camera } from "./scenes";
 
 export interface ActorKey {
@@ -50,6 +51,10 @@ export interface SceneDoc {
   props?: { id: string; x: number; color?: string; scale?: number }[];
   overlays?: Overlay[];
   time?: "day" | "evening" | "night";
+  /** Сид сцены (хэш проекта + номер сцены): мелочи локации выбираются по нему; 0 — каноническая раскладка. */
+  seed?: number;
+  /** Состояние мира (этап 1 расширяет); без него — день, ясно, лето. */
+  world?: Partial<WorldState>;
   start: number;
   duration: number;
   camera: CamKey[];
@@ -195,9 +200,12 @@ function Scene({ sc, t, fps }: { sc: SceneDoc; t: number; fps: number }) {
   const H = 1080;
   const z = cam.zoom;
   const tf = `translate(${W / 2} ${H * 0.62}) scale(${z}) translate(${-cam.x} ${-cam.y})`;
+  const loc = locationDef(sc.location);
+  const world: WorldState = { time: sc.world?.time ?? sc.time ?? "day", weather: sc.world?.weather ?? (sc.weather === "rain" || sc.weather === "snow" ? sc.weather : "clear"), season: sc.world?.season ?? "summer", dressing: sc.world?.dressing ?? sc.decor ?? undefined };
+  const lp = locationProps(sc.location, cam, t + sc.start, { world, seed: sc.seed ?? 0, uid: `sc${Math.round(sc.start * 1000)}` });
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{ position: "absolute", inset: 0 }}>
-      {(LOCATIONS[sc.location] ?? LOCATIONS.garden!).Back({ cam, t: t + sc.start })}
+      <loc.Back {...lp} />
       <g transform={tf}>
         {sc.decor === "birthday" ? <Birthday t={t} /> : null}
         {(sc.props ?? []).map((pr, i) => (
@@ -236,7 +244,7 @@ function Scene({ sc, t, fps }: { sc: SceneDoc; t: number; fps: number }) {
             );
           })}
       </g>
-      {(LOCATIONS[sc.location] ?? LOCATIONS.garden!).Front?.({ cam, t: t + sc.start })}
+      {loc.Front ? <loc.Front {...lp} /> : null}
       {sc.weather ? <Weather kind={sc.weather} t={t + sc.start} /> : null}
       {sc.time === "evening" ? <rect width={W} height={H} fill="#FF7A3D" opacity={0.14} /> : sc.time === "night" ? <rect width={W} height={H} fill="#1B2A6B" opacity={0.38} /> : null}
     </svg>

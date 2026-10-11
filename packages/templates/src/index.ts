@@ -21,3 +21,6 @@ export { CartoonEpisode, DEMO_CARTOON, type CartoonDoc, type SceneDoc } from "./
 export { CartoonThumb, CARTOON_THUMB_ID, type CartoonThumbProps } from "./cartoon/Thumb";
 export { CAST, CAST_IDS } from "./cartoon/cast";
 export { LOCATIONS, LOCATION_IDS } from "./cartoon/locations";
+export { AssetSheet, ASSET_SHEET_ID, SHEET_KINDS } from "./cartoon/AssetSheet";
+export { resolvePalette, DEFAULT_WORLD, type WorldState } from "./cartoon/palette";
+export { handPositions, rigMetrics } from "./cartoon/rig";

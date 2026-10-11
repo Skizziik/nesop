@@ -4,7 +4,8 @@
  */
 import { REST, type Pose } from "./rig";
 
-export type ActionKind = "idle" | "talk" | "walk" | "run" | "wave" | "point" | "jump" | "clap" | "dance" | "think" | "shrug" | "cheer" | "sad" | "scared" | "hug" | "sit" | "bow";
+export const ACTION_IDS = ["idle", "talk", "walk", "run", "wave", "point", "jump", "clap", "dance", "think", "shrug", "cheer", "sad", "scared", "hug", "sit", "bow"] as const;
+export type ActionKind = (typeof ACTION_IDS)[number];
 
 const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 const ease = (k: number) => (k < 0 ? 0 : k > 1 ? 1 : k * k * (3 - 2 * k));

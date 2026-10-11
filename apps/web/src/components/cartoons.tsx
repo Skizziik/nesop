@@ -3,7 +3,7 @@
 import { CartoonEpisode } from "@ipt/templates";
 import { Player } from "@remotion/player";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Download, Film, Loader2, Rabbit, Trash2, Wand2 } from "lucide-react";
+import { ArrowLeft, Download, Film, LayoutGrid, Loader2, Rabbit, Trash2, Wand2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -54,7 +54,10 @@ export function Cartoons() {
 
   return (
     <div className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)] gap-6">
-      <div>
+      <div className="relative">
+        <Link href="/cartoons/catalog" className="absolute right-0 top-1 inline-flex items-center gap-1 rounded-full bg-panel-2 px-3 py-1 text-sm font-bold text-mute hover:text-ink">
+          <LayoutGrid size={15} /> Каталог ассетов
+        </Link>
         <h1 className="font-display text-3xl font-bold">Мультики</h1>
         <p className="text-sm text-mute">Мультфильмы для детей 2–5 лет на английском: 3–4 истории с Бенни, Мией, Олли и Дот, песенки, вопросы зрителю, слова урока.</p>
       </div>

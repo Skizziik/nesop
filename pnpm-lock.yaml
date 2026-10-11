@@ -140,6 +140,9 @@ importers:
         specifier: 4.0.534
         version: 4.0.534(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
     devDependencies:
+      '@types/node':
+        specifier: 22.18.0
+        version: 22.18.0
       '@types/react':
         specifier: 19.3.0
         version: 19.3.0
@@ -157,7 +160,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 4.1.11
-        version: 4.1.11(@types/node@22.20.5)(vite@8.3.3(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15))
+        version: 4.1.11(@types/node@22.18.0)(vite@8.3.3(@types/node@22.18.0)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15))
 
 packages:
 

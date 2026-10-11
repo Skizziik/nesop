@@ -11,6 +11,7 @@ import { Thumbnail, THUMBNAIL_ID, THUMB_H, THUMB_W } from "./timeline/Thumbnail"
 import { ChannelBanner, BANNER_ID, BANNER_H, BANNER_W } from "./timeline/ChannelBanner";
 import { CartoonEpisode, DEMO_CARTOON } from "./cartoon/Episode";
 import { CartoonThumb, CARTOON_THUMB_ID } from "./cartoon/Thumb";
+import { AssetSheet, ASSET_SHEET_ID } from "./cartoon/AssetSheet";
 
 export const TIMELINE_ID = "Timeline";
 
@@ -51,6 +52,16 @@ export const RemotionRoot: React.FC = () => (
     width={1280}
     height={720}
     defaultProps={{ text: "Sharing is fun", chars: ["benny", "mia"], location: "garden", emoji: "🍎", variant: 0 }}
+  />
+  <Composition
+    id={ASSET_SHEET_ID}
+    component={AssetSheet as unknown as React.FC<AnyProps>}
+    durationInFrames={90}
+    fps={30}
+    width={1920}
+    height={1080}
+    defaultProps={{ kind: "props" }}
+    calculateMetadata={({ props }) => ((props as { only?: string }).only ? { width: 480, height: 360 } : { width: 1920, height: 1080 })}
   />
   <Composition id={BANNER_ID} component={ChannelBanner as unknown as React.FC<AnyProps>} durationInFrames={1} fps={30} width={BANNER_W} height={BANNER_H} defaultProps={{}} />
   <Composition

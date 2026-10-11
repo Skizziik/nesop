@@ -31,8 +31,10 @@ export interface Pose {
   lean: number; // наклон корпуса
 }
 
-export type Wear = "raincoat" | "pajamas" | "party_hat" | "scarf" | "sun_hat" | "winter_hat";
-export type Fx = "hearts" | "sparkles" | "zzz" | "notes" | "sweat" | "exclaim" | "question" | "puff";
+export const WEAR_IDS = ["raincoat", "pajamas", "party_hat", "scarf", "sun_hat", "winter_hat"] as const;
+export type Wear = (typeof WEAR_IDS)[number];
+export const FX_IDS = ["hearts", "sparkles", "zzz", "notes", "sweat", "exclaim", "question", "puff"] as const;
+export type Fx = (typeof FX_IDS)[number];
 
 export interface CharState {
   hold?: { id: string; color?: string }; // предмет в правой руке
@@ -161,8 +163,9 @@ function FxLayer({ fx, x, y, t }: { fx: Fx; x: number; y: number; t: number }) {
       <g>
         {items.map((k, i) => {
           const p = ph(k);
-          const gx = x + (i - 1) * 46 + Math.sin(p * 6 + i) * 10;
-          const gy = y - p * 120;
+          // сбоку от головы и вверх — не налезает на уши зайца/кошки и на поднятые руки
+          const gx = x + 100 + (i - 1) * 30 + Math.sin(p * 6 + i) * 10;
+          const gy = y + 70 - p * 140;
           const op = p < 0.15 ? p / 0.15 : 1 - (p - 0.15) / 0.85;
           const body =
             fx === "hearts" ? (
@@ -456,14 +459,47 @@ function Outfit({ spec, bw, top, bottom }: { spec: CharacterSpec; bw: number; to
   return null;
 }
 
+/** Размеры скелета: одни и те же числа для отрисовки и для расчёта точек (руки, голова). */
+export function rigMetrics(spec: CharacterSpec) {
+  const adult = !!spec.adult;
+  return {
+    adult,
+    legH: adult ? 58 : 34,
+    bodyH: adult ? 150 : 112,
+    bw: adult ? 62 : 58, // полуширина тела у пояса
+    r: adult ? 78 : 86, // радиус головы (у малышей голова крупнее)
+    armLen: adult ? 54 : 44,
+  };
+}
+
+/**
+ * Точки скелета в локальных координатах персонажа (ступни в 0,0, до масштаба сцены) с учётом прыжка и наклона корпуса:
+ * кисти L/R, центр головы, макушка. Нужны, чтобы привязать предмет к руке, эффект к голове, передать предмет из рук в руки.
+ */
+export function handPositions(spec: CharacterSpec, pose: Pose, t: number) {
+  const m = rigMetrics(spec);
+  const bob = Math.sin(t * 2.4) * 2.2 + pose.bob;
+  const bodyTop = -m.legH - m.bodyH + bob;
+  const shoulderY = bodyTop + 30;
+  const headY = bodyTop - m.r * 0.72;
+  const lean = deg(pose.lean);
+  // поворот вокруг бёдер (0, -legH) и подъём на lift — как transform у <Character>
+  const place = ([x, y]: [number, number]): [number, number] => {
+    const dy = y + m.legH;
+    return [x * Math.cos(lean) - dy * Math.sin(lean), x * Math.sin(lean) + dy * Math.cos(lean) - m.legH - pose.lift];
+  };
+  return {
+    L: place(handPos(-m.bw * 0.68, shoulderY, pose.armL[0], pose.armL[1], -1, m.armLen)),
+    R: place(handPos(m.bw * 0.68, shoulderY, pose.armR[0], pose.armR[1], 1, m.armLen)),
+    head: place([0, headY]),
+    top: place([0, headY - m.r * 1.1]),
+  };
+}
+
 /** Персонаж в локальных координатах (ступни в 0,0). Оборачивай в <g transform="translate(x y) scale(s)">. */
 export function Character({ spec, st, t }: { spec: CharacterSpec; st: CharState; t: number }) {
   const p = st.pose;
-  const adult = !!spec.adult;
-  const legH = adult ? 58 : 34;
-  const bodyH = adult ? 150 : 112;
-  const bw = adult ? 62 : 58; // полуширина тела у пояса
-  const r = adult ? 78 : 86; // радиус головы (у малышей голова крупнее)
+  const { adult, legH, bodyH, bw, r } = rigMetrics(spec);
   const bob = Math.sin(t * 2.4) * 2.2 + p.bob;
   const lift = p.lift;
   const bodyTop = -legH - bodyH + bob;

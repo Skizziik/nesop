@@ -135,7 +135,7 @@ app.post("/render", (req, res) => {
 });
 
 /** Один кадр в png (обложки YouTube): синхронно, без очереди видео — рендер кадра занимает секунды. */
-const STILLS = new Set(["Thumbnail", "Timeline", "Cartoon", "CartoonThumb", COMPOSITION_ID]);
+const STILLS = new Set(["Thumbnail", "Timeline", "Cartoon", "CartoonThumb", "AssetSheet", COMPOSITION_ID]);
 app.post("/still", async (req, res) => {
   const { props, out, composition, frame } = req.body as { props?: Record<string, unknown>; out?: string; composition?: string; frame?: number };
   if (!props || !out || !composition || !STILLS.has(composition)) {

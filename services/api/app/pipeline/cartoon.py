@@ -10,6 +10,8 @@ import asyncio
 import json
 import logging
 import time
+import zlib
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -27,42 +29,22 @@ from .music import render as render_music
 
 log = logging.getLogger("farm.cartoon")
 
-# ------------------------------------------------------------------ библия сериала
-CAST = {
-    "benny": {"name": "Benny", "who": "a curious, cheerful little bunny (4), the main character; loves asking 'why?' and trying new things", "catch": "Hop hop, hooray!"},
-    "mia": {"name": "Mia", "who": "Benny's best friend, a clever kitten (5) with a pink bow; loves drawing, counting and solving problems", "catch": "I have an idea!"},
-    "ollie": {"name": "Ollie", "who": "a big, gentle bear cub (5); slow, kind, always hungry, giggles a lot, sometimes a bit shy", "catch": "Yummy in my tummy!"},
-    "dot": {"name": "Dot", "who": "a tiny, super energetic puppy (3); silly, runs everywhere, says 'Me too!'", "catch": "Woof! Me too, me too!"},
-    "mama": {"name": "Mama Bunny", "who": "Benny's warm, patient mum; helps the kids find the answer themselves", "catch": "Let's think about it together."},
-}
-VOICES = {
-    "narrator": ("A friendly female storyteller in her thirties, like a beloved children's TV presenter: warm, smiling, expressive and gentle, clear American English, slow and easy for toddlers to follow.", 0.95),
-    "benny": ("A cheerful, curious little boy about five years old with a bright, high, playful voice, excited and full of wonder, clear American English, speaking slowly.", 0.95),
-    "mia": ("A sweet, clever little girl about five years old with a high, clear, confident voice, kind and bubbly, clear American English, speaking slowly.", 0.95),
-    "ollie": ("A gentle, chubby little boy about six years old with a soft, slightly lower, slow and cozy voice, giggly and kind, clear American English.", 0.92),
-    "dot": ("A tiny, squeaky, super energetic toddler about three years old, very high-pitched, giggly and silly, clear American English, short excited words.", 1.0),
-    "mama": ("A warm, loving young mother in her early thirties with a soft, calm, gentle voice, patient and reassuring, clear American English.", 0.95),
-}
-LOCATIONS = {
-    "garden": "the sunny garden outside Benny's house (fence, flowers, butterflies)",
-    "garden_evening": "the garden at sunset",
-    "living_room": "Benny's cosy living room (sofa, toys shelf, window)",
-    "kitchen": "the kitchen (table, fridge, fruit bowl, stove)",
-    "bedroom": "Benny's bedroom at night (bed, moon in the window, night light)",
-    "playground": "the playground (slide, swings, sandbox)",
-    "beach": "the beach (waves, umbrella, bucket, shells)",
-    "forest": "the forest (tall trees, stream, mushrooms)",
-}
-ACTIONS = ["talk", "idle", "wave", "point", "jump", "clap", "dance", "think", "shrug", "cheer", "sad", "scared", "hug", "bow", "walk", "run"]
-EMOTIONS = ["neutral", "happy", "laugh", "sad", "surprised", "angry", "scared", "thinking", "sleepy"]
+# ------------------------------------------------------------------ каталог (единая точка правды — TS, см. docs/cartoon-visual-variety.md)
+# packages/templates/src/cartoon/catalog → `pnpm --filter @ipt/templates catalog:export` → cartoon_catalog.json
+CATALOG: dict[str, Any] = json.loads((Path(__file__).with_name("cartoon_catalog.json")).read_text(encoding="utf-8"))
+
+CAST = {c["id"]: {"name": c["name"], "who": c["llm"], "catch": c["catchphrase"]} for c in CATALOG["characters"]}
+VOICES: dict[str, tuple[str, float]] = {c["id"]: (c["voice"]["description"], float(c["voice"]["speed"])) for c in CATALOG["characters"]}
+VOICES["narrator"] = (CATALOG["narrator"]["voice"]["description"], float(CATALOG["narrator"]["voice"]["speed"]))
+LOCATIONS = {loc["id"]: loc["llm"] for loc in CATALOG["locations"]}
+ACTIONS = [a["id"] for a in CATALOG["actions"]]
+EMOTIONS = [e["id"] for e in CATALOG["emotions"]]
 SPEAKERS = [*CAST, "narrator"]
-PROPS = ["ball", "balloon", "kite", "umbrella", "toothbrush", "book", "teddy", "apple", "banana", "carrot", "cake", "cookie", "ice_cream", "cup",
-         "bucket", "spade", "flower", "star", "gift", "crayon", "drawing", "blocks", "toy_car", "drum", "sandwich", "bowl", "pillow", "bubbles", "leaf",
-         "shell", "sandcastle", "snowman", "puddle", "magnifier", "plaster"]
-WEAR = ["raincoat", "pajamas", "party_hat", "scarf", "sun_hat", "winter_hat"]
-FX = ["hearts", "sparkles", "zzz", "notes", "sweat", "exclaim", "question", "puff"]
-COLORS = {"red": "#FF4D5A", "blue": "#3D8BFF", "yellow": "#FFD23F", "green": "#4CB944", "orange": "#FF8A2A", "purple": "#8E5CFF", "pink": "#FF6FA8",
-          "white": "#FFFFFF", "brown": "#A86B3C"}
+PROPS = [pr["id"] for pr in CATALOG["props"]]
+WEAR = [o["id"] for o in CATALOG["outfits"]]
+FX = [f["id"] for f in CATALOG["fx"]]
+COLORS: dict[str, str] = dict(CATALOG["colors"])
+PROPS_LLM = "; ".join(f"{pr['id']} = {pr['llm']}" for pr in CATALOG["props"])
 
 RULES = (
     "Audience: children aged 2-5 who are learning to speak; parents watch too. Language: simple, warm, natural English.\n"
@@ -82,6 +64,7 @@ BIBLE = (
     "Series: friends Benny (bunny), Mia (kitten), Ollie (bear cub) and Dot (puppy), with Mama Bunny.\n"
     + "\n".join(f"- {k}: {v['name']} — {v['who']}. Catchphrase: «{v['catch']}»" for k, v in CAST.items())
     + "\nLocations (use ONLY these ids): " + "; ".join(f"{k} = {v}" for k, v in LOCATIONS.items())
+    + "\nProps (use ONLY these ids): " + PROPS_LLM
 )
 SYSTEM_KIDS = (
     "You are the head writer of a top preschool animated series (like Bluey, Peppa Pig, Blue's Clues). "
@@ -269,11 +252,16 @@ async def voice_line(text: str, speaker: str) -> tuple[np.ndarray, dict[str, Any
 class Director:
     """Собирает сцены CartoonDoc: время, позиции, действия, камера, надписи, огибающие рта."""
 
-    def __init__(self) -> None:
+    def __init__(self, project_id: str = "") -> None:
+        self.project_id = project_id
         self.scenes: list[dict[str, Any]] = []
         self.clips: list[tuple[float, np.ndarray]] = []  # (глобальное время, звук) — дорожка голосов
         self.t = 0.0  # глобальное время
         self.chapters: list[tuple[float, str]] = []
+
+    def _seed(self) -> int:
+        """Сид сцены: хэш проекта + номер сцены — мелочи локации (цвета игрушек, цветы, облака) разные, но рендер детерминирован."""
+        return zlib.crc32(f"{self.project_id}:{len(self.scenes)}".encode()) % 1_000_000 + 1
 
     def _place(self, cast: list[str]) -> dict[str, float]:
         layouts = {1: ["center"], 2: ["center_left", "center_right"], 3: ["left", "center", "right"], 4: ["left", "center_left", "center_right", "right"]}
@@ -359,7 +347,7 @@ class Director:
         props = [{"id": pp["prop"], "x": SLOTS.get(pp.get("where") or "center", 960.0) + 60, **({"color": COLORS[pp["color"]]} if pp.get("color") in COLORS else {})}
                  for pp in (lk.get("props") or []) if pp.get("prop") in PROPS][:4]
         self.scenes.append({
-            "location": location, "kind": kind, "start": round(self.t, 3), "duration": dur_total,
+            "location": location, "kind": kind, "seed": self._seed(), "start": round(self.t, 3), "duration": dur_total,
             "camera": cam, "actors": [{"id": c, "keys": k, **({"wear": wear[c]} if wear.get(c) else {})} for c, k in keys.items()],
             "lines": lines, "overlays": overlays,
             **({"weather": lk["weather"]} if lk.get("weather") in ("rain", "snow", "leaves") else {}),
@@ -391,7 +379,7 @@ class Director:
         bars = int(np.ceil(total / bar))
         music = Track(f"song-{int(time.time() * 1000) % 10**9}", title, "C", bpm, (0, 4, 5, 3), bars, 0.8, 0.0, True)
         self.scenes.append({
-            "location": location, "kind": "song", "start": round(self.t, 3), "duration": round(total, 3),
+            "location": location, "kind": "song", "seed": self._seed(), "start": round(self.t, 3), "duration": round(total, 3),
             "camera": [{"t": 0, "x": float(np.mean(list(pos.values()))), "zoom": 1.0}, {"t": total, "x": float(np.mean(list(pos.values()))), "zoom": 1.12}],
             "actors": [{"id": c, "keys": k} for c, k in keys.items()], "lines": lines, "overlays": overlays,
         })
@@ -442,7 +430,7 @@ async def build_cartoon(project_id: str) -> None:
                 lyrics.append(await llm_song(s, sg, plan))
 
         await progress("озвучка и режиссура", 0.32)
-        d = Director()
+        d = Director(project_id)
         everyone = list(CAST)[:4]
         await d.scene("garden", everyone, [{"speaker": "narrator", "text": plan.get("intro") or "Hello, friends! Welcome!", "shot": "wide"}],
                       kind="title", title=plan.get("title") or theme)
