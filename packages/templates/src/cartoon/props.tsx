@@ -2,13 +2,14 @@
  * Предметы историй: рисуются вокруг (0,0) — центр «хвата» (для предметов в руке) или середина низа (на земле).
  * Размер ~ ладонь ребёнка = 60-90 единиц. color — для предметов, у которых важен цвет (уроки про цвета).
  */
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
+import { MORE_PROPS } from "./props_more";
 import { shade } from "./rig";
 
 const o = (c: string) => shade(c, 0.35);
-type F = (c: string, t: number) => ReactNode;
+type F = (c: string, t: number, state?: string) => ReactNode;
 
-const P: Record<string, { draw: F; color?: string; ground?: boolean; label: string }> = {
+const BASE: Record<string, { draw: F; color?: string; ground?: boolean; label: string }> = {
   ball: { label: "ball", color: "#FF4D5A", draw: (c, t) => (
     <g transform={`rotate(${t * 120})`}>
       <circle r={34} fill={c} stroke={o(c)} strokeWidth="4" />
@@ -249,13 +250,135 @@ const P: Record<string, { draw: F; color?: string; ground?: boolean; label: stri
   ) },
 };
 
+const P: Record<string, { draw: F; color?: string; ground?: boolean; label: string }> = { ...BASE, ...MORE_PROPS };
+
+/** Предметы, которые можно надкусить и доесть (общая «маска укуса»). */
+export const EDIBLE = new Set(["apple", "banana", "carrot", "cookie", "sandwich", "cupcake", "watermelon", "strawberry", "orange", "ice_cream", "cake"]);
+
+/** Особые состояния: рисуются вместо обычного вида. */
+const STATES: Record<string, F> = {
+  "balloon:popped": (c, t) => (
+    <g>
+      <path d="M0 0 q-8 -40 4 -70" stroke="#7A6A5A" strokeWidth="3" fill="none" />
+      {[0, 1, 2, 3, 4].map((i) => {
+        const a = (i / 5) * Math.PI * 2 + 0.4;
+        const r = 30 + Math.min(1, t % 10) * 10;
+        return <path key={i} d="M0 0 l10 -6 l4 10 z" fill={c} stroke={o(c)} strokeWidth="2" transform={`translate(${Math.cos(a) * r} ${-90 + Math.sin(a) * r}) rotate(${i * 70})`} />;
+      })}
+    </g>
+  ),
+  "gift:open": (c, t) => (
+    <g>
+      <rect x={-50} y={-80} width={100} height={80} rx={8} fill={c} stroke={o(c)} strokeWidth="5" />
+      <rect x={-10} y={-80} width={20} height={80} fill="#FFD23F" />
+      <g transform="translate(-58 -96) rotate(-24)">
+        <rect x={0} y={0} width={110} height={22} rx={6} fill={c} stroke={o(c)} strokeWidth="5" />
+        <rect x={45} y={0} width={20} height={22} fill="#FFD23F" />
+      </g>
+      {[0, 1, 2, 3].map((i) => (
+        <path key={i} d="M0 -10 L3 -3 L10 0 L3 3 L0 10 L-3 3 L-10 0 L-3 -3 Z" fill="#FFE45C" transform={`translate(${-30 + i * 20} ${-100 - ((t * 40 + i * 13) % 50)}) scale(${1 + (i % 2) * 0.4})`} opacity={0.9} />
+      ))}
+    </g>
+  ),
+  "cake:blown": (c, t) => (
+    <g>
+      <rect x={-80} y={-70} width={160} height={70} rx={14} fill={c} stroke={o(c)} strokeWidth="5" />
+      <path d="M-80 -50 q20 18 40 0 q20 18 40 0 q20 18 40 0 q20 18 40 0" stroke="#FFFFFF" strokeWidth="10" fill="none" strokeLinecap="round" />
+      {[-40, 0, 40].map((x) => (
+        <g key={x}>
+          <rect x={x - 5} y={-110} width={10} height={40} rx={4} fill="#7FD7FF" />
+          <path d={`M${x} -114 q-8 -14 0 -26 q8 -12 0 -26`} stroke="#B9B9C9" strokeWidth="3" fill="none" opacity={0.7} transform={`translate(0 ${-((t * 20) % 12)})`} />
+        </g>
+      ))}
+    </g>
+  ),
+  "umbrella:closed": (c) => (
+    <g>
+      <path d="M0 0 V-150" stroke="#5A4A3A" strokeWidth="6" />
+      <path d="M0 0 q0 14 -12 14" stroke="#5A4A3A" strokeWidth="6" fill="none" strokeLinecap="round" />
+      <path d="M0 -170 L-16 -40 Q0 -30 16 -40 Z" fill={c} stroke={o(c)} strokeWidth="5" strokeLinejoin="round" />
+    </g>
+  ),
+  "snowman:melted": () => (
+    <g>
+      <ellipse cx={0} cy={-8} rx={90} ry={18} fill="#CFE9F7" stroke="#9FC8E0" strokeWidth="4" />
+      <ellipse cx={-10} cy={-16} rx={44} ry={14} fill="#FFFFFF" />
+      <path d="M20 -20 l30 6 l-30 4 z" fill="#FF8A2A" />
+      <circle cx={-30} cy={-16} r={6} fill="#333" />
+      <path d="M-70 -14 q30 10 60 0" stroke="#E53950" strokeWidth="10" fill="none" strokeLinecap="round" />
+    </g>
+  ),
+  "sandcastle:fallen": (c) => (
+    <g>
+      <path d="M-90 0 Q-70 -50 -20 -46 Q10 -70 50 -40 Q90 -30 90 0 Z" fill={c} stroke={o(c)} strokeWidth="5" strokeLinejoin="round" />
+      <path d="M40 -44 l20 -40 l14 16 l-18 4" stroke="#5A4A3A" strokeWidth="3" fill="#FF5E5B" transform="rotate(30 40 -44)" />
+    </g>
+  ),
+  "drawing:blank": () => <rect x={-50} y={-40} width={100} height={76} rx={4} fill="#FFFFFF" stroke="#D6D6E0" strokeWidth="3" transform="rotate(-6)" />,
+  "ice_cream:melting": (c, t) => (
+    <g>
+      <path d="M-26 -20 L26 -20 L0 50 Z" fill="#E8B46A" stroke="#B88540" strokeWidth="4" strokeLinejoin="round" />
+      <path d="M-30 -24 Q-30 -64 0 -64 Q30 -64 30 -24 Q24 -14 20 -22 Q14 -6 8 -20 Q0 -2 -6 -20 Q-14 -8 -18 -22 Q-24 -12 -30 -24 Z" fill={c} stroke={o(c)} strokeWidth="4" strokeLinejoin="round" />
+      <ellipse cx={8} cy={-2 + ((t * 30) % 40)} rx={4} ry={6} fill={c} />
+    </g>
+  ),
+  "book:closed": (c) => (
+    <g>
+      <rect x={-34} y={-44} width={68} height={84} rx={6} fill={c} stroke={o(c)} strokeWidth="4" />
+      <rect x={-34} y={-44} width={12} height={84} rx={4} fill={o(c)} />
+      <circle cx={6} cy={-6} r={14} fill="#FFD23F" />
+    </g>
+  ),
+};
+
+export const PROP_STATES: Record<string, string[]> = {};
+for (const k of Object.keys(STATES)) {
+  const [id, st] = k.split(":") as [string, string];
+  (PROP_STATES[id] ??= []).push(st);
+}
+for (const id of EDIBLE) (PROP_STATES[id] ??= []).push("bitten", "eaten");
+PROP_STATES.egg = ["cracked"];
+PROP_STATES.watering_can = ["pouring"];
+
 export const PROP_IDS = Object.keys(P);
 export const PROP_LABELS: Record<string, string> = Object.fromEntries(Object.entries(P).map(([k, v]) => [k, v.label]));
 export const GROUND_PROPS = Object.entries(P).filter(([, v]) => v.ground).map(([k]) => k);
 
-/** Предмет: id из библиотеки, цвет (для уроков про цвета), t — время для мелкой анимации. */
-export function Prop({ id, color, t, scale = 1 }: { id: string; color?: string; t: number; scale?: number }) {
+/** Предмет: id из библиотеки, цвет (для уроков про цвета), t — время для мелкой анимации, state — состояние из каталога. */
+export function Prop({ id, color, t, scale = 1, state }: { id: string; color?: string; t: number; scale?: number; state?: string }) {
+  const uid = useId().replace(/:/g, "");
   const p = P[id];
   if (!p) return null;
-  return <g transform={`scale(${scale})`}>{p.draw(color ?? p.color ?? "#FF4D5A", t)}</g>;
+  const c = color ?? p.color ?? "#FF4D5A";
+  const special = state ? STATES[`${id}:${state}`] : undefined;
+  if (special) return <g transform={`scale(${scale})`}>{special(c, t, state)}</g>;
+  if (EDIBLE.has(id) && state === "eaten")
+    return (
+      <g transform={`scale(${scale})`}>
+        {id === "apple" ? (
+          <g>
+            <path d="M-12 -40 Q0 -30 12 -40 Q2 -10 12 20 Q0 12 -12 20 Q-2 -10 -12 -40 Z" fill="#FFF3C9" stroke="#D9B86A" strokeWidth="3" />
+            <path d="M0 -40 q2 -14 8 -18" stroke="#6B4A2A" strokeWidth="5" fill="none" strokeLinecap="round" />
+          </g>
+        ) : (
+          [[-10, 8], [6, 12], [14, 2], [-2, 18]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r={3 + (i % 2)} fill={shade(c, 0.1)} />)
+        )}
+      </g>
+    );
+  if (EDIBLE.has(id) && state === "bitten")
+    // укус — маска с тремя кругами в верхнем правом краю (форма зубок)
+    return (
+      <g transform={`scale(${scale})`}>
+        <defs>
+          <mask id={`bite-${uid}`} maskUnits="userSpaceOnUse" x={-200} y={-300} width={400} height={500}>
+            <rect x={-200} y={-300} width={400} height={500} fill="#FFFFFF" />
+            <circle cx={30} cy={-34} r={16} fill="#000000" />
+            <circle cx={40} cy={-14} r={14} fill="#000000" />
+            <circle cx={18} cy={-46} r={12} fill="#000000" />
+          </mask>
+        </defs>
+        <g mask={`url(#bite-${uid})`}>{p.draw(c, t)}</g>
+      </g>
+    );
+  return <g transform={`scale(${scale})`}>{p.draw(c, t, state)}</g>;
 }

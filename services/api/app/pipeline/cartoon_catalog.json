@@ -321,6 +321,9 @@
         "yellow",
         "pink",
         "purple"
+      ],
+      "states": [
+        "popped"
       ]
     },
     {
@@ -350,6 +353,9 @@
         "red",
         "yellow",
         "blue"
+      ],
+      "states": [
+        "closed"
       ]
     },
     {
@@ -372,6 +378,9 @@
         "purple",
         "blue",
         "red"
+      ],
+      "states": [
+        "closed"
       ]
     },
     {
@@ -388,32 +397,58 @@
       "colors": [
         "red",
         "green"
-      ]
+      ],
+      "states": [
+        "bitten",
+        "eaten"
+      ],
+      "edible": true
     },
     {
       "id": "banana",
       "label": "Банан",
       "llm": "a banana",
-      "group": "food"
+      "group": "food",
+      "states": [
+        "bitten",
+        "eaten"
+      ],
+      "edible": true
     },
     {
       "id": "carrot",
       "label": "Морковка",
       "llm": "a carrot",
-      "group": "food"
+      "group": "food",
+      "states": [
+        "bitten",
+        "eaten"
+      ],
+      "edible": true
     },
     {
       "id": "cake",
       "label": "Торт со свечками",
       "llm": "a birthday cake with candles",
       "group": "party",
-      "ground": true
+      "ground": true,
+      "states": [
+        "blown",
+        "bitten",
+        "eaten"
+      ],
+      "edible": true
     },
     {
       "id": "cookie",
       "label": "Печенье",
       "llm": "a cookie",
-      "group": "food"
+      "group": "food",
+      "states": [
+        "bitten",
+        "eaten"
+      ],
+      "edible": true
     },
     {
       "id": "ice_cream",
@@ -424,7 +459,13 @@
         "pink",
         "white",
         "brown"
-      ]
+      ],
+      "states": [
+        "melting",
+        "bitten",
+        "eaten"
+      ],
+      "edible": true
     },
     {
       "id": "cup",
@@ -491,6 +532,9 @@
         "purple",
         "red",
         "blue"
+      ],
+      "states": [
+        "open"
       ]
     },
     {
@@ -510,7 +554,10 @@
       "id": "drawing",
       "label": "Рисунок",
       "llm": "a drawing on paper",
-      "group": "party"
+      "group": "party",
+      "states": [
+        "blank"
+      ]
     },
     {
       "id": "blocks",
@@ -542,7 +589,12 @@
       "id": "sandwich",
       "label": "Бутерброд",
       "llm": "a sandwich",
-      "group": "food"
+      "group": "food",
+      "states": [
+        "bitten",
+        "eaten"
+      ],
+      "edible": true
     },
     {
       "id": "bowl",
@@ -608,7 +660,10 @@
       "ground": true,
       "compat": {
         "outdoor": true
-      }
+      },
+      "states": [
+        "fallen"
+      ]
     },
     {
       "id": "snowman",
@@ -618,13 +673,13 @@
       "ground": true,
       "compat": {
         "outdoor": true,
-        "weather": [
-          "snow"
-        ],
         "seasons": [
           "winter"
         ]
-      }
+      },
+      "states": [
+        "melted"
+      ]
     },
     {
       "id": "puddle",
@@ -650,6 +705,306 @@
       "label": "Пластырь",
       "llm": "a plaster (band-aid)",
       "group": "home"
+    },
+    {
+      "id": "orange",
+      "label": "Апельсин",
+      "llm": "an orange",
+      "group": "food",
+      "states": [
+        "bitten",
+        "eaten"
+      ],
+      "edible": true
+    },
+    {
+      "id": "strawberry",
+      "label": "Клубника",
+      "llm": "a strawberry",
+      "group": "food",
+      "states": [
+        "bitten",
+        "eaten"
+      ],
+      "edible": true
+    },
+    {
+      "id": "watermelon",
+      "label": "Арбуз",
+      "llm": "a slice of watermelon",
+      "group": "food",
+      "compat": {
+        "seasons": [
+          "summer"
+        ]
+      },
+      "states": [
+        "bitten",
+        "eaten"
+      ],
+      "edible": true
+    },
+    {
+      "id": "grapes",
+      "label": "Виноград",
+      "llm": "a bunch of grapes",
+      "group": "food",
+      "colors": [
+        "purple",
+        "green"
+      ]
+    },
+    {
+      "id": "cupcake",
+      "label": "Капкейк",
+      "llm": "a cupcake with a cherry",
+      "group": "party",
+      "colors": [
+        "pink",
+        "blue",
+        "yellow"
+      ],
+      "states": [
+        "bitten",
+        "eaten"
+      ],
+      "edible": true
+    },
+    {
+      "id": "pancakes",
+      "label": "Блинчики",
+      "llm": "a stack of pancakes with butter",
+      "group": "food",
+      "ground": true
+    },
+    {
+      "id": "juice",
+      "label": "Сок",
+      "llm": "a juice box",
+      "group": "food",
+      "colors": [
+        "orange",
+        "red",
+        "green"
+      ]
+    },
+    {
+      "id": "milk",
+      "label": "Молоко",
+      "llm": "a glass of milk",
+      "group": "food"
+    },
+    {
+      "id": "egg",
+      "label": "Яйцо",
+      "llm": "an egg",
+      "group": "food",
+      "states": [
+        "cracked"
+      ]
+    },
+    {
+      "id": "rubber_duck",
+      "label": "Резиновая уточка",
+      "llm": "a rubber duck (bath toy)",
+      "group": "toys",
+      "colors": [
+        "yellow"
+      ]
+    },
+    {
+      "id": "soap",
+      "label": "Мыло",
+      "llm": "a bar of soap with bubbles (washing hands)",
+      "group": "home",
+      "colors": [
+        "blue",
+        "pink",
+        "green"
+      ]
+    },
+    {
+      "id": "towel",
+      "label": "Полотенце",
+      "llm": "a towel",
+      "group": "home",
+      "colors": [
+        "pink",
+        "blue",
+        "yellow"
+      ]
+    },
+    {
+      "id": "robot",
+      "label": "Робот",
+      "llm": "a toy robot",
+      "group": "toys",
+      "ground": true
+    },
+    {
+      "id": "dinosaur",
+      "label": "Динозаврик",
+      "llm": "a toy dinosaur",
+      "group": "toys",
+      "ground": true,
+      "colors": [
+        "green",
+        "orange",
+        "purple"
+      ]
+    },
+    {
+      "id": "train",
+      "label": "Паровозик",
+      "llm": "a toy train",
+      "group": "toys",
+      "ground": true
+    },
+    {
+      "id": "boat",
+      "label": "Кораблик",
+      "llm": "a toy sailboat",
+      "group": "toys",
+      "colors": [
+        "blue",
+        "red",
+        "yellow"
+      ]
+    },
+    {
+      "id": "trumpet",
+      "label": "Дудка",
+      "llm": "a toy trumpet",
+      "group": "toys"
+    },
+    {
+      "id": "xylophone",
+      "label": "Ксилофон",
+      "llm": "a rainbow toy xylophone",
+      "group": "toys",
+      "ground": true
+    },
+    {
+      "id": "jump_rope",
+      "label": "Скакалка",
+      "llm": "a jump rope",
+      "group": "toys",
+      "colors": [
+        "pink",
+        "blue"
+      ]
+    },
+    {
+      "id": "magic_wand",
+      "label": "Волшебная палочка",
+      "llm": "a pretend magic wand with a star",
+      "group": "party"
+    },
+    {
+      "id": "crown",
+      "label": "Корона",
+      "llm": "a paper crown",
+      "group": "party",
+      "colors": [
+        "yellow"
+      ]
+    },
+    {
+      "id": "backpack",
+      "label": "Рюкзак",
+      "llm": "a little backpack",
+      "group": "clothes",
+      "ground": true,
+      "colors": [
+        "blue",
+        "red",
+        "green",
+        "purple"
+      ]
+    },
+    {
+      "id": "watering_can",
+      "label": "Лейка",
+      "llm": "a watering can (for watering flowers)",
+      "group": "nature",
+      "colors": [
+        "green",
+        "blue",
+        "red"
+      ],
+      "states": [
+        "pouring"
+      ]
+    },
+    {
+      "id": "snowball",
+      "label": "Снежок",
+      "llm": "a snowball",
+      "group": "nature",
+      "compat": {
+        "outdoor": true,
+        "seasons": [
+          "winter"
+        ]
+      }
+    },
+    {
+      "id": "acorn",
+      "label": "Жёлудь",
+      "llm": "an acorn",
+      "group": "nature",
+      "compat": {
+        "seasons": [
+          "autumn"
+        ]
+      }
+    },
+    {
+      "id": "sled",
+      "label": "Санки",
+      "llm": "a sled",
+      "group": "toys",
+      "ground": true,
+      "compat": {
+        "outdoor": true,
+        "seasons": [
+          "winter"
+        ]
+      }
+    },
+    {
+      "id": "tricycle",
+      "label": "Трёхколёсный велосипед",
+      "llm": "a tricycle",
+      "group": "toys",
+      "ground": true,
+      "compat": {
+        "outdoor": true
+      },
+      "colors": [
+        "red",
+        "blue",
+        "yellow"
+      ]
+    },
+    {
+      "id": "butterfly_net",
+      "label": "Сачок",
+      "llm": "a butterfly net",
+      "group": "nature",
+      "compat": {
+        "outdoor": true,
+        "seasons": [
+          "spring",
+          "summer"
+        ]
+      }
+    },
+    {
+      "id": "paper_plane",
+      "label": "Бумажный самолётик",
+      "llm": "a paper plane",
+      "group": "toys"
     }
   ],
   "outfits": [
