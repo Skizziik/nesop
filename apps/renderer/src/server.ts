@@ -94,7 +94,9 @@ async function renderOnce(job: RenderJob): Promise<void> {
   job.status = "postprocess";
   // Громкость -14 LUFS и faststart. Видео копируется без перекодирования.
   const tmp = join(job.outDir, "video.tmp.mp4");
-  await ffmpeg(["-i", raw, "-c:v", "copy", "-af", "loudnorm=I=-14:TP=-1.5:LRA=11", "-ar", "48000", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", tmp]);
+  // мультик уже сведён в -14 LUFS / -1 dBTP (services/api/app/pipeline/sfx.py) — повторный loudnorm в динамическом режиме сжал бы микс
+  const norm = compId === "Cartoon" ? [] : ["-af", "loudnorm=I=-14:TP=-1.5:LRA=11"];
+  await ffmpeg(["-i", raw, "-c:v", "copy", ...norm, "-ar", "48000", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", tmp]);
   const video = join(job.outDir, "video.mp4");
   await rename(tmp, video);
   await rm(raw, { force: true });
