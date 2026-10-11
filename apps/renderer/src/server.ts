@@ -108,6 +108,16 @@ async function renderOnce(job: RenderJob): Promise<void> {
     log("warn", "cover failed", { job: job.id, error: String(e).slice(0, 300) });
     job.outputs = { video };
   }
+  if (compId === "Cartoon") {
+    // контактный лист для проверки глазами: кадр каждые 15 с, по 5 в ряд (docs/cartoon-visual-variety.md, автопроверки)
+    const secs = composition.durationInFrames / composition.fps;
+    const rows = Math.max(1, Math.ceil(secs / 15 / 5));
+    try {
+      await ffmpeg(["-y", "-i", video, "-vf", `fps=1/15,scale=384:-1,tile=5x${rows}:padding=4:color=0x2A1B33`, "-frames:v", "1", join(job.outDir, "contact.png")]);
+    } catch (e) {
+      log("warn", "contact sheet failed", { job: job.id, error: String(e).slice(0, 300) });
+    }
+  }
   log("info", "render done", { job: job.id, ms: Date.now() - t0, frames: composition.durationInFrames });
 }
 

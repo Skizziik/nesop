@@ -224,6 +224,7 @@ export function CartoonView({ id }: { id: string }) {
               controls
               acknowledgeRemotionLicense
             />
+            {p.video_url && !p.video_stale ? <ContactSheet src={p.video_url.replace(/video\.mp4$/, "contact.png")} /> : null}
           </div>
           <div className="min-h-0 rounded-2xl border border-line bg-panel">
             <div className="grid grid-cols-2 border-b border-line text-xs font-bold">
@@ -263,5 +264,18 @@ export function CartoonView({ id }: { id: string }) {
         </div>
       ) : null}
     </div>
+  );
+}
+
+/** Контактный лист отрендеренного мультика: кадр каждые 15 с — весь эпизод одним взглядом (проверка перед загрузкой). */
+function ContactSheet({ src }: { src: string }) {
+  const [ok, setOk] = useState(true);
+  if (!ok) return null;
+  return (
+    <details className="border-t border-line bg-panel p-2 text-xs text-mute">
+      <summary className="cursor-pointer font-bold">Контактный лист (кадр каждые 15 с)</summary>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt="контактный лист" className="mt-2 w-full rounded-lg" onError={() => setOk(false)} />
+    </details>
   );
 }
