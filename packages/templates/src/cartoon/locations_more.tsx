@@ -1285,8 +1285,8 @@ function Campfire({ x, y, t, pal, world, uid }: { x: number; y: number; t: numbe
     <g transform={`translate(${x} ${y})`}>
       {k ? (
         <g>
-          <Glow id={`${uid}-fireg`} x={0} y={0} r={420} ry={110} t={t * 2.5} k={k * 0.9} color={pal.glowFire2!} />
-          <Glow id={`${uid}-firea`} x={0} y={-100} r={340} t={t * 3} k={k * 0.7} color={pal.glowFire3!} />
+          <Glow id={`${uid}-fireg`} x={0} y={0} r={460} ry={120} t={t * 2.5} k={k * 1.3} color={pal.glowFire2!} />
+          <Glow id={`${uid}-firea`} x={0} y={-100} r={380} t={t * 3} k={k} color={pal.glowFire3!} />
         </g>
       ) : (
         [0, 1, 2].map((i) => {
