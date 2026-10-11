@@ -5,8 +5,9 @@ import "@fontsource/fredoka/600.css";
 import "@fontsource/fredoka/700.css";
 import "@fontsource/nunito/700.css";
 import "@fontsource/nunito/800.css";
+import "@fontsource/andika/700.css"; // карточки слов в мультиках: однокомнатные «a» и «g», как в детских прописях
 
-export const FONT_FAMILIES = ["Montserrat", "Fredoka", "Nunito"] as const;
+export const FONT_FAMILIES = ["Montserrat", "Fredoka", "Nunito", "Andika"] as const;
 
 /** Явно грузит все начертания (иначе браузер грузит шрифт лениво и первые кадры рендерятся системным). */
 export async function loadAllFonts(): Promise<void> {

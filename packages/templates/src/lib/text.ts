@@ -2,7 +2,7 @@
  * Детерминированный подбор размера шрифта без измерения DOM (одинаково в Player и в renderer).
  * Коэффициент — средняя ширина символа в em для жирных капсов (Montserrat 800 ≈ 0.72, с запасом).
  */
-const CHAR_EM: Record<string, number> = { Montserrat: 0.74, Fredoka: 0.64, Nunito: 0.66 };
+const CHAR_EM: Record<string, number> = { Montserrat: 0.74, Fredoka: 0.64, Nunito: 0.66, Andika: 0.62 };
 
 export function fitFontSize(text: string, boxWidth: number, maxSize: number, font: string, minSize = 22): number {
   const em = CHAR_EM[font] ?? 0.72;

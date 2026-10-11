@@ -124,6 +124,9 @@ importers:
 
   packages/templates:
     dependencies:
+      '@fontsource/andika':
+        specifier: 5.3.0
+        version: 5.3.0
       '@fontsource/fredoka':
         specifier: 5.3.0
         version: 5.3.0
@@ -509,6 +512,9 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@fontsource/andika@5.3.0':
+    resolution: {integrity: sha512-m15/VavWcrOhTJr4xXVKTKrJgI8Ny4fI52ZwcoYH3kH6IyLpAfuYUuFouI223WFbDP0kwvKsOOankklFNyMvNw==}
 
   '@fontsource/fredoka@5.3.0':
     resolution: {integrity: sha512-s2IhjQ50wDnKkkaKmjhtL0rxQg6ITsVusiipM3m7zUwVZZbbCKsscNDkngwp28xVzfIt7neWrkgU1qKqyTycQg==}
@@ -2785,6 +2791,8 @@ snapshots:
 
   '@esbuild/win32-x64@0.28.2':
     optional: true
+
+  '@fontsource/andika@5.3.0': {}
 
   '@fontsource/fredoka@5.3.0': {}
 

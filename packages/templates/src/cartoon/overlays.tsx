@@ -110,7 +110,7 @@ function WordCard({ o, lt, fps }: { o: OverlayDoc; lt: number; fps: number }) {
                 key={i}
                 style={{
                   display: "inline-block",
-                  fontFamily: "Fredoka",
+                  fontFamily: "Andika",
                   fontWeight: 700,
                   fontSize: fs,
                   lineHeight: 1.12,
