@@ -1,6 +1,6 @@
 """Процедурные SFX, атмосферы и сведение звука мультика (собственная генерация → CC0, чистый numpy).
 
-- Разовые звуки: boing, pop, footstep (своя высота у каждого героя), whoosh, sparkle, ding, chime, splash, clap, heart,
+- Разовые звуки: boing, hop, pop, footstep (своя высота у каждого героя), whoosh, sparkle, ding, chime, splash, clap, heart,
   snore, bell, knock, drumroll, notes, droplet, exclaim, hmm, poof, uhoh, thump, crunch, nom (+ старые pop/tick/ding/whoosh/buzz/confetti
   для роликов-форматов — GENERATORS, /data/sfx).
 - Атмосферы — бесшовные лупы ~20 с: rain, wind, birds, waves, crickets.
@@ -163,6 +163,16 @@ def boing() -> F32:
     ph = 2 * np.pi * np.cumsum(f) / SR
     x = (np.sin(ph) + 0.35 * np.sin(2 * ph) + 0.12 * np.sin(3 * ph)) * _env(t, 0.004, 0.18)
     return _out(fft_filter(x, hi=3500), 0.85)
+
+
+def hop() -> F32:
+    """Заячий прыжок: короткая лёгкая «пружинка» выше и мягче, чем boing."""
+    dur = 0.28
+    t = _t(dur)
+    f = 320 * (1 + 0.7 * (1 - np.exp(-t * 30))) * (1 + 0.12 * np.sin(2 * np.pi * 16 * t) * np.exp(-t * 8))
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    x = (np.sin(ph) + 0.25 * np.sin(2 * ph)) * _env(t, 0.003, 0.07)
+    return _out(fft_filter(x, hi=4000), 0.8)
 
 
 def thump() -> F32:
@@ -366,7 +376,7 @@ def nom(variant: int = 0) -> F32:
 
 
 ONESHOTS: dict[str, Callable[[], F32]] = {
-    "boing": boing, "thump": thump, "pop": pop, "whoosh": whoosh, "sparkle": sparkle, "ding": ding, "chime": chime,
+    "boing": boing, "hop": hop, "thump": thump, "pop": pop, "whoosh": whoosh, "sparkle": sparkle, "ding": ding, "chime": chime,
     "splash": splash, "clap": clap, "heart": heart, "snore": snore, "bell": bell, "knock": knock, "drumroll": drumroll,
     "notes": notes, "droplet": droplet, "exclaim": exclaim, "hmm": hmm, "poof": poof, "uhoh": uhoh, "tick": tick,
     "crunch": crunch, "nom": nom,
@@ -588,7 +598,9 @@ TRANSITIONS = ("cut", "fade", "iris", "wipe", "star", "bubble")
 OUTDOOR = {"garden", "garden_evening", "playground", "beach", "forest"}
 FX_SOUND = {"hearts": ("heart", 0.26), "sparkles": ("sparkle", 0.24), "zzz": ("snore", 0.3), "notes": ("notes", 0.22),
             "sweat": ("droplet", 0.22), "exclaim": ("exclaim", 0.2), "question": ("hmm", 0.24), "puff": ("poof", 0.3)}
-WALK_SPEED = {"walk": 8.0, "run": 13.0}  # фаза шага = tl * speed (actions.ts); стопа касается земли при фазе kπ (rig.tsx Leg)
+WALK_SPEED = {"walk": 8.0, "run": 13.0, "tiptoe": 6.0}  # фаза шага = tl * speed (actions.ts); стопа встаёт на землю при фазе kπ (rig.tsx stepCycle)
+STEP_GAIN = {"walk": 0.2, "run": 0.16, "tiptoe": 0.08}
+HOP_PERIOD = 0.55  # actions.ts hop: присед 0–0.25, полёт до конца периода
 JUMP_PERIOD = 0.8  # actions.ts: присед 0–0.15, полёт 0.15–0.85, приземление
 CLAP_W = 11.0  # actions.ts: ладони вместе при sin(tl*11) = 1
 
@@ -730,7 +742,7 @@ def scene_events(scenes: list[dict[str, Any]]) -> tuple[list[Ev], list[Bed]]:
                         evs.append(Ev(S + t0, "whoosh", 0.14, duck=0.7))
                     k = 1
                     while t0 + k * math.pi / sp < t1 - 0.03:
-                        evs.append(Ev(S + t0 + k * math.pi / sp, f"step:{ch}:{k % 4}", 0.2 if a == "walk" else 0.16, duck=0.75))
+                        evs.append(Ev(S + t0 + k * math.pi / sp, f"step:{ch}:{k % 4}", STEP_GAIN[a], duck=0.75))
                         k += 1
                 elif a == "jump":
                     for k in range(3):
@@ -740,6 +752,16 @@ def scene_events(scenes: list[dict[str, Any]]) -> tuple[list[Ev], list[Bed]]:
                         evs.append(Ev(S + up, "boing", 0.3 * (1.0, 0.75, 0.6)[k], duck=0.8))
                         if t0 + 0.68 + JUMP_PERIOD * k < t1:
                             evs.append(Ev(S + t0 + 0.68 + JUMP_PERIOD * k, f"step:{ch}:{k % 4}", 0.14, duck=0.8))
+                elif a == "hop":
+                    for k in range(4):
+                        up = t0 + 0.25 * HOP_PERIOD + HOP_PERIOD * k
+                        if up >= t1:
+                            break
+                        evs.append(Ev(S + up, "hop", 0.22 * (1.0, 0.8, 0.7, 0.6)[k], duck=0.8))
+                elif a == "spin":
+                    evs.append(Ev(S + t0 + 0.15, "whoosh", 0.12, duck=0.8))
+                elif a == "high_five" and t0 + 0.47 < t1:
+                    evs.append(Ev(S + t0 + 0.47, "clap", 0.24, duck=0.85))
                 elif a == "clap":
                     k = 0
                     while k < 8 and t0 + (math.pi / 2 + 2 * math.pi * k) / CLAP_W < t1:
@@ -783,8 +805,13 @@ def scene_events(scenes: list[dict[str, Any]]) -> tuple[list[Ev], list[Bed]]:
             elif ov.get("kind") == "question":
                 evs.append(Ev(t, "sting:question:0", G_QUESTION, "music", 1.0))
                 evs.append(Ev(t + float(ov.get("dur", 2.8)) - 0.1, "chime", 0.2, duck=0.9))
-    evs.sort(key=lambda e: e.t)
-    return evs, beds
+    evs.sort(key=lambda e: (e.t, e.name))
+    out: list[Ev] = []
+    for e in evs:  # один и тот же звук в один момент (два героя дают «пять») — один раз, не двойная громкость
+        if out and out[-1].name == e.name and e.t - out[-1].t < 0.02:
+            continue
+        out.append(e)
+    return out, beds
 
 
 def merge_beds(beds: list[Bed], gap: float = 0.05) -> list[Bed]:

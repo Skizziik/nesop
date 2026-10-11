@@ -97,6 +97,19 @@ def test_scene_events_inferred() -> None:
     assert not any(b.start < 9.5 for b in beds)  # под заставкой и бампером — только их музыка
 
 
+def test_rig_v2_actions() -> None:
+    sc = {"location": "kitchen", "kind": "story", "start": 0.0, "duration": 6.0, "lines": [],
+          "actors": [{"id": "dot", "keys": [{"t": 0, "action": "tiptoe"}, {"t": 1.2, "action": "hop"}, {"t": 2.4, "action": "spin"},
+                                              {"t": 3.4, "action": "high_five"}, {"t": 4.2, "action": "idle"}]},
+                     {"id": "mia", "keys": [{"t": 3.4, "action": "high_five"}, {"t": 4.2, "action": "idle"}]}]}
+    evs, _ = sfx.scene_events([sc])
+    names = [(e.name, round(e.t, 3)) for e in evs]
+    assert ("step:dot:1", round(math.pi / 6, 3)) in names  # на цыпочках: шаг каждые π/6 с
+    assert ("hop", round(1.2 + 0.25 * 0.55, 3)) in names
+    assert ("whoosh", 2.55) in names
+    assert names.count(("clap", 3.87)) == 1  # два героя дают «пять» — один хлопок
+
+
 def test_transition_for_matches_ts_rules() -> None:
     sc = _scenes()
     assert [sfx.transition_for(sc, i) for i in range(len(sc))] == ["cut", "star", "wipe", "fade", "wipe", "iris"]
