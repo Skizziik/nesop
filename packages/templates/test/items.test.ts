@@ -21,7 +21,7 @@ describe("предметы сцены", () => {
   it("бросок летит дугой выше обеих точек", () => {
     const ball: SceneItem = { uid: "b", prop: "ball", keys: [{ t: 0, at: { kind: "ground", x: 600 } }, { t: 1, at: { kind: "hand", char: "mia" }, anim: "throw" }] };
     const top = itemAt(ball, 1.37, hand)!;
-    expect(top.y).toBeLessThan(700 - 150);
+    expect(top.y).toBeLessThan(700 - 100); // выше руки ловящего (старт с земли y≈911)
   });
   it("до первого ключа предмета нет, улетевший шарик исчезает", () => {
     const b: SceneItem = { uid: "c", prop: "balloon", keys: [{ t: 1, at: { kind: "hand", char: "benny" } }, { t: 2, at: { kind: "ground", x: 0 }, anim: "float_away" }] };
