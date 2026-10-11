@@ -12,8 +12,8 @@ import { Prop } from "./props";
 import { locationDef, locationProps } from "./locations";
 import type { WorldState } from "./palette";
 import { GROUND, type Camera } from "./scenes";
-import { Caption, INK, Overlays } from "./overlays";
-import { ShowIntro, ShowOutro } from "./ShowIntro";
+import { Caption, INK, Overlays, SeriesBadge } from "./overlays";
+import { ShowBumper, ShowIntro, ShowOutro } from "./ShowIntro";
 import { IRIS_CLOSE, inDuration, IrisClose, TransitionIn, transitionFor, type TransitionKind } from "./transitions";
 
 export interface ActorKey {
@@ -48,8 +48,11 @@ export interface Overlay {
 }
 export interface SceneDoc {
   location: string;
-  /** intro / outro — заставка сериала и прощальная карточка (рисуются вместо локации, см. ShowIntro.tsx). */
-  kind?: "story" | "song" | "title" | "intro" | "outro";
+  /**
+   * intro / outro — заставка сериала и прощальная карточка; bumper — перебивка «Story time!» / «Song time!» / «Word time!»
+   * (текст — из overlay kind "title", иначе «Story time!»). Рисуются вместо локации, см. ShowIntro.tsx.
+   */
+  kind?: "story" | "song" | "title" | "intro" | "outro" | "bumper";
   /** Переход на входе в сцену; без него — выбирается по типу и номеру сцены (transitions.tsx → transitionFor). */
   transitionIn?: TransitionKind;
   weather?: "rain" | "snow" | "leaves" | null;
@@ -82,6 +85,8 @@ export interface CartoonDoc {
   audio?: AudioTrack[];
   asset_base?: string;
   show_captions?: boolean;
+  /** Значок «Benny & Friends» в углу на сюжетных сценах (по умолчанию включён). */
+  series_badge?: boolean;
 }
 
 const easeIO = (k: number) => (k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2);
@@ -257,13 +262,16 @@ function Scene({ sc, t, fps }: { sc: SceneDoc; t: number; fps: number }) {
   );
 }
 
+/** Сцены-карточки сериала (рисуются целиком, без локации). */
+const isCard = (sc: SceneDoc) => sc.kind === "intro" || sc.kind === "outro" || sc.kind === "bumper";
+
 /** Слой одной сцены: картинка (локация или заставка сериала) + надписи + субтитры. */
 function SceneLayer({ sc, t, fps, captions }: { sc: SceneDoc; t: number; fps: number; captions: boolean }) {
-  if (sc.kind === "intro" || sc.kind === "outro") {
+  if (isCard(sc)) {
     const ti = (sc.overlays ?? []).find((o) => o.kind === "title");
     return (
       <AbsoluteFill>
-        {sc.kind === "intro" ? <ShowIntro t={t} fps={fps} /> : <ShowOutro t={t} fps={fps} title={ti?.text} sub={ti?.sub} />}
+        {sc.kind === "intro" ? <ShowIntro t={t} fps={fps} /> : sc.kind === "outro" ? <ShowOutro t={t} fps={fps} title={ti?.text} sub={ti?.sub} /> : <ShowBumper t={t} fps={fps} text={ti?.text} />}
         <Overlays overlays={sc.overlays} lt={t} fps={fps} skipTitle />
       </AbsoluteFill>
     );
@@ -279,7 +287,7 @@ function SceneLayer({ sc, t, fps, captions }: { sc: SceneDoc; t: number; fps: nu
 
 /** Точка фокуса перехода (iris/звезда) в пикселях кадра: лицо последнего говорящего, иначе первого героя. */
 function focusPoint(sc: SceneDoc, t: number): [number, number] {
-  if (sc.kind === "intro" || sc.kind === "outro" || !sc.actors.length) return [960, 520];
+  if (isCard(sc) || !sc.actors.length) return [960, 520];
   const spoke = [...sc.lines].reverse().find((l) => l.start <= t);
   const a = sc.actors.find((x) => x.id === spoke?.char && CAST[x.id]) ?? sc.actors.find((x) => CAST[x.id]);
   if (!a) return [960, 520];
@@ -325,7 +333,14 @@ export function CartoonEpisode(doc: CartoonDoc) {
   const fadeOut = idx === scenes.length - 1 ? interpolate(lt, [sc.duration - 0.45, sc.duration], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) : 1;
   return (
     <AbsoluteFill style={{ background: INK }}>
-      <AbsoluteFill style={{ opacity: fadeIn * fadeOut }}>{body}</AbsoluteFill>
+      <AbsoluteFill style={{ opacity: fadeIn * fadeOut }}>
+        {body}
+        {doc.series_badge !== false && !isCard(sc) ? (
+          <AbsoluteFill style={{ opacity: idx > 0 && isCard(scenes[idx - 1]!) && din > 0 ? Math.min(1, lt / din) : 1 }}>
+            <SeriesBadge t={t} />
+          </AbsoluteFill>
+        ) : null}
+      </AbsoluteFill>
       {(doc.audio ?? []).map((a, i) => {
         const src = resolveAsset(a.src, doc.asset_base);
         if (!src) return null;

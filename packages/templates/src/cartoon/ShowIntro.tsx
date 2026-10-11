@@ -114,7 +114,7 @@ function LogoLetter({ ch, color, k, bob, rot, size }: { ch: string; color: strin
   const common = { fontFamily: "Fredoka", fontWeight: 700, fontSize: size, lineHeight: 1 } as const;
   return (
     <span style={{ position: "relative", display: "inline-block", transform: `translateY(${(1 - k) * -520 + bob}px) rotate(${rot}deg) scale(${0.4 + 0.6 * k})`, opacity: k > 0 ? 1 : 0, margin: "0 -2px" }}>
-      <span style={{ ...common, position: "absolute", left: 0, top: 0, color: PLUM, WebkitTextStroke: `${size * 0.16}px ${PLUM}`, transform: `translateY(${size * 0.07}px)` }}>{ch}</span>
+      <span style={{ ...common, position: "absolute", left: 0, top: 0, color: PLUM, WebkitTextStroke: `${size * 0.13}px ${PLUM}`, transform: `translateY(${size * 0.06}px)` }}>{ch}</span>
       <span style={{ ...common, position: "relative", color, WebkitTextStroke: `${size * 0.045}px #FFFFFF`, paintOrder: "stroke fill" }}>{ch}</span>
     </span>
   );
@@ -237,47 +237,30 @@ export function ShowIntro({ t, fps }: { t: number; fps: number }) {
   );
 }
 
-/** Значок «колокольчик» в круглой плашке (качается). */
-function BellBadge({ t, k }: { t: number; k: number }) {
-  const swing = Math.sin(t * 9) * 16 * (0.6 + 0.4 * Math.sin(t * 1.5));
+/** Пляжный мячик (иконка «пора играть»), центр в 0,0. */
+function PlayBall({ r = 54 }: { r?: number }) {
   return (
-    <svg viewBox="-80 -80 160 160" width={150} height={150} style={{ overflow: "visible", transform: `scale(${k})` }}>
-      <circle cy={8} r={70} fill={shade("#FFB23F", 0.4)} />
-      <circle r={70} fill="#FFB23F" stroke="#FFFFFF" strokeWidth={8} />
-      <g transform={`rotate(${swing} 0 -40)`}>
-        <path d="M-34 22 C-30 -10 -32 -36 0 -40 C32 -36 30 -10 34 22 L42 30 H-42 Z" fill="#FFE45C" stroke={PLUM} strokeWidth={7} strokeLinejoin="round" />
-        <circle cy={38} r={9} fill="#FFE45C" stroke={PLUM} strokeWidth={6} />
-        <circle cy={-44} r={6} fill={PLUM} />
-        <ellipse cx={-14} cy={-14} rx={6} ry={12} fill="#FFFFFF" opacity={0.6} />
-      </g>
-      {[-1, 1].map((s) => (
-        <path key={s} d={`M${s * 50} -26 q${s * 10} 10 0 24 M${s * 62} -36 q${s * 16} 20 0 44`} fill="none" stroke="#FFFFFF" strokeWidth={6} strokeLinecap="round" opacity={0.5 + 0.5 * Math.sin(t * 9)} />
-      ))}
-    </svg>
+    <g>
+      <circle r={r} fill="#FFFFFF" stroke={PLUM} strokeWidth={7} />
+      <path d={`M0 ${-r} C${r * 0.7} ${-r * 0.5} ${r * 0.7} ${r * 0.5} 0 ${r} C${r * 0.35} ${r * 0.4} ${r * 0.35} ${-r * 0.4} 0 ${-r} Z`} fill="#FF5A7A" />
+      <path d={`M0 ${-r} C${-r * 0.7} ${-r * 0.5} ${-r * 0.7} ${r * 0.5} 0 ${r} C${-r * 0.35} ${r * 0.4} ${-r * 0.35} ${-r * 0.4} 0 ${-r} Z`} fill="#3D8BFF" />
+      <path d={`M${-r} 0 C${-r * 0.5} ${r * 0.3} ${r * 0.5} ${r * 0.3} ${r} 0`} fill="none" stroke="#FFD23F" strokeWidth={r * 0.2} />
+      <circle r={r} fill="none" stroke={PLUM} strokeWidth={7} />
+      <ellipse cx={-r * 0.38} cy={-r * 0.45} rx={r * 0.2} ry={r * 0.12} fill="#FFFFFF" opacity={0.7} transform={`rotate(-30 ${-r * 0.38} ${-r * 0.45})`} />
+    </g>
   );
 }
 
-/** Значок «палец вверх» в круглой плашке (подпрыгивает). */
-function ThumbBadge({ t, k }: { t: number; k: number }) {
-  return (
-    <svg viewBox="-80 -80 160 160" width={150} height={150} style={{ overflow: "visible", transform: `scale(${k}) rotate(${Math.sin(t * 4) * 8}deg)` }}>
-      <circle cy={8} r={70} fill={shade("#3D8BFF", 0.4)} />
-      <circle r={70} fill="#3D8BFF" stroke="#FFFFFF" strokeWidth={8} />
-      <g transform={`translate(0 ${-Math.abs(Math.sin(t * 4)) * 6})`}>
-        <rect x={-44} y={-6} width={22} height={50} rx={7} fill="#FFFFFF" stroke={PLUM} strokeWidth={6} />
-        <path d="M-18 -4 L-2 -30 C2 -40 4 -50 12 -50 C24 -50 24 -34 18 -14 L40 -14 C52 -14 54 2 46 6 C54 10 52 22 44 24 C50 30 46 40 38 40 C42 46 36 52 28 52 L-18 46 Z" fill="#FFFFFF" stroke={PLUM} strokeWidth={6} strokeLinejoin="round" />
-      </g>
-    </svg>
-  );
-}
-
-/** Прощальная карточка: «Bye bye!» по буквам, лента «See you next time!», колокольчик и палец вверх, герои машут. */
-export function ShowOutro({ t, fps, title = "Bye bye!", sub = "See you next time!" }: { t: number; fps: number; title?: string; sub?: string }) {
+/**
+ * Прощальная карточка: «Bye bye!» по буквам, лента «See you next time!», плашка «Time to go play!» с мячиками, герои машут.
+ * Без призывов подписаться/комментировать (детский контент YouTube их не допускает).
+ */
+export function ShowOutro({ t, fps, title = "Bye bye!", sub = "See you next time!", play = "Time to go play!" }: { t: number; fps: number; title?: string; sub?: string; play?: string }) {
   const burstK = popAt(t, 0, fps, 14, 90);
   const xs = [250, 600, 1320, 1670];
   const letters = [...title];
   const subK = popAt(t, 0.35 + letters.length * 0.07, fps, 11, 160);
-  const iconK = (d: number) => popAt(t, 1.2 + d, fps, 9, 170);
+  const playK = popAt(t, 1.3, fps, 10, 160);
   const kids: ReactNode[] = KIDS.map((id, i) => {
     const spec = CAST[id];
     if (!spec) return null;
@@ -291,6 +274,7 @@ export function ShowOutro({ t, fps, title = "Bye bye!", sub = "See you next time
       </g>
     );
   });
+  const bounce = (ph: number) => -Math.abs(Math.sin(t * 3.2 + ph)) * 26;
   return (
     <AbsoluteFill style={{ overflow: "hidden" }}>
       <Sunburst t={t} k={0.2 + 0.8 * burstK} warm />
@@ -303,8 +287,7 @@ export function ShowOutro({ t, fps, title = "Bye bye!", sub = "See you next time
           return <LogoLetter key={i} ch={ch} size={190} color={candy(i * 2)} k={k} bob={live ? Math.sin(t * 3 + i * 0.8) * 9 : 0} rot={(i % 2 ? 5 : -5) + (live ? Math.sin(t * 2 + i) * 3 : 0)} />;
         })}
       </div>
-      <div style={{ position: "absolute", top: 290, left: 0, right: 0, display: "flex", justifyContent: "center", alignItems: "center", gap: 36 }}>
-        <ThumbBadge t={t} k={iconK(0)} />
+      <div style={{ position: "absolute", top: 296, left: 0, right: 0, display: "flex", justifyContent: "center" }}>
         <div
           style={{
             transform: `scale(${subK}) rotate(${Math.sin(t * 2) * 2}deg)`,
@@ -323,18 +306,120 @@ export function ShowOutro({ t, fps, title = "Bye bye!", sub = "See you next time
         >
           {sub}
         </div>
-        <BellBadge t={t} k={iconK(0.15)} />
       </div>
-      <div style={{ position: "absolute", top: 448, left: 0, right: 0, display: "flex", justifyContent: "center" }}>
-        <div style={{ transform: `scale(${iconK(0.35)})`, background: "#FFFFFF", border: "6px solid #FF5A7A", borderRadius: 999, padding: "2px 36px 6px", fontFamily: "Fredoka", fontWeight: 700, fontSize: 50, color: "#FF5A7A", boxShadow: `0 8px 0 ${shade("#FF5A7A", 0.4)}` }}>
-          Subscribe for more fun!
+      <div style={{ position: "absolute", top: 438, left: 0, right: 0, display: "flex", justifyContent: "center", alignItems: "center", gap: 18 }}>
+        <svg viewBox="-70 -70 140 140" width={110} height={110} style={{ overflow: "visible", transform: `scale(${playK}) translateY(${bounce(0)}px) rotate(${t * 90}deg)` }}>
+          <PlayBall />
+        </svg>
+        <div style={{ transform: `scale(${playK}) rotate(${-2 + Math.sin(t * 2.4) * 2}deg)`, background: "#FFE45C", border: `7px solid ${PLUM}`, borderRadius: 999, padding: "0 40px 6px", fontFamily: "Fredoka", fontWeight: 700, fontSize: 60, color: PLUM, boxShadow: `0 8px 0 ${PLUM}` }}>
+          {play}
         </div>
+        <svg viewBox="-70 -70 140 140" width={110} height={110} style={{ overflow: "visible", transform: `scale(${playK}) translateY(${bounce(1.6)}px) rotate(${-t * 90}deg)` }}>
+          <PlayBall />
+        </svg>
       </div>
       <Hill t={t} rise={1} />
       <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{ position: "absolute", inset: 0 }}>
         {kids}
       </svg>
       <Confetti t={t} from={0.9} n={50} />
+    </AbsoluteFill>
+  );
+}
+
+/* ------------------------------------------------------------------ перебивка */
+
+export type BumperKind = "story" | "song" | "word";
+export const BUMPER_TEXT: Record<BumperKind, string> = { story: "Story time!", song: "Song time!", word: "Word time!" };
+
+/** Тип перебивки по тексту («Song time!» → song). */
+export function bumperKind(text?: string): BumperKind {
+  if (/song|sing/i.test(text ?? "")) return "song";
+  if (/word|abc/i.test(text ?? "")) return "word";
+  return "story";
+}
+
+/** Иконка перебивки: книжка (истории), ноты (песни), кубики ABC (слова). */
+function BumperIcon({ kind, t }: { kind: BumperKind; t: number }) {
+  if (kind === "song")
+    return (
+      <g>
+        {[-1, 1].map((s) => (
+          <g key={s} transform={`translate(${s * 70} ${Math.sin(t * 5 + s) * 14}) rotate(${s * 10 + Math.sin(t * 4) * 8})`}>
+            <path d="M-14 50 V-60 L50 -78 V30" fill="none" stroke={PLUM} strokeWidth={14} strokeLinecap="round" strokeLinejoin="round" />
+            <ellipse cx={-34} cy={50} rx={30} ry={23} fill={s < 0 ? "#FF5A7A" : "#3D8BFF"} stroke={PLUM} strokeWidth={8} />
+            <ellipse cx={30} cy={30} rx={30} ry={23} fill={s < 0 ? "#FFB23F" : "#4CB944"} stroke={PLUM} strokeWidth={8} />
+          </g>
+        ))}
+      </g>
+    );
+  if (kind === "word")
+    return (
+      <g>
+        {["A", "B", "C"].map((ch, i) => {
+          const c = ["#FF5A7A", "#3D8BFF", "#4CB944"][i]!;
+          return (
+            <g key={ch} transform={`translate(${(i - 1) * 118} ${i === 1 ? -20 + Math.sin(t * 4) * 8 : 20}) rotate(${(i - 1) * 8 + Math.sin(t * 3 + i) * 4})`}>
+              <rect x={-52} y={-52} width={104} height={104} rx={18} fill={c} stroke={shade(c, 0.35)} strokeWidth={8} />
+              <rect x={-38} y={-38} width={76} height={76} rx={12} fill="#FFFFFF" opacity={0.25} />
+              <text y={30} textAnchor="middle" fontFamily="Fredoka" fontWeight={700} fontSize={84} fill="#FFFFFF" stroke={shade(c, 0.4)} strokeWidth={6} paintOrder="stroke">
+                {ch}
+              </text>
+            </g>
+          );
+        })}
+      </g>
+    );
+  const flap = Math.sin(t * 3) * 6;
+  return (
+    <g>
+      <path d="M0 -40 C-50 -70 -110 -66 -140 -50 V70 C-110 54 -50 50 0 80 Z" fill="#FFFFFF" stroke={PLUM} strokeWidth={9} strokeLinejoin="round" transform={`rotate(${-flap} 0 80)`} />
+      <path d="M0 -40 C50 -70 110 -66 140 -50 V70 C110 54 50 50 0 80 Z" fill="#FFFFFF" stroke={PLUM} strokeWidth={9} strokeLinejoin="round" transform={`rotate(${flap} 0 80)`} />
+      <path d="M-140 70 C-110 54 -50 50 0 80 C50 50 110 54 140 70 L140 92 C110 76 50 72 0 102 C-50 72 -110 76 -140 92 Z" fill="#FF5A7A" stroke={PLUM} strokeWidth={8} strokeLinejoin="round" />
+      {[-1, 1].map((s) => [0, 1, 2].map((j) => <path key={`${s}${j}`} d={`M${s * 30} ${-24 + j * 26} C${s * 60} ${-38 + j * 26} ${s * 90} ${-38 + j * 26} ${s * 112} ${-30 + j * 26}`} fill="none" stroke="#C9B8E8" strokeWidth={7} strokeLinecap="round" />))}
+      <g transform={`translate(0 -96) rotate(${t * 40})`}>
+        <Star r={34} color="#FFD23F" stroke={PLUM} />
+      </g>
+    </g>
+  );
+}
+
+/** Перебивка «Story time!» / «Song time!» / «Word time!» (~2-3 с): лучи, большая иконка, прыгающие буквы, двое героев выглядывают снизу. */
+export function ShowBumper({ t, fps, text }: { t: number; fps: number; text?: string }) {
+  const kind = bumperKind(text);
+  const label = text || BUMPER_TEXT[kind];
+  const letters = [...label];
+  const iconK = popAt(t, 0.05, fps, 9, 150);
+  const pair = kind === "story" ? ["benny", "mia"] : kind === "song" ? ["ollie", "dot"] : ["mia", "ollie"];
+  return (
+    <AbsoluteFill style={{ overflow: "hidden" }}>
+      <Sunburst t={t + (kind === "song" ? 3 : kind === "word" ? 6 : 0)} k={0.3 + 0.7 * popAt(t, 0, fps, 14, 110)} warm={kind === "song"} cy={460} />
+      <Twinkles t={t} from={0.3} area={[160, 60, 1760, 760]} />
+      <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{ position: "absolute", inset: 0 }}>
+        <g transform={`translate(${W / 2} 330) scale(${iconK * 1.35 * (1 + Math.sin(t * 3) * 0.03)})`}>
+          <BumperIcon kind={kind} t={t} />
+        </g>
+        {pair.map((id, i) => {
+          const spec = CAST[id];
+          if (!spec) return null;
+          const side = i === 0 ? -1 : 1;
+          const k = popAt(t, 0.35 + i * 0.15, fps, 10, 130);
+          return (
+            <g key={id} transform={`translate(${W / 2 + side * 640} ${H + 40 + (1 - k) * 300}) scale(1.5) rotate(${side * -8})`}>
+              <Character spec={spec} st={{ pose: actionPose("wave", Math.max(0, t - 0.4), t + i), emotion: "laugh", mouth: 0.45, blink: false, look: [-side * 0.6, -0.3], facing: (side < 0 ? 1 : -1) as 1 | -1 }} t={t + i} />
+            </g>
+          );
+        })}
+      </svg>
+      <div style={{ position: "absolute", top: 600, left: 0, right: 0, display: "flex", justifyContent: "center", whiteSpace: "pre" }}>
+        {letters.map((ch, i) => {
+          const d = 0.2 + i * 0.05;
+          const k = popAt(t, d, fps, 9, 160);
+          const live = t > d + 0.5;
+          return <LogoLetter key={i} ch={ch} size={170} color={candy(i * 3 + (kind === "song" ? 2 : kind === "word" ? 4 : 0))} k={k} bob={live ? Math.sin(t * 4 + i * 0.7) * 8 : 0} rot={(i % 2 ? 4 : -4) + (live ? Math.sin(t * 2.6 + i) * 3 : 0)} />;
+        })}
+      </div>
+      <Confetti t={t} from={0.4} n={40} />
     </AbsoluteFill>
   );
 }

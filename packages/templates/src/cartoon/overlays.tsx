@@ -257,54 +257,67 @@ function TitleCard({ o, lt, fps }: { o: OverlayDoc; lt: number; fps: number }) {
 
 /* ------------------------------------------------------------------ вопрос зрителю */
 
-/** Ладошка «подними руку / твой ответ» — машет; центр запястья в 0,0. */
-function Hand({ wave }: { wave: number }) {
+/** Ушко с ладошкой «я слушаю!» и волны звука к нему; центр уха в 0,0. */
+function ListenEar({ lt }: { lt: number }) {
   return (
-    <g transform={`rotate(${wave})`}>
-      <rect x={-22} y={-8} width={44} height={46} rx={14} fill="#FF8A2A" stroke={shade("#FF8A2A", 0.35)} strokeWidth={6} />
+    <g>
+      {/* звуковые волны летят к уху слева направо */}
+      {[0, 1, 2].map((i) => {
+        const ph = ((lt * 0.55 + i / 3) % 1 + 1) % 1;
+        return <path key={i} d="M0 -26 Q14 0 0 26" transform={`translate(${-96 + ph * 52} 0) scale(${0.7 + ph * 0.5})`} fill="none" stroke="#3D8BFF" strokeWidth={8} strokeLinecap="round" opacity={Math.sin(ph * Math.PI)} />;
+      })}
+      {/* ушко */}
+      <path d="M-22 -48 C10 -66 44 -44 42 -10 C40 14 22 18 18 34 C14 50 -8 58 -22 46" fill="#FFD9BE" stroke="#C98A5A" strokeWidth={7} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M-8 -28 C10 -38 26 -24 22 -8 C20 4 8 6 6 18" fill="none" stroke="#E7A57E" strokeWidth={6} strokeLinecap="round" />
+      {/* ладошка «чашечкой» за ухом */}
       <path
-        d="M-30 -10 C-34 -34 -32 -62 -24 -64 C-16 -66 -14 -46 -13 -36 L-12 -78 C-12 -88 0 -88 0 -78 L1 -40 L3 -84 C3 -94 16 -94 16 -84 L15 -38 L19 -72 C20 -81 32 -80 31 -70 L28 -20 L40 -36 C46 -44 58 -36 52 -26 C42 -8 32 8 16 10 L-18 10 C-26 6 -29 0 -30 -10 Z"
-        fill="#FFE2C4"
-        stroke="#C98A5A"
+        d="M30 -54 C52 -62 72 -46 74 -22 C76 2 70 26 56 44 C48 54 36 52 34 42 L40 18 C44 4 46 -14 40 -28 C36 -38 28 -44 30 -54 Z"
+        fill="#FF8A2A"
+        stroke={shade("#FF8A2A", 0.35)}
         strokeWidth={6}
         strokeLinejoin="round"
       />
-      <ellipse cx={-2} cy={-18} rx={14} ry={9} fill="#FFFFFF" opacity={0.4} />
+      <path d="M50 -40 C60 -30 62 -14 60 2 M60 -34 C70 -22 70 -4 68 10" fill="none" stroke={shade("#FF8A2A", 0.3)} strokeWidth={4} strokeLinecap="round" opacity={0.7} />
+      <ellipse cx={-4} cy={-40} rx={10} ry={6} fill="#FFFFFF" opacity={0.5} />
     </g>
   );
 }
 
-/** «?» для зрителя: жёлтый круг с пульсирующими кольцами, машущая ладошка и три точки «время подумать». */
+/**
+ * «?» для зрителя (пауза 4-6 с, ребёнок отвечает вслух): жёлтый круг мягко «дышит», спокойные кольца-волны,
+ * ушко с ладошкой «я слушаю» и точки «время подумать», которые заполняются за паузу. Без резких вспышек.
+ */
 function QuestionCard({ o, lt, fps }: { o: OverlayDoc; lt: number; fps: number }) {
-  const k = popAt(lt, 0, fps, 9, 170);
-  const out = outK(lt, o.dur, 0.35);
-  const beat = 1 + Math.max(0, Math.sin(lt * 7)) * 0.06;
-  const handK = popAt(lt, 0.35, fps, 10, 180);
+  const k = popAt(lt, 0, fps, 11, 140);
+  const out = outK(lt, o.dur, 0.45);
+  const breathe = 1 + Math.sin(lt * 2.6) * 0.035;
+  const earK = popAt(lt, 0.5, fps, 12, 150);
+  const n = 4;
   return (
-    <svg viewBox="-220 -200 440 460" style={svgAbs(440, 460, { top: 24, right: 40, opacity: out })}>
-      {/* кольца-волны */}
-      {[0, 1, 2].map((i) => {
-        const ph = ((lt * 0.9 + i / 3) % 1 + 1) % 1;
-        return <circle key={i} r={118 + ph * 90} fill="none" stroke={["#FF5A7A", "#3D8BFF", "#4CB944"][i]} strokeWidth={14 * (1 - ph) + 2} opacity={(1 - ph) * k * 0.85} />;
+    <svg viewBox="-230 -200 460 470" style={svgAbs(460, 470, { top: 20, right: 34, opacity: out })}>
+      {[0, 1].map((i) => {
+        const ph = ((lt * 0.45 + i / 2) % 1 + 1) % 1;
+        return <circle key={i} r={124 + ph * 80} fill="none" stroke={["#FFB23F", "#3D8BFF"][i]} strokeWidth={10 * (1 - ph) + 2} opacity={Math.sin(ph * Math.PI) * k * 0.7} />;
       })}
-      <g transform={`scale(${k * beat}) rotate(${Math.sin(lt * 3.2) * 7})`}>
+      <g transform={`scale(${k * breathe}) rotate(${Math.sin(lt * 1.6) * 5})`}>
         <circle cy={12} r={122} fill={PLUM} />
         <circle r={122} fill="#FFE45C" stroke={PLUM} strokeWidth={12} />
         <ellipse cx={-50} cy={-62} rx={34} ry={20} fill="#FFFFFF" opacity={0.45} transform="rotate(-30 -50 -62)" />
         <text y={66} textAnchor="middle" fontFamily="Fredoka" fontWeight={700} fontSize={200} fill="#FF5A7A" stroke={PLUM} strokeWidth={10} paintOrder="stroke" strokeLinejoin="round">
           ?
         </text>
-        <g transform="translate(96 -96)">
-          <Sparkle r={26} color="#FFFFFF" rot={lt * 50} />
+        <g transform={`translate(96 -96) scale(${0.8 + Math.sin(lt * 2) * 0.2})`}>
+          <Sparkle r={26} color="#FFFFFF" rot={lt * 25} />
         </g>
       </g>
-      <g transform={`translate(-178 96) scale(${handK * 1.05})`}>
-        <Hand wave={Math.sin(lt * 7) * 16 - 10} />
+      <g transform={`translate(-150 128) scale(${earK * 1.1}) rotate(${Math.sin(lt * 2.2) * 5})`}>
+        <circle r={72} fill="#FFFFFF" stroke={PLUM} strokeWidth={8} />
+        <ListenEar lt={lt} />
       </g>
-      {/* три точки: заполняются за время паузы */}
-      {[0, 1, 2].map((i) => {
-        const on = lt > 0.5 + i * ((o.dur - 0.9) / 3);
-        return <circle key={i} cx={-40 + i * 40 + 40} cy={196} r={on ? 15 : 12} fill={on ? candy(i * 2) : "#FFFFFF"} stroke={PLUM} strokeWidth={6} opacity={k} />;
+      {/* точки «время подумать»: заполняются по очереди за паузу */}
+      {Array.from({ length: n }, (_, i) => {
+        const on = clamp01((lt - 0.6 - i * ((o.dur - 1.2) / n)) / 0.25);
+        return <circle key={i} cx={-30 + i * 44} cy={200} r={12 + on * 4} fill={on > 0.5 ? candy(i * 2) : "#FFFFFF"} stroke={PLUM} strokeWidth={6} opacity={k} />;
       })}
     </svg>
   );
@@ -449,6 +462,26 @@ export function Caption({ lines, lt, fps, hidden }: { lines: CaptionLine[]; lt: 
         </svg>
         <div style={{ fontFamily: "Nunito", fontWeight: 800, fontSize: fs, lineHeight: 1.2, color: INK, textAlign: "center" }}>{l.text}</div>
       </div>
+    </div>
+  );
+}
+
+/** Маленький значок сериала в левом верхнем углу (брендинг внутри видео: у детских роликов нет водяных знаков и конечных заставок). */
+export function SeriesBadge({ t }: { t: number }) {
+  const letters = [..."Benny"];
+  return (
+    <div style={{ position: "absolute", top: 26, left: 28, display: "flex", alignItems: "center", gap: 4, background: "rgba(255,255,255,0.88)", border: `4px solid ${PLUM}`, borderRadius: 999, padding: "2px 18px 4px 12px", opacity: 0.92, boxShadow: `0 5px 0 rgba(58,36,102,0.35)` }}>
+      <svg viewBox="-30 -30 60 56" width={34} height={32} style={{ transform: `scale(${1 + Math.max(0, Math.sin(t * 2)) * 0.06})` }}>
+        <path d="M0 22 C-26 4 -32 -10 -24 -19 C-16 -27 -5 -23 0 -13 C5 -23 16 -27 24 -19 C32 -10 26 4 0 22 Z" fill="#FF5A7A" stroke={PLUM} strokeWidth={5} strokeLinejoin="round" />
+      </svg>
+      <span style={{ fontFamily: "Fredoka", fontWeight: 700, fontSize: 30, lineHeight: 1 }}>
+        {letters.map((c, i) => (
+          <span key={i} style={{ color: candy(i * 3 + 1) }}>
+            {c}
+          </span>
+        ))}
+        <span style={{ color: PLUM }}> &amp; Friends</span>
+      </span>
     </div>
   );
 }

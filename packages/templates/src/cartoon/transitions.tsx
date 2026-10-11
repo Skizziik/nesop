@@ -34,7 +34,7 @@ interface SceneLike {
 
 /**
  * Переход на входе в сцену i. Явный `transitionIn` главнее; иначе — детерминированно по типу и номеру сцены:
- * интро → cut (первая) / fade; заставка истории → star; песня → bubble; прощание → iris;
+ * интро → cut (первая) / fade; перебивка → star; заставка истории → star (после перебивки — wipe); песня → bubble; прощание → iris;
  * та же локация, что у предыдущей → fade; новая локация → по очереди wipe / iris.
  */
 export function transitionFor(scenes: readonly SceneLike[], i: number): TransitionKind {
@@ -45,7 +45,8 @@ export function transitionFor(scenes: readonly SceneLike[], i: number): Transiti
   const prev = scenes[i - 1]!;
   if (sc.kind === "intro") return "fade";
   if (sc.kind === "outro") return "iris";
-  if (sc.kind === "title") return "star";
+  if (sc.kind === "bumper") return "star";
+  if (sc.kind === "title") return prev.kind === "bumper" ? "wipe" : "star";
   if (sc.kind === "song") return "bubble";
   if (prev.location === sc.location && prev.kind !== "song") return "fade";
   return i % 2 === 0 ? "wipe" : "iris";

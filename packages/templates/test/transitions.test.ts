@@ -11,6 +11,11 @@ describe("cartoon transitions", () => {
     expect(scenes.map((_, i) => transitionFor(scenes, i))).toEqual(got);
   });
 
+  it("bumper enters with a star, the story title after it with a wipe", () => {
+    const scenes = [sc("intro"), sc("bumper"), sc("title"), sc("story", "garden")];
+    expect(scenes.map((_, i) => transitionFor(scenes, i))).toEqual(["cut", "star", "wipe", "fade"]);
+  });
+
   it("first scene without an intro fades in; explicit transitionIn wins", () => {
     const scenes = [sc("title"), sc("story", "beach", { transitionIn: "bubble" })];
     expect(transitionFor(scenes, 0)).toBe("fade");
