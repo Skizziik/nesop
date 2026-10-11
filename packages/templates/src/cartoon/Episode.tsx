@@ -201,7 +201,7 @@ function Scene({ sc, t, fps }: { sc: SceneDoc; t: number; fps: number }) {
   const z = cam.zoom;
   const tf = `translate(${W / 2} ${H * 0.62}) scale(${z}) translate(${-cam.x} ${-cam.y})`;
   const loc = locationDef(sc.location);
-  const world: WorldState = { time: sc.world?.time ?? sc.time ?? "day", weather: sc.world?.weather ?? (sc.weather === "rain" || sc.weather === "snow" ? sc.weather : "clear"), season: sc.world?.season ?? "summer", dressing: sc.world?.dressing ?? sc.decor ?? undefined };
+  const world: WorldState = { time: sc.world?.time ?? sc.time ?? (sc.location === "bedroom" ? "night" : "day"), weather: sc.world?.weather ?? (sc.weather === "rain" || sc.weather === "snow" ? sc.weather : "clear"), season: sc.world?.season ?? "summer", dressing: sc.world?.dressing ?? sc.decor ?? undefined };
   const lp = locationProps(sc.location, cam, t + sc.start, { world, seed: sc.seed ?? 0, uid: `sc${Math.round(sc.start * 1000)}` });
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{ position: "absolute", inset: 0 }}>

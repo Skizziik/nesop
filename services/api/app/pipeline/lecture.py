@@ -21,6 +21,7 @@ from ..llm.providers import LLMError
 from ..models import Asset, Project, Series
 from . import clients
 from .audio import SR, envelope, load_mono, trim_silence, write_wav
+from .gone import ProjectGone
 from .music import TRACKS
 
 log = logging.getLogger("farm.lecture")
@@ -272,11 +273,12 @@ async def build_lecture(project_id: str) -> None:
     async def progress(stage: str, p: float, **extra: Any) -> None:
         async with SessionLocal() as s2:
             pr = await s2.get(Project, project_id)
-            if pr:
-                pr.stage, pr.progress = stage, round(p, 3)
-                for k, v in extra.items():
-                    setattr(pr, k, v)
-                await s2.commit()
+            if pr is None:  # проект удалили во время генерации — бросаем работу, не грузим GPU впустую
+                raise ProjectGone(project_id)
+            pr.stage, pr.progress = stage, round(p, 3)
+            for k, v in extra.items():
+                setattr(pr, k, v)
+            await s2.commit()
         await publish({"type": "project", "project_id": project_id, "stage": stage, "progress": p})
 
     try:
@@ -575,6 +577,9 @@ async def build_lecture(project_id: str) -> None:
 
             await progress("в очереди на рендер", 0.0, status="rendering")
             await enqueue("run_project_render", project_id)
+    except ProjectGone:
+        log.info("%s: project %s deleted, generation stopped", __name__, project_id)
+        return
     except (LLMError, clients.ServiceError, KeyError, ValueError) as e:
         await progress("ошибка", 0.0, status="failed", error=str(e)[:2000])
     except Exception as e:  # noqa: BLE001 — любой сбой виден в проекте

@@ -24,6 +24,7 @@ from ..llm.providers import LLMError
 from ..models import Project
 from . import clients
 from .audio import SR, envelope, load_mono, trim_silence, write_wav
+from .gone import ProjectGone
 from .music import Track
 from .music import render as render_music
 
@@ -165,6 +166,8 @@ SONG_SCHEMA: dict[str, Any] = {
 }
 
 SLOTS = {"off_left": -260.0, "left": 520.0, "center_left": 760.0, "center": 960.0, "center_right": 1160.0, "right": 1400.0, "off_right": 2180.0}
+GAP = 250.0  # минимум между героями по миру: голова малыша ~215 в ширину при масштабе сцены — иначе стоят друг в друге
+STAGE = (330.0, 1590.0)  # где можно стоять, не уходя за край общего плана
 WPS = 2.3  # слов в секунду у детских голосов (с паузами) — для расчёта длины историй
 
 
@@ -267,9 +270,26 @@ class Director:
         layouts = {1: ["center"], 2: ["center_left", "center_right"], 3: ["left", "center", "right"], 4: ["left", "center_left", "center_right", "right"]}
         names = layouts.get(len(cast), ["left", "center_left", "center", "center_right", "right"])
         out = {c: SLOTS[names[min(i, len(names) - 1)]] for i, c in enumerate(cast[:5])}
-        if len(cast) >= 5:
-            out = {c: 440 + i * 260 for i, c in enumerate(cast)}
+        if len(cast) >= 3:
+            # равномерно, с запасом под ширину голов: 3 → 630/960/1290, 4 → 465…1455, 5 → 360…1560
+            step = min(330.0, (STAGE[1] - STAGE[0] + 60) / (len(cast) - 1))
+            out = {c: 960 + (i - (len(cast) - 1) / 2) * step for i, c in enumerate(cast)}
         return out
+
+    @staticmethod
+    def free_spot(ch: str, dest: float, pos: dict[str, float]) -> float:
+        """Ближайшая к цели точка, где герой не стоит ни в ком (≥ GAP до остальных на сцене); за кадр — как просили."""
+        if not STAGE[0] - 200 < dest < STAGE[1] + 200:
+            return dest
+        others = [x for c, x in pos.items() if c != ch and STAGE[0] - 200 < x < STAGE[1] + 200]
+        best, best_d = dest, float("inf")
+        for k in range(0, 64):
+            for x in (dest + k * 20, dest - k * 20):
+                if STAGE[0] <= x <= STAGE[1] and all(abs(x - o) >= GAP for o in others) and abs(x - dest) < best_d:
+                    best, best_d = x, abs(x - dest)
+            if best_d < float("inf"):
+                return best
+        return min(max(dest, STAGE[0]), STAGE[1])
 
     async def scene(self, location: str, cast: list[str], beats: list[dict[str, Any]], kind: str = "story", title: str | None = None,
                     sub: str | None = None, look: dict[str, Any] | None = None) -> None:
@@ -294,7 +314,7 @@ class Director:
                 if ch not in keys:
                     keys[ch] = [{"t": 0, "x": SLOTS["off_right"], "action": "idle", "emotion": "happy"}]
                     pos[ch] = SLOTS["off_right"]
-                dest = SLOTS.get(mv.get("to") or "center", 960.0)
+                dest = self.free_spot(ch, SLOTS.get(mv.get("to") or "center", 960.0), pos)
                 d = max(0.9, min(2.6, abs(dest - pos[ch]) / (520 if mv.get("run") else 330)))
                 keys[ch].append({"t": lt, "x": pos[ch], "action": "run" if mv.get("run") else "walk"})
                 keys[ch].append({"t": lt + d, "x": dest, "action": "idle"})
@@ -395,11 +415,12 @@ async def build_cartoon(project_id: str) -> None:
     async def progress(stage: str, p: float, **extra: Any) -> None:
         async with SessionLocal() as s2:
             pr = await s2.get(Project, project_id)
-            if pr:
-                pr.stage, pr.progress = stage, round(p, 3)
-                for k, v in extra.items():
-                    setattr(pr, k, v)
-                await s2.commit()
+            if pr is None:  # проект удалили во время генерации — бросаем работу, не грузим GPU впустую
+                raise ProjectGone(project_id)
+            pr.stage, pr.progress = stage, round(p, 3)
+            for k, v in extra.items():
+                setattr(pr, k, v)
+            await s2.commit()
         await publish({"type": "project", "project_id": project_id, "stage": stage, "progress": p})
 
     try:
@@ -493,6 +514,9 @@ async def build_cartoon(project_id: str) -> None:
 
             await progress("в очереди на рендер", 0.0, status="rendering")
             await enqueue("run_project_render", project_id)
+    except ProjectGone:
+        log.info("%s: project %s deleted, generation stopped", __name__, project_id)
+        return
     except (LLMError, clients.ServiceError, KeyError, ValueError) as e:
         await progress("ошибка", 0.0, status="failed", error=str(e)[:2000])
     except Exception as e:  # noqa: BLE001 — любой сбой виден в проекте

@@ -53,3 +53,18 @@ def test_usage_of_counts_assets() -> None:
     assert u["outfits"]["sun_hat"] == 1
     assert u["fx"]["hearts"] == 1
     assert u["characters"] == {"benny": 1, "mia": 1}
+
+
+def test_layout_keeps_heroes_apart() -> None:
+    d = cartoon.Director("p")
+    for n in (2, 3, 4, 5):
+        xs = sorted(d._place(list(cartoon.CAST)[:n]).values())
+        assert all(b - a >= cartoon.GAP for a, b in zip(xs, xs[1:], strict=False)), (n, xs)
+        assert cartoon.STAGE[0] - 40 <= xs[0] and xs[-1] <= cartoon.STAGE[1] + 40
+
+
+def test_free_spot_never_stands_inside_another_hero() -> None:
+    pos = {"benny": 760.0, "mia": 1160.0, "ollie": 960.0}
+    x = cartoon.Director.free_spot("dot", 960.0, pos)
+    assert all(abs(x - o) >= cartoon.GAP for o in pos.values())
+    assert cartoon.Director.free_spot("dot", cartoon.SLOTS["off_right"], pos) == cartoon.SLOTS["off_right"]
