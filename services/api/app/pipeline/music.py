@@ -63,7 +63,7 @@ def _sliding(a: F64, k: int, op: str, wrap: bool) -> F64:
     p = np.pad(a, k, mode="wrap" if wrap else "edge")
     if op == "mean":
         c = np.cumsum(np.concatenate([[0.0], p]))
-        return (c[2 * k + 1 :] - c[: -2 * k - 1]) / (2 * k + 1)
+        return np.asarray((c[2 * k + 1 :] - c[: -2 * k - 1]) / (2 * k + 1), np.float64)
     out = p[k : k + len(a)].copy()
     fn = np.maximum if op == "max" else np.minimum
     for s in range(-k, k + 1):
@@ -123,7 +123,7 @@ def _ir(decay: float = 1.3, seed: int = 7) -> F64:
     for d, a in [(0.007, 0.5), (0.011, 0.35), (0.017, 0.3), (0.023, 0.22)]:
         ir[int(d * SR)] += a * 6
     ir /= np.sqrt(np.sum(ir**2))
-    return ir
+    return np.asarray(ir, np.float64)
 
 
 def reverb(x: F64, decay: float = 1.3, circular: bool = False) -> F64:
@@ -147,7 +147,7 @@ def _env(n: int, attack: float, tau: float, release: float = 0.0, hold: float | 
     e = np.minimum(t / max(attack, 1e-4), 1.0) * np.exp(-t / tau)
     if hold is not None and release > 0:
         e *= np.clip((hold + release - t) / release, 0.0, 1.0)
-    return e
+    return np.asarray(e, np.float64)
 
 
 def _fade_edges(x: F64, a: float = 0.003, r: float = 0.02) -> F64:

@@ -1,7 +1,7 @@
 """Процедурные SFX, атмосферы и сведение звука мультика (собственная генерация → CC0, чистый numpy).
 
 - Разовые звуки: boing, pop, footstep (своя высота у каждого героя), whoosh, sparkle, ding, chime, splash, clap, heart,
-  snore, bell, knock, drumroll, notes, droplet, exclaim, hmm, poof, uhoh, thump (+ старые pop/tick/ding/whoosh/buzz/confetti
+  snore, bell, knock, drumroll, notes, droplet, exclaim, hmm, poof, uhoh, thump, crunch, nom (+ старые pop/tick/ding/whoosh/buzz/confetti
   для роликов-форматов — GENERATORS, /data/sfx).
 - Атмосферы — бесшовные лупы ~20 с: rain, wind, birds, waves, crickets.
 - `scene_events(scenes)` — какие звуки положить по ключам сцен CartoonDoc (шаги по фазе походки из actions.ts, прыжки,
@@ -33,7 +33,7 @@ def _t(dur: float) -> F64:
 
 
 def _env(t: F64, attack: float, decay: float) -> F64:
-    return np.minimum(t / max(attack, 1e-4), 1.0) * np.exp(-t / decay)
+    return np.asarray(np.minimum(t / max(attack, 1e-4), 1.0) * np.exp(-t / decay), np.float64)
 
 
 def _out(x: F64, peak: float = 0.9) -> F32:
@@ -55,7 +55,7 @@ def _sweep(f0: float, f1: float, dur: float, curve: float = 3.0) -> F64:
     k = 1 - np.exp(-t * curve / max(dur, 1e-3))
     k /= k[-1] if len(k) and k[-1] else 1.0
     f = f0 + (f1 - f0) * k
-    return np.sin(2 * np.pi * np.cumsum(f) / SR)
+    return np.asarray(np.sin(2 * np.pi * np.cumsum(f) / SR), np.float64)
 
 
 def _rng(name: str) -> np.random.Generator:
@@ -92,7 +92,7 @@ def shaped_noise(n: int, gains: Callable[[F64, F64], F64], seed: int, wrap: bool
 
 
 def _band(f: F64, lo: float, hi: float, order: int = 2) -> F64:
-    return 1 / np.sqrt(1 + (f / hi) ** (2 * order)) / np.sqrt(1 + (lo / np.maximum(f, 1.0)) ** (2 * order))
+    return np.asarray(1 / np.sqrt(1 + (f / hi) ** (2 * order)) / np.sqrt(1 + (lo / np.maximum(f, 1.0)) ** (2 * order)), np.float64)
 
 
 # ------------------------------------------------------------------ разовые звуки (старые — для форматов роликов)
@@ -128,7 +128,7 @@ def whoosh() -> F32:
         k = np.clip(tt / dur, 0, 1)
         fc = 350 + 2600 * np.sin(np.pi * k) ** 1.5
         amp = np.sin(np.pi * k) ** 2
-        return amp * np.exp(-0.5 * (np.log2(np.maximum(f, 1) / fc) / 0.9) ** 2)
+        return np.asarray(amp * np.exp(-0.5 * (np.log2(np.maximum(f, 1) / fc) / 0.9) ** 2), np.float64)
 
     return _out(shaped_noise(n, g, 2, wrap=False), 0.75)
 
@@ -342,10 +342,34 @@ def uhoh() -> F32:
     return _out(out, 0.75)
 
 
+def crunch() -> F32:
+    """Укус яблока/печенья: «хрум» — три быстрых шумовых щелчка + низкий призвук."""
+    out = np.zeros(int(SR * 0.3))
+    rng = _rng("crunch")
+    for k in range(3):
+        t = _t(0.05)
+        x = fft_filter(rng.standard_normal(len(t)), lo=1400, hi=6000) * _env(t, 0.0008, 0.012)
+        x += 0.4 * np.sin(2 * np.pi * (240 - 40 * k) * t) * _env(t, 0.001, 0.02)
+        _add(out, x, int((k * 0.045 + rng.uniform(0, 0.008)) * SR), 1.0 - 0.2 * k)
+    return _out(out, 0.8)
+
+
+@lru_cache(maxsize=4)
+def nom(variant: int = 0) -> F32:
+    """Мультяшное «ням»: мягкий закрытый «мм»-тон с подъёмом (жевание)."""
+    d = 0.16
+    t = _t(d)
+    f0 = (210, 240, 190, 225)[variant % 4]
+    ph = _sweep(f0, f0 * 1.35, d, 4)
+    x = (ph + 0.3 * np.sin(2 * np.arcsin(np.clip(ph, -1, 1)))) * np.sin(np.pi * t / d) ** 2
+    return _out(fft_filter(x, hi=1600), 0.75)
+
+
 ONESHOTS: dict[str, Callable[[], F32]] = {
     "boing": boing, "thump": thump, "pop": pop, "whoosh": whoosh, "sparkle": sparkle, "ding": ding, "chime": chime,
     "splash": splash, "clap": clap, "heart": heart, "snore": snore, "bell": bell, "knock": knock, "drumroll": drumroll,
     "notes": notes, "droplet": droplet, "exclaim": exclaim, "hmm": hmm, "poof": poof, "uhoh": uhoh, "tick": tick,
+    "crunch": crunch, "nom": nom,
 }
 
 
@@ -360,7 +384,7 @@ def _amb_n(seconds: float = AMB_SECONDS) -> int:
 
 def _periodic(tt: F64, period: float, harmonics: list[tuple[int, float, float]]) -> F64:
     """Плавная модуляция, периодичная по длине лупа: сумма гармоник (номер, амплитуда, фаза)."""
-    return sum(a * np.sin(2 * np.pi * k * tt / period + p) for k, a, p in harmonics) if harmonics else np.zeros_like(tt)  # type: ignore[return-value]
+    return np.asarray(sum(a * np.sin(2 * np.pi * k * tt / period + p) for k, a, p in harmonics) if harmonics else np.zeros_like(tt), np.float64)
 
 
 def _amb_out(x: F64, rms_db: float = -24.0) -> F32:
@@ -380,7 +404,7 @@ def rain() -> F32:
 
     def g(tt: F64, f: F64) -> F64:
         mod = 1 + 0.12 * _periodic(tt, dur, [(1, 1.0, 0.3), (3, 0.5, 1.9)])
-        return mod * _band(f, 500, 9000, 1) / np.sqrt(np.maximum(f, 50) / 1000)
+        return np.asarray(mod * _band(f, 500, 9000, 1) / np.sqrt(np.maximum(f, 50) / 1000), np.float64)
 
     x = shaped_noise(n, g, 11)
     x /= float(np.sqrt(np.mean(x**2))) or 1.0
@@ -405,7 +429,7 @@ def wind() -> F32:
     def g(tt: F64, f: F64) -> F64:
         gust = 0.55 + 0.45 * np.clip(_periodic(tt, dur, [(1, 0.7, 0.0), (2, 0.4, 2.1), (5, 0.2, 4.0)]), -1, 1)
         fc = 280 + 520 * gust
-        return gust * np.exp(-0.5 * (np.log2(np.maximum(f, 20) / fc) / 1.1) ** 2)
+        return np.asarray(gust * np.exp(-0.5 * (np.log2(np.maximum(f, 20) / fc) / 1.1) ** 2), np.float64)
 
     return _amb_out(shaped_noise(n, g, 12), -25)
 
@@ -424,7 +448,7 @@ def _chirp(kind: str, rng: np.random.Generator) -> F64:
         t = _t(d)
         f = rng.uniform(4200, 5200) + 300 * np.sin(2 * np.pi * 9 * t)
         am = 0.5 + 0.5 * np.sin(2 * np.pi * rng.uniform(22, 30) * t)
-        return np.sin(2 * np.pi * np.cumsum(f) / SR) * am * np.sin(np.pi * t / d)
+        return np.asarray(np.sin(2 * np.pi * np.cumsum(f) / SR) * am * np.sin(np.pi * t / d), np.float64)
     # «чи-рик»: два тона вниз с вибрато
     out = np.zeros(int(SR * 0.45))
     f0 = rng.uniform(2800, 3500)
@@ -469,7 +493,7 @@ def waves() -> F32:
         fc = 350 + 1900 * swell
         lp = 1 / np.sqrt(1 + (f / fc) ** 4)
         foam = 0.25 * np.where(ph > 0.3, np.exp(-(ph - 0.3) * 6), 0) * _band(f, 2500, 9000, 1)
-        return (0.25 + swell) * lp * _band(f, 60, 20000, 1) + foam
+        return np.asarray((0.25 + swell) * lp * _band(f, 60, 20000, 1) + foam, np.float64)
 
     return _amb_out(shaped_noise(n, g, 14), -24)
 
@@ -505,6 +529,8 @@ AMBIENCE: dict[str, Callable[[], F32]] = {"rain": rain, "wind": wind, "birds": b
 def clip(name: str) -> F32:
     """Звук по имени: 'boing', 'step:mia:2', 'amb:rain', 'theme', 'sting:yay:0', 'bg:sunny'."""
     parts = name.split(":")
+    if parts[0] == "nom":
+        return nom(int(parts[1]) if len(parts) > 1 else 0)
     if parts[0] == "step":
         return footstep(parts[1], int(parts[2]) if len(parts) > 2 else 0)
     if parts[0] == "amb":
@@ -558,6 +584,7 @@ class Bed:
     fade: float = 1.2
 
 
+TRANSITIONS = ("cut", "fade", "iris", "wipe", "star", "bubble")
 OUTDOOR = {"garden", "garden_evening", "playground", "beach", "forest"}
 FX_SOUND = {"hearts": ("heart", 0.26), "sparkles": ("sparkle", 0.24), "zzz": ("snore", 0.3), "notes": ("notes", 0.22),
             "sweat": ("droplet", 0.22), "exclaim": ("exclaim", 0.2), "question": ("hmm", 0.24), "puff": ("poof", 0.3)}
@@ -567,7 +594,7 @@ CLAP_W = 11.0  # actions.ts: ладони вместе при sin(tl*11) = 1
 
 # громкости (клипы нормированы по пику ~0.8–0.9; голос ≈ −20 dBFS RMS)
 # стингеры тихие (не «орут»), фон под репликами −11 dB, атмосфера −6 dB; итог выравнивается до −14 LUFS / −1 dBTP
-G_THEME, G_STORY, G_TRANSITION, G_QUESTION, G_YAY = 0.5, 0.4, 0.22, 0.24, 0.28
+G_THEME, G_STORY, G_TRANSITION, G_QUESTION, G_YAY, G_WHOOSH = 0.5, 0.4, 0.18, 0.24, 0.28, 0.12
 G_BG, G_SONG = 0.24, 0.52
 DUCK_BG, DUCK_SONG, DUCK_AMB, DUCK_THEME = 0.28, 0.56, 0.5, 0.45
 TARGET_LUFS, CEILING = -14.0, 0.87  # 0.87 ≈ −1.2 dBFS по сэмплам — запас под межсэмпловые пики (−1 dBTP)
@@ -631,32 +658,64 @@ def _segments(keys: list[dict[str, Any]], dur: float) -> list[tuple[float, float
     return out
 
 
+def transition_for(scenes: list[dict[str, Any]], i: int) -> str:
+    """Python-копия transitions.tsx → transitionFor: переход на входе в сцену i (cut / fade / iris / wipe / star / bubble)."""
+    sc = scenes[i]
+    if sc.get("transitionIn") in TRANSITIONS:
+        return str(sc["transitionIn"])
+    kind = sc.get("kind")
+    if i == 0:
+        return "cut" if kind == "intro" else "fade"
+    prev = scenes[i - 1]
+    if kind == "intro":
+        return "fade"
+    if kind == "outro":
+        return "iris"
+    if kind == "bumper":
+        return "star"
+    if kind == "title":
+        return "wipe" if prev.get("kind") == "bumper" else "star"
+    if kind == "song":
+        return "bubble"
+    if prev.get("location") == sc.get("location") and prev.get("kind") != "song":
+        return "fade"
+    return "wipe" if i % 2 == 0 else "iris"
+
+
 def scene_events(scenes: list[dict[str, Any]]) -> tuple[list[Ev], list[Bed]]:
-    """Разовые звуки и подложки (фон-музыка, атмосфера) по сценам эпизода. Детерминировано."""
+    """Разовые звуки и подложки (фон-музыка, атмосфера) по сценам эпизода. Детерминировано.
+
+    intro → тема «Benny and Friends»; bumper («Story time!» / «Song time!») → короткий весёлый хук темы;
+    outro → прощальная версия темы под рассказчиком (её кладёт mix_cartoon и продлевает сцену); переходы
+    iris / wipe / star / bubble → мягкий «вжух» (iris — на сжатии круга в конце прошлой сцены)."""
     evs: list[Ev] = []
     beds: list[Bed] = []
     last_yay = -99.0
     trans_i = 0
-    story_i = 0
+    bump_i = 0
     for si, sc in enumerate(scenes):
         S = float(sc.get("start", 0))
         D = float(sc.get("duration", 0))
         kind = sc.get("kind") or "story"
-        prev = scenes[si - 1].get("kind") or "story" if si else None
-        if kind == "title":
-            if si == 0:
-                evs.append(Ev(S, "theme", G_THEME, "music", DUCK_THEME))
-            elif si < len(scenes) - 1:
-                evs.append(Ev(S + 0.2, f"sting:story:{story_i}", G_STORY, "music", 0.6))
-                story_i += 1
-            continue  # заставку в конце эпизода кладёт mix_cartoon (там же продлевается сцена)
-        if kind == "song":
-            continue  # у песни своя подложка
-        if prev in ("story", "song"):
-            evs.append(Ev(max(0.0, S - 0.12), f"sting:transition:{trans_i % 3}", G_TRANSITION, "music", 1.0))
+        tr = transition_for(scenes, si)
+        if tr in ("iris", "wipe", "star", "bubble") and si:
+            evs.append(Ev(max(0.0, S - (0.35 if tr == "iris" else 0.05)), "whoosh", G_WHOOSH, duck=0.8))
+        if kind == "intro":
+            evs.append(Ev(S, "theme", G_THEME, "music", DUCK_THEME))
+            continue
+        if kind == "bumper":
+            evs.append(Ev(S + 0.15, f"sting:story:{bump_i}", G_STORY, "music", 0.6))
+            bump_i += 1
+            continue
+        if kind in ("song", "outro"):
+            continue  # у песни своя подложка; прощание — в mix_cartoon
+        if kind == "story" and tr in ("wipe", "iris") and si and scenes[si - 1].get("kind") in ("story", "song"):
+            evs.append(Ev(max(0.0, S - 0.05), f"sting:transition:{trans_i % 3}", G_TRANSITION, "music", 1.0))  # новая локация — тихая музыкальная связка
             trans_i += 1
-        # фон-музыка и атмосфера (склеиваются с соседними одинаковыми сценами в mix_cartoon)
+        # фон-музыка (и под заставкой истории) и атмосфера (склеиваются с соседними одинаковыми сценами в mix_cartoon)
         beds.append(Bed(S, D, f"bg:{bg_variant(sc)}", G_BG, "music", DUCK_BG, 1.5))
+        if kind == "title":
+            continue
         for name, g in ambience_for(sc):
             beds.append(Bed(S, D, f"amb:{name}", g, "sfx", DUCK_AMB, 1.0))
         scene_yay = False
@@ -668,7 +727,7 @@ def scene_events(scenes: list[dict[str, Any]]) -> tuple[list[Ev], list[Bed]]:
                 if a in WALK_SPEED:
                     sp = WALK_SPEED[a]
                     if a == "run":
-                        evs.append(Ev(S + t0, "whoosh", 0.16, duck=0.7))
+                        evs.append(Ev(S + t0, "whoosh", 0.14, duck=0.7))
                     k = 1
                     while t0 + k * math.pi / sp < t1 - 0.03:
                         evs.append(Ev(S + t0 + k * math.pi / sp, f"step:{ch}:{k % 4}", 0.2 if a == "walk" else 0.16, duck=0.75))
@@ -692,12 +751,31 @@ def scene_events(scenes: list[dict[str, Any]]) -> tuple[list[Ev], list[Bed]]:
                 elif a == "scared" and S + t0 - last_uhoh > 8:
                     evs.append(Ev(S + t0 + 0.05, "uhoh", 0.2, duck=0.8))
                     last_uhoh = S + t0
+                elif a == "eat":  # «ням-ням» после укуса (сам укус — по состоянию предмета bitten)
+                    for k in range(3):
+                        if t0 + 0.95 + 0.38 * k < t1:
+                            evs.append(Ev(S + t0 + 0.95 + 0.38 * k, f"nom:{k}", 0.16, duck=0.85))
             for k in keys:
                 if "fx" in k and k["fx"] in FX_SOUND:
                     name, g = FX_SOUND[k["fx"]]
                     evs.append(Ev(S + float(k.get("t", 0)), name, g, duck=0.8))
-                if "hold" in k:
+                if "hold" in k:  # старый формат (до предметов сцены)
                     evs.append(Ev(S + float(k.get("t", 0)), "pop", 0.22 if k["hold"] else 0.12, duck=0.85))
+        for it in sc.get("items") or []:  # предметы: передать / бросить (полёт 0.75 с) / уронить / укусить
+            for k in it.get("keys") or []:
+                t = S + float(k.get("t", 0))
+                anim = k.get("anim")
+                if anim == "pass":
+                    evs.append(Ev(t + 0.4, "pop", 0.2, duck=0.85))
+                elif anim == "throw":
+                    evs.append(Ev(t, "whoosh", 0.16, duck=0.8))
+                    evs.append(Ev(t + 0.75, "pop", 0.24, duck=0.85))
+                elif anim == "drop":
+                    evs.append(Ev(t + 0.38, "thump", 0.16, duck=0.85))
+                elif anim == "float_away":
+                    evs.append(Ev(t, "exclaim", 0.14, duck=0.85))
+                if k.get("state") == "bitten":
+                    evs.append(Ev(t, "crunch", 0.22, duck=0.85))
         for ov in sc.get("overlays") or []:
             t = S + float(ov.get("t", 0))
             if ov.get("kind") == "word":
@@ -752,10 +830,10 @@ class _Pl:
 
 
 def _k_weight(x: F64) -> F64:
-    """Приближение K-взвешивания BS.1770 в частотной области: срез < 38 Гц + полка +4 dB выше ~1.5 кГц."""
+    """Приближение K-взвешивания BS.1770 в частотной области: срез < 38 Гц + полка до +4 dB на высоких."""
     n = len(x)
     f = np.fft.rfftfreq(n, 1 / SR)
-    shelf = 1 + (10 ** (4 / 20) - 1) * f**2 / (f**2 + 1500.0**2)
+    shelf = 1 + (10 ** (4 / 20) - 1) * f**2 / (f**2 + 2458.0**2)  # +0.69 dB на 1 кГц (997 Гц, 0 dBFS → −3.01 LUFS)
     hp = 1 / np.sqrt(1 + (38.0 / np.maximum(f, 1e-3)) ** 4)
     return np.fft.irfft(np.fft.rfft(x) * shelf * hp, n)
 
@@ -804,7 +882,9 @@ def master_gain(x: F64, ceiling: float = CEILING, release: float = 0.15) -> F64:
     g = np.minimum(1.0, ceiling / np.maximum(env, 1e-9))
     r = max(1, int(release * SR / LIM_BLK / 4))
     g = mu._sliding(mu._sliding(g, r, "min", False), r, "mean", False)
-    return np.interp(np.arange(n), (np.arange(nb) + 0.5) * LIM_BLK, g)
+    # непрерывная кусочно-линейная кривая по границам блоков: на границе — минимум соседей, значит внутри блока ≤ его g
+    edges = np.minimum(np.concatenate([[g[0]], g]), np.concatenate([g, [g[-1]]]))
+    return np.interp(np.arange(n), np.arange(nb + 1) * LIM_BLK, edges)
 
 
 class Mixer:
@@ -932,15 +1012,14 @@ def mix_cartoon(scenes: list[dict[str, Any]], clips: list[tuple[float, Any]], so
                 out_dir: Path, url_base: str) -> tuple[list[dict[str, Any]], float, dict[str, Any]]:
     """Сводит эпизод в три стема (voices / music / sfx). Возвращает (doc.audio, новая длительность, статистика).
 
-    В последней сцене-заставке («Bye bye!») после прощания звучит прощальная версия темы — сцена продлевается под неё.
+    В сцене outro («Bye bye!») под прощанием рассказчика звучит прощальная версия темы — сцена продлевается под неё.
     Громкость: замер → мастер-усиление до −14 LUFS → общий лимитер (−1 dBTP) → контрольный замер и поправка → запись."""
     evs, beds = scene_events(scenes)
     end_total = total
-    if scenes and (scenes[-1].get("kind") == "title") and len(scenes) > 1:
+    if scenes and scenes[-1].get("kind") == "outro":
         last = scenes[-1]
         S = float(last.get("start", 0))
-        lines = last.get("lines") or []
-        at = (max(float(ln["start"]) + float(ln["dur"]) for ln in lines) + 0.15) if lines else 0.8
+        at = 0.3  # под прощание рассказчика (приглушается под репликой), финальный аккорд — уже в тишине
         need = at + mu.theme_length("goodbye") + 1.4
         if need > float(last.get("duration", 0)):
             last["duration"] = round(need, 3)
