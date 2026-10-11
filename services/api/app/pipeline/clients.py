@@ -103,6 +103,8 @@ async def render(props: dict[str, Any], out_dir: str, on_progress: Callable[[flo
                 if misses > 120:
                     raise ServiceError(f"Рендерер не отвечает: {type(e).__name__}") from e
                 continue
+            if "status" not in s:  # 404: рендерер перезапустился (например, упал по памяти) и задачу потерял
+                raise ServiceError(f"Рендерер потерял задачу (перезапуск?): {str(s.get('error') or s)[:200]}")
             if s.get("status") == "queued":  # ждёт своей очереди за другим рендером — это не время рендера
                 queued += 1
                 if queued > 6 * 3600:
