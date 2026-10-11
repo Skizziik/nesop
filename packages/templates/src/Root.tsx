@@ -52,7 +52,7 @@ export const RemotionRoot: React.FC = () => (
     fps={30}
     width={1280}
     height={720}
-    defaultProps={{ text: "Sharing is fun", chars: ["benny", "mia"], location: "garden", emoji: "🍎", variant: 0 }}
+    defaultProps={{ text: "Sharing is fun", chars: ["benny", "mia"], location: "garden", variant: 0 }}
   />
   <Composition
     id={ASSET_SHEET_ID}
