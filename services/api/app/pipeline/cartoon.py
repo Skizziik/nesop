@@ -64,6 +64,8 @@ RULES = (
     "- Each beat is one short line by one speaker. The narrator only frames the story briefly.\n"
     "- Keep the world believable: characters walk or run in and out (no popping out of nowhere, no teleporting); "
     "at most ONE magical/impossible moment per story. Sparkles and hearts are only decoration.\n"
+    "- Pretend play: at most ONE scene per story may happen in an imaginary world (space, underwater) — always introduced as make-believe "
+    "('Let's pretend we are astronauts!') right before it, and the friends come back home in the next scene.\n"
     "- Make it VISUAL and varied: every story has its own season, and scenes change the time of day (a sunny morning, a rainy afternoon, "
     "a sunset, a starry bedtime) and the weather (rain: puddles and raincoats; snow: snowmen and hats; wind: kites and flying leaves). "
     "Use the story's key object (props), outfits that fit, and little effects (hearts when happy, zzz when sleepy, sparkles for magic, ! when surprised).\n"
