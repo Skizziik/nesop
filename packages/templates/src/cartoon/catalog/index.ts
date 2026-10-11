@@ -32,9 +32,10 @@ export interface LocationEntry {
   llm: string;
   outdoor: boolean;
   tags: string[];
-  /** Состояния мира, которые локация умеет показывать. */
+  /** Состояния мира, которые локация умеет показывать (таблица совместимости; плюс общие правила в worldAllowed). */
   times: TimeOfDay[];
   weather: Weather[];
+  seasons: Season[];
 }
 export interface PropEntry {
   id: string;
@@ -122,16 +123,27 @@ export const NARRATOR = {
 };
 
 const ALL_TIMES: TimeOfDay[] = ["morning", "day", "evening", "night"];
+const ALL_WEATHER: Weather[] = ["clear", "cloudy", "rain", "snow", "windy"];
+const ALL_SEASONS: Season[] = ["spring", "summer", "autumn", "winter"];
+
 export const LOCATION_CATALOG: LocationEntry[] = [
-  { id: "garden", label: "Сад у дома", llm: "the sunny garden outside Benny's house (fence, flowers, butterflies)", outdoor: true, tags: ["home", "nature"], times: ["day", "evening"], weather: ["clear", "rain", "snow"] },
-  { id: "garden_evening", label: "Сад вечером", llm: "the garden at sunset", outdoor: true, tags: ["home", "evening"], times: ["evening"], weather: ["clear"] },
-  { id: "living_room", label: "Гостиная", llm: "Benny's cosy living room (sofa, toys shelf, window)", outdoor: false, tags: ["home"], times: ALL_TIMES, weather: ["clear"] },
-  { id: "kitchen", label: "Кухня", llm: "the kitchen (table, fridge, fruit bowl, stove)", outdoor: false, tags: ["home", "food"], times: ALL_TIMES, weather: ["clear"] },
-  { id: "bedroom", label: "Детская ночью", llm: "Benny's bedroom at night (bed, moon in the window, night light)", outdoor: false, tags: ["home", "night"], times: ["night"], weather: ["clear"] },
-  { id: "playground", label: "Детская площадка", llm: "the playground (slide, swings, sandbox)", outdoor: true, tags: ["play"], times: ["day", "evening"], weather: ["clear", "rain", "snow"] },
-  { id: "beach", label: "Пляж", llm: "the beach (waves, umbrella, bucket, shells)", outdoor: true, tags: ["summer", "water"], times: ["day", "evening"], weather: ["clear"] },
-  { id: "forest", label: "Лес", llm: "the forest (tall trees, stream, mushrooms)", outdoor: true, tags: ["nature"], times: ["day", "evening"], weather: ["clear", "rain", "snow"] },
+  { id: "garden", label: "Сад у дома", llm: "the garden outside Benny's house (fence, flowers, butterflies)", outdoor: true, tags: ["home", "nature"], times: ALL_TIMES, weather: ALL_WEATHER, seasons: ALL_SEASONS },
+  { id: "garden_evening", label: "Сад вечером", llm: "the garden at sunset", outdoor: true, tags: ["home", "evening"], times: ["evening"], weather: ["clear", "cloudy", "windy"], seasons: ALL_SEASONS },
+  { id: "living_room", label: "Гостиная", llm: "Benny's cosy living room (sofa, toys shelf, lamp, big window)", outdoor: false, tags: ["home"], times: ALL_TIMES, weather: ALL_WEATHER, seasons: ALL_SEASONS },
+  { id: "kitchen", label: "Кухня", llm: "the kitchen (table, fridge, fruit bowl, stove, window)", outdoor: false, tags: ["home", "food"], times: ALL_TIMES, weather: ALL_WEATHER, seasons: ALL_SEASONS },
+  { id: "bedroom", label: "Детская", llm: "Benny's bedroom (bed, round window, night light) — mornings and bedtime", outdoor: false, tags: ["home", "night"], times: ALL_TIMES, weather: ALL_WEATHER, seasons: ALL_SEASONS },
+  { id: "playground", label: "Детская площадка", llm: "the playground (slide, swings, sandbox)", outdoor: true, tags: ["play"], times: ["morning", "day", "evening"], weather: ALL_WEATHER, seasons: ALL_SEASONS },
+  { id: "beach", label: "Пляж", llm: "the beach (waves, umbrella, bucket, shells)", outdoor: true, tags: ["summer", "water"], times: ALL_TIMES, weather: ["clear", "cloudy", "windy"], seasons: ["spring", "summer"] },
+  { id: "forest", label: "Лес", llm: "the forest (tall pine trees, stream, mushrooms, fireflies at night)", outdoor: true, tags: ["nature"], times: ALL_TIMES, weather: ALL_WEATHER, seasons: ALL_SEASONS },
 ];
+
+/** Общие правила мира: снег только зимой, дождь не зимой. */
+export function worldAllowed(loc: LocationEntry, w: { time: TimeOfDay; weather: Weather; season: Season }): boolean {
+  if (!loc.times.includes(w.time) || !loc.weather.includes(w.weather) || !loc.seasons.includes(w.season)) return false;
+  if (w.weather === "snow" && w.season !== "winter") return false;
+  if (w.weather === "rain" && w.season === "winter") return false;
+  return true;
+}
 
 export const PROP_CATALOG: PropEntry[] = [
   { id: "ball", label: "Мяч", llm: "a bouncy ball", group: "toys", colors: ["red", "blue", "yellow", "green"] },

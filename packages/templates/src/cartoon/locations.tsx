@@ -3,7 +3,8 @@
  * Новая локация = Back (за героями) и, по желанию, Front (передний план поверх героев); цвета — токены палитры (palette.ts).
  */
 import type { ReactNode } from "react";
-import { DEFAULT_WORLD, jitter, pick, resolvePalette, TOY_COLORS, type WorldState } from "./palette";
+import { DEFAULT_WORLD, jitter, pick, resolvePalette, skyState, TOY_COLORS, type WorldState } from "./palette";
+import { FallenLeaves, Puddles, SnowDrifts, SnowStrip, Stars, SunMoon, WeatherClouds, WindowWeather } from "./world";
 import { shade } from "./rig";
 import { GardenForeground, GardenLife, GardenScene, GROUND, Layer, Sky, type LocProps } from "./scenes";
 
@@ -13,8 +14,70 @@ type P = LocProps;
 
 const out = (c: string, k = 0.32) => shade(c, k);
 
+/** Небесное тело в окне: солнце днём, луна ночью (при тучах — ничего). */
+function WindowSky({ x, y, r, world, sun, t }: { x: number; y: number; r: number; world: WorldState; sun: string; t: number }) {
+  const sky = skyState(world);
+  if (sky.sun) return <circle cx={x} cy={y + (world.time === "morning" || world.time === "evening" ? r : 0)} r={r} fill={sun} />;
+  if (sky.moon)
+    return (
+      <g>
+        <circle cx={x} cy={y} r={r * 1.7} fill="#FFF6C8" opacity={0.1 + 0.02 * Math.sin(t)} />
+        <circle cx={x} cy={y} r={r} fill="#FFF3B0" />
+        <circle cx={x - r * 0.3} cy={y - r * 0.2} r={r * 0.18} fill="#EDE09A" />
+      </g>
+    );
+  return null;
+}
+
+/** Звёздочки в окне ночью. */
+function WindowStars({ pts, world, t }: { pts: [number, number][]; world: WorldState; t: number }) {
+  if (!skyState(world).stars) return null;
+  return (
+    <g>
+      {pts.map(([x, y], i) => (
+        <circle key={i} cx={x} cy={y} r={3 + (i % 2)} fill="#FFFFFF" opacity={0.5 + 0.5 * Math.sin(t * 2 + i)} />
+      ))}
+    </g>
+  );
+}
+
+/** Тёплое пятно света от лампы (вечером и ночью). */
+function LampGlow({ x, y, r, world, t }: { x: number; y: number; r: number; world: WorldState; t: number }) {
+  if (world.time !== "night" && world.time !== "evening") return null;
+  const k = world.time === "night" ? 1.4 : 0.6;
+  return (
+    <g>
+      <circle cx={x} cy={y} r={r} fill="#FFE29A" opacity={(0.12 + 0.02 * Math.sin(t * 2)) * k} />
+      <circle cx={x} cy={y} r={r * 0.6} fill="#FFE29A" opacity={0.14 * k} />
+      <circle cx={x} cy={y} r={r * 0.3} fill="#FFF1C4" opacity={0.18 * k} />
+    </g>
+  );
+}
+
+/** Светлячки летней ночью (сад, лес, площадка). */
+export function Fireflies({ world, t, seed, n = 14, top = 380, bottom = 880 }: { world: WorldState; t: number; seed: number; n?: number; top?: number; bottom?: number }) {
+  if (world.time !== "night" || world.season === "winter" || world.weather === "rain" || world.weather === "snow") return null;
+  return (
+    <g>
+      {Array.from({ length: n }, (_, i) => {
+        const bx = ((seed * 37 + i * 211) % 1900) + 10;
+        const by = top + ((seed * 13 + i * 97) % Math.max(1, bottom - top));
+        const x = bx + Math.sin(t * 0.7 + i * 1.7) * 60;
+        const y = by + Math.sin(t * 1.1 + i) * 30;
+        const on = 0.35 + 0.65 * Math.max(0, Math.sin(t * 2.2 + i * 2.3));
+        return (
+          <g key={i} opacity={on}>
+            <circle cx={x} cy={y} r={16} fill="#F5FF9A" opacity={0.25} />
+            <circle cx={x} cy={y} r={5} fill="#FBFFD0" />
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
 /* ------------------------------------------------------------------ гостиная */
-function LivingRoom({ cam, t, pal, seed }: P) {
+function LivingRoom({ cam, t, pal, seed, uid, world }: P) {
   const toys = [pick(seed, "t1", TOY_COLORS, pal.toy1!), pick(seed, "t2", TOY_COLORS, pal.toy2!), pick(seed, "t3", TOY_COLORS, pal.toy3!), pick(seed, "t4", TOY_COLORS, pal.toy4!)];
   const art = pick(seed, "art", ["hills", "sun", "boat"] as const, "hills");
   const cushion = pick(seed, "cushion", TOY_COLORS, pal.cushion!);
@@ -30,9 +93,12 @@ function LivingRoom({ cam, t, pal, seed }: P) {
         {/* окно с садом */}
         <g transform="translate(1320 180)">
           <rect x={0} y={0} width={420} height={330} rx={16} fill={pal.skyWindow} stroke={pal.wood} strokeWidth="14" />
+          <WindowStars pts={[[60, 50], [150, 120], [260, 40], [380, 140], [90, 160]]} world={world} t={t} />
+          <WindowSky x={330} y={80} r={36} world={world} sun={pal.skyWindowSun!} t={t} />
           <path d={`M14 230 Q120 170 230 220 T 406 210 V316 H14 Z`} fill={pal.windowHill} />
-          <circle cx={330} cy={80} r={36} fill={pal.skyWindowSun} />
-          <ellipse cx={130} cy={90} rx={60} ry={24} fill={pal.skyWindowCloud} transform={`translate(${Math.sin(t * 0.2) * 30} 0)`} />
+          {world.season === "winter" ? <path d={`M14 236 Q120 176 230 226 T 406 216 V246 Q230 236 120 210 T 14 252 Z`} fill="#FFFFFF" /> : null}
+          {skyState(world).clouds > 1 || world.time !== "night" ? <ellipse cx={130} cy={90} rx={60} ry={24} fill={pal.skyWindowCloud} transform={`translate(${Math.sin(t * 0.2) * 30} 0)`} /> : null}
+          <WindowWeather x={0} y={0} w={420} h={330} rx={16} world={world} t={t} uid={uid} />
           <path d="M210 0 V330 M0 165 H420" stroke={pal.wood} strokeWidth="12" />
           <path d="M-30 -20 Q60 160 30 360 L-60 360 L-60 -20 Z" fill={pal.curtain} stroke={out(pal.curtain!)} strokeWidth="5" />
           <path d="M450 -20 Q360 160 390 360 L480 360 L480 -20 Z" fill={pal.curtain} stroke={out(pal.curtain!)} strokeWidth="5" />
@@ -84,6 +150,13 @@ function LivingRoom({ cam, t, pal, seed }: P) {
           <rect x={510} y={-170} width={90} height={170} rx={40} fill={pal.sofa} stroke={out(pal.sofa!)} strokeWidth="6" />
           <rect x={40} y={-180} width={110} height={80} rx={20} fill={cushion} stroke={out(cushion)} strokeWidth="5" transform="rotate(-8 95 -140)" />
         </g>
+        {/* торшер */}
+        <g transform={`translate(1150 ${GROUND - 120})`}>
+          <LampGlow x={0} y={-330} r={260} world={world} t={t} />
+          <rect x={-6} y={-320} width={12} height={320} rx={6} fill={pal.wood} />
+          <ellipse cx={0} cy={0} rx={50} ry={12} fill={out(pal.wood!, 0.15)} />
+          <path d="M-70 -300 L70 -300 L45 -390 L-45 -390 Z" fill={world.time === "night" || world.time === "evening" ? "#FFE9A0" : pal.cushion} stroke={out(pal.cushion!)} strokeWidth="5" strokeLinejoin="round" />
+        </g>
         {/* ковёр */}
         <ellipse cx={1100} cy={GROUND + 40} rx={560} ry={70} fill={rug} stroke={out(rug)} strokeWidth="6" />
         <ellipse cx={1100} cy={GROUND + 40} rx={430} ry={50} fill="none" stroke={pal.rugStitch} strokeWidth="6" strokeDasharray="4 18" strokeLinecap="round" />
@@ -93,7 +166,7 @@ function LivingRoom({ cam, t, pal, seed }: P) {
 }
 
 /* ------------------------------------------------------------------ кухня */
-function Kitchen({ cam, t, pal, seed }: P) {
+function Kitchen({ cam, t, pal, seed, uid, world }: P) {
   const m1 = pick(seed, "m1", TOY_COLORS, pal.magnet1!);
   const m2 = pick(seed, "m2", TOY_COLORS, pal.magnet2!);
   const bowl = pick(seed, "bowl", TOY_COLORS, pal.bowl!);
@@ -108,7 +181,10 @@ function Kitchen({ cam, t, pal, seed }: P) {
         {/* окно */}
         <g transform="translate(700 90)">
           <rect x={0} y={0} width={360} height={220} rx={14} fill={pal.skyWindow} stroke={pal.windowFrame} strokeWidth="12" />
-          <circle cx={280} cy={70} r={30} fill={pal.skyWindowSun} />
+          <WindowStars pts={[[50, 40], [120, 110], [230, 50], [320, 150]]} world={world} t={t} />
+          <WindowSky x={280} y={70} r={30} world={world} sun={pal.skyWindowSun!} t={t} />
+          {world.season === "winter" ? <rect x={6} y={200} width={348} height={14} rx={6} fill="#FFFFFF" /> : null}
+          <WindowWeather x={0} y={0} w={360} h={220} rx={14} world={world} t={t} uid={uid} />
           <path d="M180 0 V220" stroke={pal.windowFrame} strokeWidth="10" />
         </g>
         {/* шкафчики сверху */}
@@ -146,6 +222,15 @@ function Kitchen({ cam, t, pal, seed }: P) {
           <rect key={i} x={-600 + i * 160} y={GROUND - 146 + (i % 2) * 80} width={80} height={80} fill={pal.floorTile} />
         ))}
       </Layer>
+      <Layer cam={cam} depth={0.9}>
+        {/* лампа над столом */}
+        <g transform="translate(1000 0)">
+          <path d="M0 -40 V250" stroke={out(pal.counter!, 0.5)} strokeWidth="5" />
+          <LampGlow x={0} y={300} r={300} world={world} t={t} />
+          <path d="M-90 300 Q0 200 90 300 Z" fill={pal.pot} stroke={out(pal.pot!)} strokeWidth="5" />
+          <ellipse cx={0} cy={300} rx={34} ry={10} fill={world.time === "night" || world.time === "evening" ? "#FFF1C4" : "#FFFFFF"} />
+        </g>
+      </Layer>
       <Layer cam={cam} depth={0.95}>
         {/* стол */}
         <g transform={`translate(1000 ${GROUND - 40})`}>
@@ -160,7 +245,8 @@ function Kitchen({ cam, t, pal, seed }: P) {
 }
 
 /* ------------------------------------------------------------------ детская ночью */
-function Bedroom({ cam, t, pal, seed }: P) {
+function Bedroom({ cam, t, pal, seed, uid, world }: P) {
+  const night = world.time === "night";
   const blanket = pick(seed, "blanket", ["#7FC6FF", "#FF9FB2", "#B9E59A", "#FFD27A", "#C9A8FF"], pal.blanket!);
   return (
     <g>
@@ -172,11 +258,23 @@ function Bedroom({ cam, t, pal, seed }: P) {
         {/* окно с луной */}
         <g transform="translate(1250 140)">
           <rect x={0} y={0} width={420} height={320} rx={210} fill={pal.skyWindow} stroke={pal.windowFrame} strokeWidth="14" />
-          <circle cx={290} cy={110} r={48} fill={pal.skyMoon} />
-          <circle cx={310} cy={96} r={44} fill={pal.skyWindow} />
-          {[[80, 90], [150, 60], [120, 180], [220, 230], [330, 220]].map(([x, y], i) => (
-            <circle key={i} cx={x! + jitter(seed, `s${i}x`, 20)} cy={y! + jitter(seed, `s${i}y`, 20)} r={4 + (i % 2)} fill={pal.skyStar} opacity={0.5 + 0.5 * Math.sin(t * 2 + i)} />
-          ))}
+          {night && skyState(world).moon ? (
+            <>
+              <circle cx={290} cy={110} r={48} fill={pal.skyMoon} />
+              <circle cx={310} cy={96} r={44} fill={pal.skyWindow} />
+            </>
+          ) : !night ? (
+            <>
+              <WindowSky x={300} y={100} r={40} world={world} sun={pal.skyWindowSun!} t={t} />
+              <ellipse cx={130} cy={110} rx={70} ry={26} fill={pal.skyWindowCloud} transform={`translate(${Math.sin(t * 0.2) * 24} 0)`} />
+            </>
+          ) : null}
+          {skyState(world).stars
+            ? [[80, 90], [150, 60], [120, 180], [220, 230], [330, 220]].map(([x, y], i) => (
+                <circle key={i} cx={x! + jitter(seed, `s${i}x`, 20)} cy={y! + jitter(seed, `s${i}y`, 20)} r={4 + (i % 2)} fill={pal.skyStar} opacity={0.5 + 0.5 * Math.sin(t * 2 + i)} />
+              ))
+            : null}
+          <WindowWeather x={0} y={0} w={420} h={320} rx={160} world={world} t={t} uid={uid} />
           <path d="M210 0 V320" stroke={pal.windowFrame} strokeWidth="10" />
         </g>
         <rect x={-600} y={GROUND - 146} width={3200} height={H} fill={pal.floor} />
@@ -197,7 +295,8 @@ function Bedroom({ cam, t, pal, seed }: P) {
         {/* ночник */}
         <g transform={`translate(1150 ${GROUND - 60})`}>
           <rect x={-60} y={-120} width={120} height={120} rx={14} fill={pal.wood} stroke={out(pal.wood!)} strokeWidth="5" />
-          <circle cx={0} cy={-210} r={120} fill={pal.lamp} opacity={0.18 + 0.03 * Math.sin(t * 2)} />
+          {night || world.time === "evening" ? <circle cx={0} cy={-210} r={120} fill={pal.lamp} opacity={0.18 + 0.03 * Math.sin(t * 2)} /> : null}
+          <LampGlow x={0} y={-220} r={300} world={world} t={t} />
           <path d="M-50 -200 L50 -200 L30 -260 L-30 -260 Z" fill={pal.lamp} stroke={pal.lampLine} strokeWidth="4" />
           <rect x={-6} y={-200} width={12} height={80} fill={pal.lampLine} />
         </g>
@@ -207,14 +306,18 @@ function Bedroom({ cam, t, pal, seed }: P) {
 }
 
 /* ------------------------------------------------------------------ площадка */
-function Playground({ cam, t, pal, seed, uid }: P) {
-  const swing = Math.sin(t * 2.2) * 18;
+function Playground({ cam, t, pal, seed, uid, world }: P) {
+  const sky = skyState(world);
+  const winter = world.season === "winter";
+  const swing = Math.sin(t * 2.2) * 18 * (sky.wind > 1 ? 1.6 : 1);
   const toy = pick(seed, "toy", TOY_COLORS, pal.toy!);
   return (
     <g>
       <Sky id={`${uid}-sky`} top={pal.sky1!} bottom={pal.sky2!} />
       <Layer cam={cam} depth={0.05}>
-        <circle cx={300} cy={160} r={70} fill={pal.skySun} stroke={pal.skySunRim} strokeWidth="6" />
+        <Stars world={world} t={t} seed={seed + 1} />
+        <SunMoon x={300} y={160} r={70} world={world} pal={pal} t={t} />
+        <WeatherClouds world={world} t={t} pal={pal} seed={seed + 2} />
         {[200, 900, 1500].map((cx, i) => (
           <g key={cx} transform={`translate(${(((cx + jitter(seed, `c${i}`, 300) + t * (10 + i * 4)) % 2200) + 2200) % 2200 - 150} ${120 + i * 50})`} opacity={0.95}>
             <ellipse rx={90} ry={40} fill={pal.skyCloud} />
@@ -228,7 +331,8 @@ function Playground({ cam, t, pal, seed, uid }: P) {
         {[-100, 260, 1450, 1800].map((x) => (
           <g key={x} transform={`translate(${x} 720)`}>
             <rect x={-8} y={-80} width={16} height={80} fill={pal.trunk} />
-            <circle cx={0} cy={-110} r={50} fill={pal.leafFar} />
+            <circle cx={0} cy={-110} r={50} fill={pal.leafFar} transform={`rotate(${Math.sin(t * 1.3 + x) * 1.5 * sky.wind} 0 -80)`} />
+            {winter ? <ellipse cx={0} cy={-150} rx={36} ry={12} fill="#FFFFFF" /> : null}
           </g>
         ))}
       </Layer>
@@ -242,11 +346,13 @@ function Playground({ cam, t, pal, seed, uid }: P) {
             <rect key={i} x={0} y={-300 + i * 60} width={140} height={12} rx={6} fill={pal.frame} />
           ))}
           <rect x={-10} y={-350} width={160} height={30} rx={12} fill={pal.deck} stroke={out(pal.deck!)} strokeWidth="5" />
+          {winter ? <SnowStrip x={-12} y={-364} w={164} h={14} /> : null}
           <path d="M140 -340 Q330 -300 360 -20 L420 -20 Q390 -340 160 -380 Z" fill={pal.slide} stroke={out(pal.slide!)} strokeWidth="6" strokeLinejoin="round" />
         </g>
         {/* качели */}
         <g transform={`translate(1300 ${GROUND - 120})`}>
           <path d="M-220 0 L-160 -380 L160 -380 L220 0" stroke={pal.swingFrame} strokeWidth="18" fill="none" strokeLinejoin="round" />
+          {winter ? <SnowStrip x={-170} y={-400} w={340} h={12} /> : null}
           {[-80, 80].map((sx) => (
             <g key={sx} transform={`rotate(${sx < 0 ? swing : -swing * 0.6} ${sx} -380)`}>
               <path d={`M${sx - 34} -380 V-110 M${sx + 34} -380 V-110`} stroke={pal.rope} strokeWidth="5" />
@@ -260,31 +366,45 @@ function Playground({ cam, t, pal, seed, uid }: P) {
         {/* песочница */}
         <g transform={`translate(900 ${GROUND + 60})`}>
           <rect x={-200} y={-40} width={400} height={90} rx={20} fill={pal.wood} stroke={out(pal.wood!)} strokeWidth="6" />
-          <ellipse cx={0} cy={-14} rx={180} ry={30} fill={pal.sand} />
+          <ellipse cx={0} cy={-14} rx={180} ry={30} fill={winter ? "#FFFFFF" : pal.sand} />
           <path d="M60 -30 L90 -80 L120 -30 Z" fill={toy} stroke={out(toy)} strokeWidth="4" />
         </g>
+        {winter ? <SnowDrifts y={GROUND + 130} seed={seed + 3} /> : null}
+        {world.season === "autumn" ? <FallenLeaves y={GROUND + 10} seed={seed + 4} /> : null}
+        {world.weather === "rain" ? <Puddles xs={[-200, 400, 1500, 2150]} y={GROUND + 110} t={t} /> : null}
+        <Fireflies world={world} t={t} seed={seed} />
       </Layer>
     </g>
   );
 }
 
 /* ------------------------------------------------------------------ пляж */
-function Beach({ cam, t, pal, seed, uid }: P) {
+function Beach({ cam, t, pal, seed, uid, world }: P) {
+  const sky = skyState(world);
+  const wave = sky.wind > 1 ? 1.8 : 1;
   const umbrella = pick(seed, "umbrella", ["#FF5E5B", "#3D8BFF", "#4CB944", "#FF8A2A", "#8E5CFF"], pal.umbrella!);
   const bucket = pick(seed, "bucket", TOY_COLORS, pal.bucket!);
   return (
     <g>
       <Sky id={`${uid}-sky`} top={pal.sky1!} bottom={pal.sky2!} />
       <Layer cam={cam} depth={0.05}>
-        <circle cx={1600} cy={170} r={80} fill={pal.skySun} stroke={pal.skySunRim} strokeWidth="6" />
+        <Stars world={world} t={t} seed={seed + 1} />
+        <SunMoon x={1600} y={170} r={80} world={world} pal={pal} t={t} />
+        <WeatherClouds world={world} t={t} pal={pal} seed={seed + 2} />
         {[0, 1].map((i) => (
           <path key={i} d="M0 0 q14 -12 28 0 q14 -12 28 0" stroke={pal.skyBird} strokeWidth="5" fill="none" strokeLinecap="round" transform={`translate(${(300 + i * 160 + t * 40) % 2100} ${200 + i * 40 + Math.sin(t * 2 + i) * 12})`} />
         ))}
       </Layer>
       <Layer cam={cam} depth={0.3}>
         <rect x={-600} y={560} width={3200} height={260} fill={pal.sea} />
+        {/* дорожка света от солнца/луны на воде */}
+        {sky.sun || sky.moon
+          ? Array.from({ length: 6 }, (_, i) => (
+              <rect key={i} x={1600 - 60 - i * 10 + Math.sin(t * 2 + i) * 14} y={580 + i * 34} width={120 + i * 20} height={8} rx={4} fill={sky.moon ? "#FFF3B0" : "#FFFFFF"} opacity={0.35 - i * 0.04} />
+            ))
+          : null}
         {Array.from({ length: 8 }, (_, i) => (
-          <path key={i} d={`M${-600 + i * 420 + Math.sin(t + i) * 30} ${620 + (i % 3) * 50} q30 -14 60 0 q30 -14 60 0`} stroke={pal.seaFoam} strokeWidth="6" fill="none" strokeLinecap="round" />
+          <path key={i} d={`M${-600 + i * 420 + Math.sin(t * wave + i) * 30 * wave} ${620 + (i % 3) * 50} q30 ${-14 * wave} 60 0 q30 ${-14 * wave} 60 0`} stroke={pal.seaFoam} strokeWidth="6" fill="none" strokeLinecap="round" />
         ))}
       </Layer>
       <Layer cam={cam} depth={0.7}>
@@ -315,14 +435,23 @@ function Beach({ cam, t, pal, seed, uid }: P) {
 }
 
 /* ------------------------------------------------------------------ лес */
-function Forest({ cam, t, pal, seed, uid }: P) {
+function Forest({ cam, t, pal, seed, uid, world }: P) {
+  const sky = skyState(world);
+  const winter = world.season === "winter";
   const tree = (x: number, y: number, s: number, c: string, k: number) => (
     <g key={`${x}-${k}`} transform={`translate(${x} ${y}) scale(${s})`}>
       <rect x={-22} y={-260} width={44} height={260} rx={10} fill={pal.trunk} stroke={out(pal.trunk!)} strokeWidth="5" />
-      <g transform={`rotate(${Math.sin(t * 1.1 + x) * 1.2} 0 -260)`}>
+      <g transform={`rotate(${Math.sin(t * 1.1 * (sky.wind > 1 ? 1.7 : 1) + x) * 1.2 * sky.wind} 0 -260)`}>
         <path d="M-150 -220 L0 -470 L150 -220 Z" fill={c} stroke={out(c)} strokeWidth="6" strokeLinejoin="round" />
         <path d="M-130 -320 L0 -540 L130 -320 Z" fill={shade(c, -0.1)} stroke={out(c)} strokeWidth="6" strokeLinejoin="round" />
         <path d="M-100 -420 L0 -600 L100 -420 Z" fill={shade(c, -0.2)} stroke={out(c)} strokeWidth="6" strokeLinejoin="round" />
+        {winter ? (
+          <g fill="#FFFFFF">
+            <path d="M-56 -508 L0 -600 L56 -508 Q28 -520 0 -500 Q-28 -520 -56 -508 Z" />
+            <path d="M-80 -410 L-40 -466 Q0 -440 40 -466 L80 -410 Q40 -428 0 -414 Q-40 -428 -80 -410 Z" />
+            <path d="M-110 -306 L-60 -360 Q0 -336 60 -360 L110 -306 Q56 -324 0 -310 Q-56 -324 -110 -306 Z" />
+          </g>
+        ) : null}
       </g>
     </g>
   );
@@ -334,6 +463,11 @@ function Forest({ cam, t, pal, seed, uid }: P) {
   return (
     <g>
       <Sky id={`${uid}-sky`} top={pal.sky1!} bottom={pal.sky2!} />
+      <Layer cam={cam} depth={0.05}>
+        <Stars world={world} t={t} seed={seed + 1} bottom={360} />
+        <SunMoon x={1500} y={130} r={60} world={world} pal={pal} t={t} />
+        <WeatherClouds world={world} t={t} pal={pal} seed={seed + 2} />
+      </Layer>
       <Layer cam={cam} depth={0.2}>{[-200, 150, 520, 880, 1240, 1600, 1960].map((x, i) => tree(x, 760, 0.55, pal.pineFar!, i))}</Layer>
       <Layer cam={cam} depth={0.5}>{[-50, 420, 1100, 1700, 2100].map((x, i) => tree(x, 830, 0.8, pal.pine!, i))}</Layer>
       <Layer cam={cam} depth={0.8}>
@@ -345,13 +479,17 @@ function Forest({ cam, t, pal, seed, uid }: P) {
         ))}
       </Layer>
       {/* лучи солнца сквозь деревья */}
-      <g opacity={0.18 + 0.05 * Math.sin(t)}>
+      <g opacity={sky.sun ? 0.18 + 0.05 * Math.sin(t) : 0}>
         <path d="M900 -50 L760 1100 L960 1100 Z" fill={pal.skyRay} />
         <path d="M1300 -50 L1250 1100 L1420 1100 Z" fill={pal.skyRay} />
       </g>
       <Layer cam={cam} depth={1}>
         <rect x={-600} y={GROUND - 20} width={3200} height={H} fill={pal.grass} />
-        {mush.map(([x, c], i) => (
+        {winter ? <SnowDrifts y={GROUND + 100} seed={seed + 3} /> : null}
+        {world.season === "autumn" ? <FallenLeaves y={GROUND + 10} seed={seed + 4} /> : null}
+        {world.weather === "rain" ? <Puddles xs={[-100, 700, 1350, 2050]} y={GROUND + 90} t={t} /> : null}
+        <Fireflies world={world} t={t} seed={seed} top={300} />
+        {(winter ? [] : mush).map(([x, c], i) => (
           <g key={i} transform={`translate(${x} ${GROUND + 30})`}>
             <rect x={-12} y={-50} width={24} height={50} rx={10} fill={pal.stalk} stroke={pal.stalkLine} strokeWidth="4" />
             <path d="M-50 -46 Q0 -110 50 -46 Z" fill={c} stroke={out(c)} strokeWidth="5" />
@@ -371,11 +509,11 @@ export interface LocationDef {
 }
 
 export const LOCATIONS: Record<string, LocationDef> = {
-  garden: { label: "Сад у дома", Back: GardenScene, Front: (p) => (<><GardenLife {...p} /><GardenForeground {...p} /></>) },
+  garden: { label: "Сад у дома", Back: GardenScene, Front: (p) => (<><GardenLife {...p} /><Fireflies world={p.world} t={p.t} seed={p.seed} /><GardenForeground {...p} /></>) },
   garden_evening: { label: "Сад вечером", Back: GardenScene, Front: GardenForeground },
   living_room: { label: "Гостиная", Back: LivingRoom },
   kitchen: { label: "Кухня", Back: Kitchen },
-  bedroom: { label: "Детская ночью", Back: Bedroom },
+  bedroom: { label: "Детская", Back: Bedroom },
   playground: { label: "Детская площадка", Back: Playground },
   beach: { label: "Пляж", Back: Beach },
   forest: { label: "Лес", Back: Forest },
@@ -386,6 +524,8 @@ export { GROUND };
 
 /** Задник и передний план локации с палитрой мира и сидом сцены. */
 export function locationProps(id: string, cam: LocProps["cam"], t: number, opts: { world?: WorldState; seed?: number; uid?: string } = {}): LocProps {
-  return { cam, t, pal: resolvePalette(id, opts.world ?? DEFAULT_WORLD), seed: opts.seed ?? 0, uid: opts.uid ?? `loc-${id}` };
+  const w0 = opts.world ?? DEFAULT_WORLD;
+  const world: WorldState = id === "garden_evening" && w0.time === "day" ? { ...w0, time: "evening" } : w0;
+  return { cam, t, pal: resolvePalette(id, world), seed: opts.seed ?? 0, uid: opts.uid ?? `loc-${id}`, world };
 }
 export const locationDef = (id: string): LocationDef => LOCATIONS[id] ?? LOCATIONS.garden!;

@@ -80,20 +80,30 @@
     {
       "id": "garden",
       "label": "Сад у дома",
-      "llm": "the sunny garden outside Benny's house (fence, flowers, butterflies)",
+      "llm": "the garden outside Benny's house (fence, flowers, butterflies)",
       "outdoor": true,
       "tags": [
         "home",
         "nature"
       ],
       "times": [
+        "morning",
         "day",
-        "evening"
+        "evening",
+        "night"
       ],
       "weather": [
         "clear",
+        "cloudy",
         "rain",
-        "snow"
+        "snow",
+        "windy"
+      ],
+      "seasons": [
+        "spring",
+        "summer",
+        "autumn",
+        "winter"
       ]
     },
     {
@@ -109,13 +119,21 @@
         "evening"
       ],
       "weather": [
-        "clear"
+        "clear",
+        "cloudy",
+        "windy"
+      ],
+      "seasons": [
+        "spring",
+        "summer",
+        "autumn",
+        "winter"
       ]
     },
     {
       "id": "living_room",
       "label": "Гостиная",
-      "llm": "Benny's cosy living room (sofa, toys shelf, window)",
+      "llm": "Benny's cosy living room (sofa, toys shelf, lamp, big window)",
       "outdoor": false,
       "tags": [
         "home"
@@ -127,13 +145,23 @@
         "night"
       ],
       "weather": [
-        "clear"
+        "clear",
+        "cloudy",
+        "rain",
+        "snow",
+        "windy"
+      ],
+      "seasons": [
+        "spring",
+        "summer",
+        "autumn",
+        "winter"
       ]
     },
     {
       "id": "kitchen",
       "label": "Кухня",
-      "llm": "the kitchen (table, fridge, fruit bowl, stove)",
+      "llm": "the kitchen (table, fridge, fruit bowl, stove, window)",
       "outdoor": false,
       "tags": [
         "home",
@@ -146,23 +174,46 @@
         "night"
       ],
       "weather": [
-        "clear"
+        "clear",
+        "cloudy",
+        "rain",
+        "snow",
+        "windy"
+      ],
+      "seasons": [
+        "spring",
+        "summer",
+        "autumn",
+        "winter"
       ]
     },
     {
       "id": "bedroom",
-      "label": "Детская ночью",
-      "llm": "Benny's bedroom at night (bed, moon in the window, night light)",
+      "label": "Детская",
+      "llm": "Benny's bedroom (bed, round window, night light) — mornings and bedtime",
       "outdoor": false,
       "tags": [
         "home",
         "night"
       ],
       "times": [
+        "morning",
+        "day",
+        "evening",
         "night"
       ],
       "weather": [
-        "clear"
+        "clear",
+        "cloudy",
+        "rain",
+        "snow",
+        "windy"
+      ],
+      "seasons": [
+        "spring",
+        "summer",
+        "autumn",
+        "winter"
       ]
     },
     {
@@ -174,13 +225,22 @@
         "play"
       ],
       "times": [
+        "morning",
         "day",
         "evening"
       ],
       "weather": [
         "clear",
+        "cloudy",
         "rain",
-        "snow"
+        "snow",
+        "windy"
+      ],
+      "seasons": [
+        "spring",
+        "summer",
+        "autumn",
+        "winter"
       ]
     },
     {
@@ -193,29 +253,47 @@
         "water"
       ],
       "times": [
+        "morning",
         "day",
-        "evening"
+        "evening",
+        "night"
       ],
       "weather": [
-        "clear"
+        "clear",
+        "cloudy",
+        "windy"
+      ],
+      "seasons": [
+        "spring",
+        "summer"
       ]
     },
     {
       "id": "forest",
       "label": "Лес",
-      "llm": "the forest (tall trees, stream, mushrooms)",
+      "llm": "the forest (tall pine trees, stream, mushrooms, fireflies at night)",
       "outdoor": true,
       "tags": [
         "nature"
       ],
       "times": [
+        "morning",
         "day",
-        "evening"
+        "evening",
+        "night"
       ],
       "weather": [
         "clear",
+        "cloudy",
         "rain",
-        "snow"
+        "snow",
+        "windy"
+      ],
+      "seasons": [
+        "spring",
+        "summer",
+        "autumn",
+        "winter"
       ]
     }
   ],

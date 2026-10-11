@@ -12,6 +12,7 @@ import { ChannelBanner, BANNER_ID, BANNER_H, BANNER_W } from "./timeline/Channel
 import { CartoonEpisode, DEMO_CARTOON } from "./cartoon/Episode";
 import { CartoonThumb, CARTOON_THUMB_ID } from "./cartoon/Thumb";
 import { AssetSheet, ASSET_SHEET_ID } from "./cartoon/AssetSheet";
+import { WorldSheet, WORLD_SHEET_ID } from "./cartoon/WorldSheet";
 
 export const TIMELINE_ID = "Timeline";
 
@@ -63,6 +64,7 @@ export const RemotionRoot: React.FC = () => (
     defaultProps={{ kind: "props" }}
     calculateMetadata={({ props }) => ((props as { only?: string }).only ? { width: 480, height: 360 } : { width: 1920, height: 1080 })}
   />
+  <Composition id={WORLD_SHEET_ID} component={WorldSheet as unknown as React.FC<AnyProps>} durationInFrames={90} fps={30} width={1920} height={1080} defaultProps={{ location: "garden" }} />
   <Composition id={BANNER_ID} component={ChannelBanner as unknown as React.FC<AnyProps>} durationInFrames={1} fps={30} width={BANNER_W} height={BANNER_H} defaultProps={{}} />
   <Composition
     id={THUMBNAIL_ID}

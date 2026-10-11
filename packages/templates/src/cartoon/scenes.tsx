@@ -4,7 +4,8 @@
  * Цвета — только токены палитры (palette.ts), мелочи — по сиду сцены.
  */
 import type { ReactNode } from "react";
-import { jitter, pick, TOY_COLORS, type Palette } from "./palette";
+import { jitter, pick, skyState, TOY_COLORS, type Palette, type WorldState } from "./palette";
+import { FallenLeaves, Puddles, SnowDrifts, SnowStrip, Stars, SunMoon, WeatherClouds } from "./world";
 import { shade } from "./rig";
 
 export const GROUND = 905;
@@ -21,6 +22,7 @@ export interface LocProps {
   pal: Palette;
   seed: number;
   uid: string; // уникальный префикс для id градиентов (на листе ассетов локаций несколько в одном SVG)
+  world: WorldState; // время суток, погода, сезон — детали мира (солнце/луна, снег, лужи, листья)
 }
 
 const W = 1920;
@@ -61,8 +63,8 @@ function Cloud({ x, y, s, t, speed, pal }: { x: number; y: number; s: number; t:
   );
 }
 
-function Tree({ x, y, s, hue, t, pal }: { x: number; y: number; s: number; hue: string; t: number; pal: Palette }) {
-  const sway = Math.sin(t * 1.3 + x) * 1.5;
+function Tree({ x, y, s, hue, t, pal, wind = 1, snow = false }: { x: number; y: number; s: number; hue: string; t: number; pal: Palette; wind?: number; snow?: boolean }) {
+  const sway = Math.sin(t * 1.3 * (wind > 1 ? 1.8 : 1) + x) * 1.5 * wind;
   return (
     <g transform={`translate(${x} ${y}) scale(${s})`}>
       <path d="M-14 0 L-10 -120 Q0 -130 10 -120 L14 0 Z" fill={pal.trunk} stroke={shade(pal.trunk!, 0.3)} strokeWidth="4" />
@@ -74,6 +76,13 @@ function Tree({ x, y, s, hue, t, pal }: { x: number; y: number; s: number; hue: 
         <circle cx={30} cy={-170} r={9} fill={pal.fruit} />
         <circle cx={-40} cy={-150} r={9} fill={pal.fruit} />
         <circle cx={54} cy={-120} r={9} fill={pal.fruit} />
+        {snow ? (
+          <g fill="#FFFFFF">
+            <ellipse cx={0} cy={-262} rx={52} ry={16} />
+            <ellipse cx={-70} cy={-190} rx={38} ry={12} />
+            <ellipse cx={72} cy={-194} rx={40} ry={12} />
+          </g>
+        ) : null}
       </g>
     </g>
   );
@@ -92,17 +101,25 @@ function Flower({ x, y, c, t, pal }: { x: number; y: number; c: string; t: numbe
   );
 }
 
-function House({ x, y, s, pal, door }: { x: number; y: number; s: number; pal: Palette; door: string }) {
+function House({ x, y, s, pal, door, world }: { x: number; y: number; s: number; pal: Palette; door: string; world: WorldState }) {
+  const lit = world.time === "night" || world.time === "evening";
   return (
     <g transform={`translate(${x} ${y}) scale(${s})`}>
       <rect x={-170} y={-260} width={340} height={260} rx={10} fill={pal.houseWall} stroke={pal.houseTrim} strokeWidth="6" />
       <path d="M-200 -250 L0 -410 L200 -250 Z" fill={pal.roof} stroke={pal.roofLine} strokeWidth="6" strokeLinejoin="round" />
       <rect x={110} y={-400} width={40} height={90} fill={pal.chimney} stroke={pal.chimneyLine} strokeWidth="5" />
+      {world.season === "winter" ? (
+        <g>
+          <path d="M-212 -248 Q-100 -330 0 -418 Q100 -330 212 -248 Q190 -228 170 -246 Q100 -310 0 -392 Q-100 -310 -170 -246 Q-190 -228 -212 -248 Z" fill="#FFFFFF" stroke="#D6E4F0" strokeWidth="4" strokeLinejoin="round" />
+          <SnowStrip x={106} y={-414} w={48} h={14} />
+        </g>
+      ) : null}
       <rect x={-40} y={-140} width={80} height={140} rx={40} fill={door} stroke={shade(door, 0.35)} strokeWidth="6" />
       <circle cx={24} cy={-70} r={7} fill={pal.knob} />
       {[-120, 120].map((wx) => (
         <g key={wx}>
-          <rect x={wx - 42} y={-210} width={84} height={76} rx={10} fill={pal.glass} stroke={pal.houseTrim} strokeWidth="6" />
+          <rect x={wx - 42} y={-210} width={84} height={76} rx={10} fill={lit ? "#FFD97A" : pal.glass} stroke={pal.houseTrim} strokeWidth="6" />
+          {lit ? <rect x={wx - 62} y={-230} width={124} height={116} rx={30} fill="#FFD97A" opacity={0.18} /> : null}
           <path d={`M${wx} -210 V-134 M${wx - 42} -172 H${wx + 42}`} stroke={pal.houseTrim} strokeWidth="5" />
         </g>
       ))}
@@ -111,7 +128,9 @@ function House({ x, y, s, pal, door }: { x: number; y: number; s: number; pal: P
 }
 
 /** Сад у дома: небо, солнце, облака, холмы, дом, деревья, забор, трава, цветы. */
-export function GardenScene({ cam, t, pal, seed, uid }: LocProps) {
+export function GardenScene({ cam, t, pal, seed, uid, world }: LocProps) {
+  const sky = skyState(world);
+  const winter = world.season === "winter";
   const flowers = [pal.flower1!, pal.flower2!, pal.flower3!, pal.flower4!];
   const door = pick(seed, "door", ["#6B4BB0", "#3D8BFF", "#4CB944", "#FF8A2A", "#E8574C"], pal.door!);
   const flowerXs = [-200, 120, 330, 1500, 1720, 1960, 2150];
@@ -119,23 +138,22 @@ export function GardenScene({ cam, t, pal, seed, uid }: LocProps) {
     <g>
       <Sky id={`${uid}-sky`} top={pal.sky1!} bottom={pal.sky2!} />
       <Layer cam={cam} depth={0.05}>
-        <g transform={`translate(1580 170)`}>
-          <circle r={95} fill={pal.skySunGlow} opacity={0.35} transform={`scale(${1 + Math.sin(t * 1.5) * 0.04})`} />
-          <circle r={70} fill={pal.skySun} stroke={pal.skySunRim} strokeWidth="6" />
-        </g>
+        <Stars world={world} t={t} seed={seed + 1} />
+        <SunMoon x={1580} y={170} r={70} world={world} pal={pal} t={t} />
+        <WeatherClouds world={world} t={t} pal={pal} seed={seed + 2} />
         <Cloud x={200 + jitter(seed, "c1", 300)} y={160} s={1} t={t} speed={14} pal={pal} />
         <Cloud x={900 + jitter(seed, "c2", 300)} y={110} s={0.75} t={t} speed={10} pal={pal} />
         <Cloud x={1500 + jitter(seed, "c3", 300)} y={240} s={0.6} t={t} speed={18} pal={pal} />
       </Layer>
       <Layer cam={cam} depth={0.25}>
         <path d={`M-400 760 Q 200 560 700 720 T 1700 690 T 2600 740 V ${H + 300} H -400 Z`} fill={pal.hillFar} />
-        <Tree x={220} y={735} s={0.45} hue={pal.leafFar!} t={t} pal={pal} />
-        <Tree x={1500} y={705} s={0.4} hue={pal.leafFar!} t={t} pal={pal} />
+        <Tree x={220} y={735} s={0.45} hue={pal.leafFar!} t={t} pal={pal} wind={sky.wind} snow={winter} />
+        <Tree x={1500} y={705} s={0.4} hue={pal.leafFar!} t={t} pal={pal} wind={sky.wind} snow={winter} />
       </Layer>
       <Layer cam={cam} depth={0.55}>
         <path d={`M-400 820 Q 400 700 1000 800 T 2500 790 V ${H + 300} H -400 Z`} fill={pal.hillMid} />
-        <House x={560} y={812} s={0.82} pal={pal} door={door} />
-        <Tree x={1260} y={815} s={0.8} hue={pal.leaf!} t={t} pal={pal} />
+        <House x={560} y={812} s={0.82} pal={pal} door={door} world={world} />
+        <Tree x={1260} y={815} s={0.8} hue={pal.leaf!} t={t} pal={pal} wind={sky.wind} snow={winter} />
       </Layer>
       <Layer cam={cam} depth={0.8}>
         {/* забор — за героями, чуть ниже их роста */}
@@ -143,6 +161,7 @@ export function GardenScene({ cam, t, pal, seed, uid }: LocProps) {
           <path key={fx} d={`M${fx} ${GROUND - 95} V${GROUND - 190} l20 -18 l20 18 V${GROUND - 95} Z`} fill={pal.fence} stroke={pal.fenceLine} strokeWidth="4" strokeLinejoin="round" />
         ))}
         <rect x={-800} y={GROUND - 172} width={3600} height={12} fill={pal.fence} stroke={pal.fenceLine} strokeWidth="3" />
+        {winter ? Array.from({ length: 34 }, (_, i) => -700 + i * 96).map((fx) => <ellipse key={fx} cx={fx + 20} cy={GROUND - 206} rx={20} ry={8} fill="#FFFFFF" />) : null}
         <rect x={-800} y={GROUND - 132} width={3600} height={12} fill={pal.fence} stroke={pal.fenceLine} strokeWidth="3" />
         {[-420, 300, 1160, 1900, 2500].map((bx) => (
           <g key={bx} transform={`translate(${bx} ${GROUND - 92})`}>
@@ -152,6 +171,7 @@ export function GardenScene({ cam, t, pal, seed, uid }: LocProps) {
             <circle cx={10} cy={-20} r={7} fill={pal.bushFlower1} />
             <circle cx={-30} cy={4} r={7} fill={pal.bushFlower2} />
             <circle cx={44} cy={-4} r={7} fill={pal.bushFlower1} />
+            {winter ? <path d="M-80 -6 Q-50 -66 0 -54 Q50 -70 88 -4 Q40 -26 0 -24 Q-44 -30 -80 -6 Z" fill="#FFFFFF" /> : null}
           </g>
         ))}
         <rect x={-800} y={GROUND - 100} width={3600} height={200} fill={pal.grass} />
@@ -164,9 +184,14 @@ export function GardenScene({ cam, t, pal, seed, uid }: LocProps) {
         {Array.from({ length: 40 }, (_, i) => -560 + i * 90).map((gx, i) => (
           <path key={gx} d={`M${gx} ${GROUND + 40 + (i % 3) * 30} q6 -16 12 0 q6 -20 12 0`} stroke={pal.grassBlade} strokeWidth="5" fill="none" strokeLinecap="round" />
         ))}
-        {flowerXs.map((fx, i) => (
-          <Flower key={fx} x={fx + jitter(seed, `fx${i}`, 50)} y={GROUND - 26} c={pick(seed, `f${i}`, [...flowers, TOY_COLORS[0]!, TOY_COLORS[5]!], flowers[i % 4]!)} t={t} pal={pal} />
-        ))}
+        {sky.flowers
+          ? flowerXs.map((fx, i) => (
+              <Flower key={fx} x={fx + jitter(seed, `fx${i}`, 50)} y={GROUND - 26} c={pick(seed, `f${i}`, [...flowers, TOY_COLORS[0]!, TOY_COLORS[5]!], flowers[i % 4]!)} t={t} pal={pal} />
+            ))
+          : null}
+        {winter ? <SnowDrifts y={GROUND + 110} seed={seed + 3} /> : null}
+        {world.season === "autumn" ? <FallenLeaves y={GROUND + 20} seed={seed + 4} /> : null}
+        {world.weather === "rain" ? <Puddles xs={[-120, 640, 1380, 2100]} y={GROUND + 60} t={t} /> : null}
       </Layer>
     </g>
   );
@@ -186,7 +211,9 @@ function Butterfly({ x, y, t, c, pal }: { x: number; y: number; t: number; c: st
 }
 
 /** Бабочки — на слое персонажей (оживляют кадр). */
-export function GardenLife({ cam, t, pal }: LocProps) {
+export function GardenLife({ cam, t, pal, world }: LocProps) {
+  const sky = skyState(world);
+  if (!sky.flowers || world.time === "night" || world.weather === "rain" || world.weather === "snow") return null;
   return (
     <Layer cam={cam} depth={1}>
       <Butterfly x={420} y={GROUND - 330} t={t} c={pal.butterfly1!} pal={pal} />
@@ -196,7 +223,7 @@ export function GardenLife({ cam, t, pal }: LocProps) {
 }
 
 /** Передний план (поверх персонажей): кусты по краям — глубина кадра. */
-export function GardenForeground({ cam, t, pal }: LocProps) {
+export function GardenForeground({ cam, t, pal, world }: LocProps) {
   return (
     <Layer cam={cam} depth={1.35}>
       {[-260, 2160].map((bx) => (
@@ -204,6 +231,7 @@ export function GardenForeground({ cam, t, pal }: LocProps) {
           <circle cx={0} cy={0} r={150} fill={pal.fg1} />
           <circle cx={120} cy={30} r={110} fill={pal.fg2} />
           <circle cx={-110} cy={40} r={120} fill={pal.fg3} />
+          {world.season === "winter" ? <path d="M-200 -40 Q-120 -160 0 -150 Q130 -160 210 -20 Q100 -90 0 -90 Q-110 -96 -200 -40 Z" fill="#FFFFFF" opacity={0.95} /> : null}
         </g>
       ))}
     </Layer>

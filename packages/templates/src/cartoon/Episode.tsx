@@ -11,6 +11,8 @@ import { Character, type CEmotion, type Fx, type Wear } from "./rig";
 import { Prop } from "./props";
 import { locationDef, locationProps } from "./locations";
 import type { WorldState } from "./palette";
+import { WorldFx } from "./world";
+import { LOCATION_CATALOG } from "./catalog";
 import { GROUND, type Camera } from "./scenes";
 
 export interface ActorKey {
@@ -147,27 +149,6 @@ function speakingTo(lines: Line[], char: string, t: number): string | null {
   return l ? l.char : null;
 }
 
-/** Погода поверх кадра: дождь (косые струи), снег (хлопья), листопад. Детерминированно по t. */
-function Weather({ kind, t }: { kind: "rain" | "snow" | "leaves"; t: number }) {
-  const n = kind === "rain" ? 90 : kind === "snow" ? 70 : 24;
-  return (
-    <g>
-      {kind === "rain" ? <rect width={1920} height={1080} fill="#3A5A8C" opacity={0.18} /> : null}
-      {Array.from({ length: n }, (_, i) => {
-        const seed = (i * 7919) % 1000;
-        const speed = kind === "rain" ? 900 : kind === "snow" ? 90 : 120;
-        const x0 = (seed * 1.93) % 1920;
-        const y = ((t * speed + seed * 3.7) % 1200) - 60;
-        const x = kind === "rain" ? x0 - y * 0.18 : x0 + Math.sin(t * 1.3 + i) * (kind === "snow" ? 24 : 60);
-        if (kind === "rain") return <path key={i} d={`M${x} ${y} l-8 34`} stroke="#CFE6FF" strokeWidth="3" strokeLinecap="round" opacity={0.75} />;
-        if (kind === "snow") return <circle key={i} cx={x} cy={y} r={4 + (seed % 5)} fill="#FFFFFF" opacity={0.9} />;
-        const c = ["#FF8A2A", "#FFB23F", "#E8453C"][i % 3]!;
-        return <path key={i} transform={`translate(${x} ${y}) rotate(${t * 90 + seed})`} d="M0 -14 C10 -10 12 4 0 14 C-12 4 -10 -10 0 -14 Z" fill={c} />;
-      })}
-    </g>
-  );
-}
-
 /** День рождения: флажки-гирлянда и шарики в мире сцены. */
 function Birthday({ t }: { t: number }) {
   const colors = ["#FF4D5A", "#FFD23F", "#3D8BFF", "#7BC96F", "#B38BFF"];
@@ -193,6 +174,18 @@ function Birthday({ t }: { t: number }) {
   );
 }
 
+/** Мир сцены: новое поле world, либо старые weather/time (листопад = осень с ветром); детская без времени — ночь. */
+export function sceneWorld(sc: SceneDoc): WorldState {
+  const legacyWeather = sc.weather === "rain" || sc.weather === "snow" ? sc.weather : sc.weather === "leaves" ? "windy" : "clear";
+  return {
+    time: sc.world?.time ?? sc.time ?? (sc.location === "bedroom" ? "night" : "day"),
+    weather: sc.world?.weather ?? legacyWeather,
+    season: sc.world?.season ?? (sc.weather === "leaves" ? "autumn" : sc.weather === "snow" ? "winter" : "summer"),
+    dressing: sc.world?.dressing ?? sc.decor ?? undefined,
+  };
+}
+const isOutdoor = (loc: string) => LOCATION_CATALOG.find((l) => l.id === loc)?.outdoor ?? true;
+
 function Scene({ sc, t, fps }: { sc: SceneDoc; t: number; fps: number }) {
   const cam = camAt(sc.camera, t);
   const actors = sc.actors.map((a) => ({ a, s: actorAt(a.keys, t) }));
@@ -201,7 +194,7 @@ function Scene({ sc, t, fps }: { sc: SceneDoc; t: number; fps: number }) {
   const z = cam.zoom;
   const tf = `translate(${W / 2} ${H * 0.62}) scale(${z}) translate(${-cam.x} ${-cam.y})`;
   const loc = locationDef(sc.location);
-  const world: WorldState = { time: sc.world?.time ?? sc.time ?? (sc.location === "bedroom" ? "night" : "day"), weather: sc.world?.weather ?? (sc.weather === "rain" || sc.weather === "snow" ? sc.weather : "clear"), season: sc.world?.season ?? "summer", dressing: sc.world?.dressing ?? sc.decor ?? undefined };
+  const world = sceneWorld(sc);
   const lp = locationProps(sc.location, cam, t + sc.start, { world, seed: sc.seed ?? 0, uid: `sc${Math.round(sc.start * 1000)}` });
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{ position: "absolute", inset: 0 }}>
@@ -245,8 +238,7 @@ function Scene({ sc, t, fps }: { sc: SceneDoc; t: number; fps: number }) {
           })}
       </g>
       {loc.Front ? <loc.Front {...lp} /> : null}
-      {sc.weather ? <Weather kind={sc.weather} t={t + sc.start} /> : null}
-      {sc.time === "evening" ? <rect width={W} height={H} fill="#FF7A3D" opacity={0.14} /> : sc.time === "night" ? <rect width={W} height={H} fill="#1B2A6B" opacity={0.38} /> : null}
+      <WorldFx world={world} t={t + sc.start} outdoor={isOutdoor(sc.location)} />
     </svg>
   );
 }
