@@ -26,6 +26,14 @@ const THEMES = [
   "Animals on the farm",
   "Sunny, rainy and snowy days",
   "Saying please and thank you",
+  "Bath time bubbles",
+  "First day at kindergarten",
+  "A day on the farm",
+  "Camping under the stars",
+  "Pretend rocket trip to the moon",
+  "Under the sea adventure",
+  "Snow day sledding",
+  "Feeding the ducks at the pond",
 ];
 const STATUS: Record<Project["status"], { label: string; tone: "green" | "red" | "yellow" | "gray" | "blue" }> = {
   generating: { label: "создаётся", tone: "blue" },
