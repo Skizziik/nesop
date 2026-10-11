@@ -1,4 +1,5 @@
 import express from "express";
+import { existsSync } from "node:fs";
 import { mkdir, rename, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { ensureBrowser, openBrowser, renderMedia, renderStill, selectComposition } from "@remotion/renderer";
@@ -62,6 +63,96 @@ async function runJob(job: RenderJob): Promise<void> {
   }
 }
 
+interface AudioTrack {
+  file: string;
+  start: number;
+  volume: number;
+  loop: boolean;
+  dur?: number;
+}
+
+/** Дорожки мультика как локальные файлы /data/... (src = "/media/..."); null — есть внешние/непонятные источники. */
+function mixableAudio(props: Record<string, unknown>): AudioTrack[] | null {
+  const list = (props.audio as { src?: string; start?: number; volume?: number; loop?: boolean; dur?: number }[] | undefined) ?? [];
+  if (!list.length) return null;
+  const out: AudioTrack[] = [];
+  for (const a of list) {
+    if (!a.src?.startsWith("/media/")) return null;
+    const file = resolve(DATA_DIR, a.src.slice("/media/".length).split("?")[0]!);
+    if (!file.startsWith(DATA_DIR) || !existsSync(file)) return null;
+    out.push({ file, start: Math.max(0, a.start ?? 0), volume: a.volume ?? 1, loop: !!a.loop, dur: a.dur });
+  }
+  return out;
+}
+
+/** Сведение дорожек как в Episode (<Sequence from=start durationInFrames=dur><Audio volume loop/>): adelay + volume + amix без нормализации. */
+async function mixAudio(tracks: AudioTrack[], seconds: number, out: string): Promise<void> {
+  const args: string[] = [];
+  const chains: string[] = [];
+  tracks.forEach((t, i) => {
+    if (t.loop) args.push("-stream_loop", "-1");
+    args.push("-i", t.file);
+    const trim = t.dur !== undefined ? `atrim=0:${t.dur.toFixed(3)},` : t.loop ? `atrim=0:${Math.max(0.1, seconds - t.start).toFixed(3)},` : "";
+    const ms = Math.round(t.start * 1000);
+    chains.push(`[${i}:a]aresample=48000,aformat=channel_layouts=mono,${trim}volume=${t.volume},adelay=${ms}|${ms}[a${i}]`);
+  });
+  const mix = `${tracks.map((_, i) => `[a${i}]`).join("")}amix=inputs=${tracks.length}:normalize=0:dropout_transition=0,pan=stereo|c0=c0|c1=c0[m]`; // моно → оба канала без -3 дБ (как Remotion)
+  await ffmpeg([...args, "-filter_complex", [...chains, mix].join(";"), "-map", "[m]", "-t", seconds.toFixed(3), "-c:a", "pcm_s16le", out]);
+}
+
+/** Кусок длинного мультика: ~4 минуты видео за проход. */
+const CHUNK_FRAMES = Number(process.env.RENDER_CHUNK_FRAMES ?? 30 * 240);
+
+/**
+ * Длинный мультик частями (docs/cartoon-visual-variety.md: «рендер эпизода частями»): Node-рендерер копит данные по кадрам,
+ * и 22-минутный эпизод упирался в лимит памяти. Видео — кусками без звука, звук — отдельным проходом целиком (без стыков),
+ * потом склейка concat без перекодирования. Сбой куска не теряет уже готовые: куски с прошлой попытки переиспользуются.
+ */
+async function renderChunked(job: RenderJob, composition: Awaited<ReturnType<typeof selectComposition>>, inputProps: Record<string, unknown>,
+  puppeteerInstance: Browser, raw: string): Promise<void> {
+  if (!serveUrl) throw new Error("бандл шаблонов ещё не готов");
+  const total = composition.durationInFrames;
+  const dir = join(job.outDir, "chunks");
+  await mkdir(dir, { recursive: true });
+  const parts: string[] = [];
+  const n = Math.ceil(total / CHUNK_FRAMES);
+  for (let i = 0; i < n; i++) {
+    const a = i * CHUNK_FRAMES;
+    const b = Math.min(total - 1, a + CHUNK_FRAMES - 1);
+    const out = join(dir, `part${String(i).padStart(3, "0")}.mp4`);
+    parts.push(out);
+    if (existsSync(join(dir, `part${String(i).padStart(3, "0")}.done`))) continue;
+    await renderMedia({
+      serveUrl, composition, inputProps, codec: "h264", crf: 18, pixelFormat: "yuv420p", muted: true, frameRange: [a, b],
+      outputLocation: out, concurrency: CHROME_THREADS, chromiumOptions: { gl: "swangle" }, puppeteerInstance, timeoutInMilliseconds: TIMEOUT_MS,
+      onProgress: ({ progress }) => {
+        job.progress = ((a + progress * (b - a + 1)) / total) * 0.82;
+      },
+    });
+    await writeFile(join(dir, `part${String(i).padStart(3, "0")}.done`), "");
+    log("info", "chunk done", { job: job.id, chunk: i + 1, of: n });
+  }
+  // звук целиком, без стыков: дорожки эпизода (doc.audio) сводит ffmpeg — секунды вместо прохода Remotion по всем кадрам
+  const audio = join(dir, "audio.wav");
+  const tracks = mixableAudio(inputProps);
+  if (tracks) {
+    await mixAudio(tracks, total / composition.fps, audio);
+  } else {
+    await renderMedia({
+      serveUrl, composition, inputProps, codec: "wav", outputLocation: audio, concurrency: CHROME_THREADS, chromiumOptions: { gl: "swangle" },
+      puppeteerInstance, timeoutInMilliseconds: TIMEOUT_MS,
+      onProgress: ({ progress }) => {
+        job.progress = 0.82 + progress * 0.07;
+      },
+    });
+  }
+  const list = join(dir, "list.txt");
+  await writeFile(list, parts.map((x) => `file '${x.replace(/'/g, "'\\''")}'`).join("\n") + "\n");
+  await ffmpeg(["-f", "concat", "-safe", "0", "-i", list, "-i", audio, "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", raw]);
+  await rm(dir, { recursive: true, force: true });
+  job.progress = 0.9;
+}
+
 async function renderOnce(job: RenderJob): Promise<void> {
   if (!serveUrl) throw new Error(bundleError ?? "бандл шаблонов ещё не готов");
   const { __composition, ...rest } = job.props as Record<string, unknown> & { __composition?: string };
@@ -73,24 +164,28 @@ async function renderOnce(job: RenderJob): Promise<void> {
   const puppeteerInstance = await getBrowser();
   const composition = await selectComposition({ serveUrl, id: compId, inputProps, puppeteerInstance, timeoutInMilliseconds: TIMEOUT_MS });
   const raw = join(job.outDir, "raw.mp4");
-  await renderMedia({
-    serveUrl,
-    composition,
-    inputProps,
-    codec: "h264",
-    crf: 18,
-    pixelFormat: "yuv420p",
-    audioCodec: "aac",
-    audioBitrate: "192k",
-    outputLocation: raw,
-    concurrency: CHROME_THREADS,
-    chromiumOptions: { gl: "swangle" },
-    puppeteerInstance,
-    timeoutInMilliseconds: TIMEOUT_MS,
-    onProgress: ({ progress }) => {
-      job.progress = progress * 0.9;
-    },
-  });
+  if (compId === "Cartoon" && composition.durationInFrames > CHUNK_FRAMES * 1.5) {
+    await renderChunked(job, composition, inputProps, puppeteerInstance, raw);
+  } else {
+    await renderMedia({
+      serveUrl,
+      composition,
+      inputProps,
+      codec: "h264",
+      crf: 18,
+      pixelFormat: "yuv420p",
+      audioCodec: "aac",
+      audioBitrate: "192k",
+      outputLocation: raw,
+      concurrency: CHROME_THREADS,
+      chromiumOptions: { gl: "swangle" },
+      puppeteerInstance,
+      timeoutInMilliseconds: TIMEOUT_MS,
+      onProgress: ({ progress }) => {
+        job.progress = progress * 0.9;
+      },
+    });
+  }
   job.status = "postprocess";
   // Громкость -14 LUFS и faststart. Видео копируется без перекодирования.
   const tmp = join(job.outDir, "video.tmp.mp4");

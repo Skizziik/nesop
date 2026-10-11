@@ -145,6 +145,7 @@ services:
       RENDER_THREADS: ${RENDER_THREADS:-}
       # 22-минутный мультик не влезал в стандартные 2 ГБ кучи Node (рендер падал с heap out of memory)
       NODE_OPTIONS: "--max-old-space-size=6144"
+      RENDER_CHUNK_FRAMES: ${RENDER_CHUNK_FRAMES:-7200}
     volumes:
       - data:/data
     shm_size: "1gb"
