@@ -136,3 +136,9 @@ def test_scene_sanitises_editor_beats(monkeypatch) -> None:  # noqa: ANN001
     emos = {k.get("emotion") for a in sc["actors"] for k in a["keys"] if k.get("emotion")}
     acts = {k.get("action") for a in sc["actors"] for k in a["keys"] if k.get("action")}
     assert emos <= set(cartoon.EMOTIONS) and acts <= set(cartoon.ACTIONS)
+
+
+def test_sentences_split_for_natural_pauses() -> None:
+    assert cartoon.sentences("Oh no! The tent is falling!") == ["Oh no!", "The tent is falling!"]
+    assert cartoon.sentences("Hello, Mia!") == ["Hello, Mia!"]
+    assert cartoon.sentences("Wow. Look!") == ["Wow. Look!"]  # однословные обрывки не озвучиваются отдельно

@@ -193,17 +193,21 @@ def qa_checks(doc: dict[str, Any], gap: float = 230.0) -> dict[str, Any]:
         for ln in sc.get("lines") or []:
             if ln.get("char") not in actors and ln.get("char") != "narrator":
                 issues.append(f"scene {si}: {ln.get('char')} speaks but is not in the scene")
-            words += len(str(ln.get("text", "")).split())
-            speech += float(ln.get("dur") or 0)
+            if sc.get("kind") in (None, "story"):  # темп речи — только разговор (в песне слова плотнее по природе)
+                words += len(str(ln.get("text", "")).split())
+                speech += float(ln.get("dur") or 0)
         for it in sc.get("items") or []:
             for k in it.get("keys") or []:
                 at = k.get("at") or {}
                 if at.get("kind") == "hand" and at.get("char") not in actors:
                     issues.append(f"scene {si}: {it.get('prop')} in the hand of absent {at.get('char')}")
-        cam = sc.get("camera") or []
-        moves = [float(c["t"]) for c in cam]
-        bounds = [0.0, *moves, float(sc.get("duration") or 0)]
-        shots += [b - a for a, b in zip(bounds, bounds[1:], strict=False) if b - a > 0.95]
+        if sc.get("kind") in (None, "story"):
+            # план = промежуток между началами движений камеры (ключ, после которого камера едет в другое место)
+            cam = sorted(sc.get("camera") or [], key=lambda c: float(c["t"]))
+            starts = [float(a["t"]) for a, b in zip(cam, cam[1:], strict=False)
+                      if abs(float(a["x"]) - float(b["x"])) + abs(float(a["zoom"]) - float(b["zoom"])) * 400 > 20]
+            bounds = [0.0, *starts, float(sc.get("duration") or 0)]
+            shots += [b - a for a, b in zip(bounds, bounds[1:], strict=False) if b - a > 0.3]
     seen: set[str] = set()
     issues = [x for x in issues if not (x in seen or seen.add(x))][:30]
     avg_shot = round(sum(shots) / len(shots), 1) if shots else 0.0

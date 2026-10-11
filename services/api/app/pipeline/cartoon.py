@@ -189,7 +189,8 @@ SLOTS = {"off_left": -260.0, "left": 520.0, "center_left": 760.0, "center": 960.
 LINE_GAP = 0.5  # пауза между репликами (исследование: 0.45-0.7 с для 2-5 лет)
 LONG_GAP = 0.8  # после вопроса, нового слова и смены говорящего на сцене с движением
 ASK_PAUSE = 5.0  # тишина на ответ ребёнка (Disney Research: дети отвечают позже 2 с, ждать до 8 с)
-MIN_SHOT = 3.0  # камера не перекадрируется чаще (цель 5-8 с на план)
+MIN_SHOT = 4.5  # камера не перекадрируется чаще (цель 5-8 с на план; автопроверка: средний план ≥ 4 с)
+SENTENCE_GAP = 0.3  # пауза между предложениями внутри реплики: темп речи ~120-130 слов/мин без растяжения звука
 GAP = 250.0  # минимум между героями по миру: голова малыша ~215 в ширину при масштабе сцены — иначе стоят друг в друге
 STAGE = (330.0, 1590.0)  # где можно стоять, не уходя за край общего плана
 WPS = 1.9  # слов в секунду с учётом пауз (0.5 с между репликами, 5 с на ответ зрителя) — для расчёта длины историй
@@ -302,8 +303,37 @@ async def tts_retry(text: str, speed: float, variant: int, design: str, tries: i
     raise clients.ServiceError("TTS: нет ответа")
 
 
+def sentences(text: str) -> list[str]:
+    """Предложения реплики («Oh no! The tent is falling!» → 2); короткие обрывки (1 слово) приклеиваются к соседнему."""
+    import re
+
+    parts = [x.strip() for x in re.split(r"(?<=[.!?])\s+", text.strip()) if x.strip()]
+    out: list[str] = []
+    for x in parts:
+        if out and (len(x.split()) <= 1 or len(out[-1].split()) <= 1):
+            out[-1] = f"{out[-1]} {x}"
+        else:
+            out.append(x)
+    return out or [text]
+
+
 async def voice_line(text: str, speaker: str) -> tuple[np.ndarray, dict[str, Any]]:
-    """Реплика голосом героя; до 3 дублей, если Whisper слышит не то."""
+    """Реплика голосом героя: по предложениям с короткой паузой между ними (дети 2-5 лет понимают речь ~120 слов/мин)."""
+    parts = sentences(text)
+    if len(parts) == 1:
+        return await voice_sentence(text, speaker)
+    clips, scores = [], []
+    for k, part in enumerate(parts):
+        clip, info = await voice_sentence(part, speaker)
+        if k:
+            clips.append(np.zeros(int(SR * SENTENCE_GAP), np.float32))
+        clips.append(clip)
+        scores.append(info["score"])
+    return np.concatenate(clips).astype(np.float32), {"score": min(scores)}
+
+
+async def voice_sentence(text: str, speaker: str) -> tuple[np.ndarray, dict[str, Any]]:
+    """Одна фраза голосом героя; до 3 дублей, если Whisper слышит не то."""
     st = get_settings()
     design, speed = VOICES.get(speaker, VOICES["narrator"])
     best: tuple[float, np.ndarray] | None = None
@@ -578,7 +608,7 @@ class Director:
             # дисциплина камеры: план держится ≥ MIN_SHOT; меняем, когда сменился говорящий после 2+ реплик, на вопрос зрителю
             # (крупно) или по явной просьбе крупного плана; иначе камера стоит — кадр не «плавает» на каждой реплике
             lines_same = lines_same + 1 if spk == last_spk else 1
-            want_change = b.get("ask_viewer") or shot == "close" or (spk != last_spk and lines_same == 1 and lt - shot_since >= MIN_SHOT * 1.6)
+            want_change = b.get("ask_viewer") or shot == "close" or (spk != last_spk and lines_same == 1 and lt - shot_since >= MIN_SHOT * 1.45)
             if b.get("ask_viewer"):
                 target = (sx, 1.6, 590.0)
             if want_change and lt - shot_since >= MIN_SHOT and abs(target[0] - cam[-1]["x"]) + abs(target[1] - cam[-1]["zoom"]) * 400 > 60:
