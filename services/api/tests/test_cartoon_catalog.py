@@ -86,3 +86,23 @@ def test_item_ops_give_throw_eat() -> None:
     ball = items["ball0"]
     assert ball["keys"][-1]["at"] == {"kind": "hand", "char": "dot"} and ball["keys"][-1]["anim"] == "throw"
     assert any(k.get("action") == "catch" for k in keys["dot"])
+
+
+def test_song_staging_moves_and_camera(monkeypatch) -> None:  # noqa: ANN001
+    import asyncio
+
+    import numpy as np
+
+    async def fake_voice(text: str, speaker: str):  # noqa: ANN202
+        return np.zeros(int(cartoon.SR * 1.2), np.float32), {"score": 1.0}
+
+    monkeypatch.setattr(cartoon, "voice_line", fake_voice)
+    d = cartoon.Director("p")
+    lyrics = {"chorus": ["Clap clap hooray", "Jump with me"], "verse": ["The sun is up", "We play outside", "Spin around now", "Hello friends"],
+              "verse2": ["One more time", "Wave hello", "We are happy", "Sing along"]}
+    asyncio.run(d.song("Clap Song", lyrics, "playground", ["benny", "mia", "ollie", "dot"]))
+    sc = d.scenes[-1]
+    zooms = {round(c["zoom"], 2) for c in sc["camera"]}
+    assert len(sc["camera"]) > 8 and {1.0, 1.35, 1.75} <= zooms  # общий, средний, крупный
+    acts = {k.get("action") for k in sc["actors"][0]["keys"]}
+    assert {"clap", "jump", "spin"} <= acts  # движения из слов песни

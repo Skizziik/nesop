@@ -581,12 +581,31 @@ class Director:
         sections = [Section("intro", 2)]
         takes: dict[tuple[str, str], np.ndarray] = {}
         at = lead
+        group_x = float(np.mean(list(pos.values())))
+        cam: list[dict[str, Any]] = [{"t": 0, "x": group_x, "y": 670.0, "zoom": 1.0}]
+        moves = ["dance", "clap", "hop", "wiggle", "spin", "cheer", "dance", "jump"]
+
+        def move_for(text: str, i: int) -> str:
+            """Движение на строку: слово из песни (clap/jump/spin/hop/wave/stomp) или своё для каждой строки — хореография, а не «стоят»."""
+            low = text.lower()
+            for word, act in (("clap", "clap"), ("jump", "jump"), ("spin", "spin"), ("turn", "spin"), ("hop", "hop"), ("wave", "wave"),
+                              ("wiggle", "wiggle"), ("stomp", "hop"), ("nod", "nod"), ("hooray", "cheer"), ("yay", "cheer")):
+                if word in low:
+                    return act
+            return moves[i % len(moves)]
+
+        def shot(t0: float, x: float, zoom: float, y: float) -> None:
+            cam.append({"t": round(t0, 3), "x": cam[-1]["x"], "y": cam[-1].get("y", 670.0), "zoom": cam[-1]["zoom"]})
+            cam.append({"t": round(t0 + 0.6, 3), "x": x, "y": y, "zoom": zoom})
+
+        line_i = 0
         for kind, row, who in rows:
             if kind == "break":
                 sections.append(Section("break", 4))
-                for c in cast:  # проигрыш: все прыгают и хлопают
-                    keys[c] += [{"t": round(at, 3), "action": "jump", "emotion": "laugh"}, {"t": round(at + bar * 2, 3), "action": "clap"},
-                                {"t": round(at + bar * 4, 3), "action": "dance"}]
+                for k, c in enumerate(cast):  # проигрыш: все прыгают, кружатся, хлопают — вразнобой, как живые дети
+                    keys[c] += [{"t": round(at + k * 0.15, 3), "action": "jump", "emotion": "laugh"}, {"t": round(at + bar * 2, 3), "action": "spin"},
+                                {"t": round(at + bar * 3, 3), "action": "clap"}, {"t": round(at + bar * 4, 3), "action": "dance"}]
+                shot(at, group_x, 1.0, 670.0)
                 at += bar * 4
                 continue
             if (row, who) not in takes:
@@ -598,13 +617,30 @@ class Director:
             lines.append({"char": who, "start": round(at, 3), "dur": round(dur, 3), "text": row, "envelope": envelope(clip)})
             overlays.append({"t": round(at, 3), "dur": round(bar * nb - 0.1, 3), "kind": "lyric", "text": row})
             sections.append(Section(kind, nb, round(dur / beat, 2)))
+            # хореография: припев — все делают одно движение (поём вместе), куплет — поющий двигается, остальные хлопают в такт
+            mv = move_for(row, line_i)
+            for c in cast:
+                act = mv if (kind == "chorus" or c == who) else ("clap" if line_i % 2 else "dance")
+                keys[c].append({"t": round(at + (0 if c == who else 0.12), 3), "action": act, "emotion": "laugh" if kind == "chorus" else "happy"})
+            # камера меняет план каждые 2 строки: общий → средний на поющего → крупный → общий… (исследование: 4-8 тактов на план)
+            if line_i % 2 == 0:
+                sx = pos.get(who, group_x)
+                phase = (line_i // 2) % 3
+                if phase == 0:
+                    shot(at, group_x, 1.0, 670.0)
+                elif phase == 1:
+                    shot(at, (sx + group_x) / 2, 1.35, 640.0)
+                else:
+                    shot(at, sx, 1.75, 570.0)
+            line_i += 1
             at += bar * nb
         sections.append(Section("outro", 2))
         total = at + bar * 2
         plan = song_plan(zlib.crc32(f"{self.project_id}:{title}".encode()), bpm, sections)
         self.scenes.append({
             "location": location, "kind": "song", "seed": self._seed(), "world": dict(self.world), "start": round(self.t, 3), "duration": round(total, 3),
-            "camera": [{"t": 0, "x": float(np.mean(list(pos.values()))), "zoom": 1.0}, {"t": total, "x": float(np.mean(list(pos.values()))), "zoom": 1.12}],
+            "camera": [*cam, {"t": round(at, 3), "x": cam[-1]["x"], "y": cam[-1].get("y", 670.0), "zoom": cam[-1]["zoom"]},
+                       {"t": round(at + 0.8, 3), "x": group_x, "y": 670.0, "zoom": 1.05}],
             "actors": [{"id": c, "keys": k} for c, k in keys.items()], "lines": lines, "overlays": overlays,
         })
         info = {"plan": plan, "start": self.t, "dur": total}
