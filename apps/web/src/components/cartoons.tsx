@@ -3,7 +3,7 @@
 import { CartoonEpisode } from "@ipt/templates";
 import { Player } from "@remotion/player";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Download, Film, Layers, LayoutGrid, Loader2, Rabbit, Trash2, Wand2 } from "lucide-react";
+import { ArrowLeft, Download, Film, Layers, LayoutGrid, Loader2, Rabbit, Smartphone, Trash2, Wand2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -288,7 +288,113 @@ export function CartoonView({ id }: { id: string }) {
           </div>
         </div>
       ) : null}
+      {ready ? <ShortsCard id={id} /> : null}
     </div>
+  );
+}
+
+interface ShortItem {
+  n: number;
+  kind: "song" | "funny" | "question";
+  from: number;
+  to: number;
+  title: string;
+  status: "queued" | "rendering" | "ready" | "failed";
+  progress?: number;
+  error?: string | null;
+  video_url?: string;
+  cover_url?: string;
+  youtube?: { title?: string; description?: string };
+}
+interface ShortsMeta {
+  status: "queued" | "rendering" | "ready" | "failed";
+  revision?: number;
+  items: ShortItem[];
+}
+const SHORT_KIND: Record<ShortItem["kind"], string> = { song: "Припев песни", funny: "Смешной момент", question: "Вопрос зрителю" };
+const SHORT_STATUS: Record<ShortItem["status"], { label: string; tone: "green" | "red" | "yellow" | "gray" }> = {
+  queued: { label: "в очереди", tone: "gray" },
+  rendering: { label: "рендер", tone: "yellow" },
+  ready: { label: "готов", tone: "green" },
+  failed: { label: "ошибка", tone: "red" },
+};
+
+/** Шортсы эпизода: 2-3 вертикальных ролика 20-45 с, перерисованных из сцен (не кроп): превью, статус, скачивание. */
+function ShortsCard({ id }: { id: string }) {
+  const qc = useQueryClient();
+  const { data: p } = useQuery({
+    queryKey: ["project", id],
+    queryFn: () => api.project(id),
+    refetchInterval: (q) => {
+      const st = (q.state.data?.meta?.shorts as ShortsMeta | undefined)?.status;
+      return st === "queued" || st === "rendering" ? 3000 : false;
+    },
+  });
+  const make = useMutation({
+    mutationFn: () => api.makeShorts(id),
+    onSuccess: () => (toast.success("Шортсы рендерятся — по паре минут на каждый"), void qc.invalidateQueries({ queryKey: ["project", id] })),
+    onError: onErr,
+  });
+  const sh = p?.meta?.shorts as ShortsMeta | undefined;
+  const busy = sh?.status === "queued" || sh?.status === "rendering";
+  const stale = !!sh && sh.revision !== undefined && p !== undefined && sh.revision !== p.revision;
+  return (
+    <Card>
+      <CardTitle
+        extra={
+          <Button onClick={() => make.mutate()} disabled={busy || make.isPending}>
+            {busy || make.isPending ? <Loader2 size={15} className="animate-spin" /> : <Smartphone size={15} />} {sh?.items?.length ? "Переделать шортсы" : "Сделать 3 шортса"}
+          </Button>
+        }
+      >
+        <span className="flex items-center gap-2">
+          <Smartphone size={18} className="text-verde-2" /> Шортсы 9:16
+        </span>
+      </CardTitle>
+      {!sh?.items?.length ? (
+        <div className="text-xs text-mute">
+          Припев песни (караоке), самый смешной или милый момент и вопрос зрителю — по 20–45 секунд, герои крупно, камера следит за тем, кто говорит. Для детей: без призывов подписаться.
+        </div>
+      ) : (
+        <>
+          {stale ? <div className="mb-2 text-xs text-mute">Эпизод правили после нарезки — шортсы можно переделать.</div> : null}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {sh.items.map((it) => (
+              <div key={it.n} className="overflow-hidden rounded-2xl border border-line bg-panel-2">
+                <div className="relative mx-auto flex aspect-[9/16] max-h-[420px] items-center justify-center bg-black/50">
+                  {it.status === "ready" && it.video_url ? (
+                    <video src={it.video_url} poster={it.cover_url} controls preload="metadata" className="h-full w-full object-contain" />
+                  ) : it.status === "failed" ? (
+                    <div className="p-3 text-center text-[11px] text-rosso">{it.error || "Рендер не удался"}</div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 text-xs text-mute">
+                      <Loader2 className={cn("text-verde-2", it.status === "rendering" && "animate-spin")} />
+                      {it.status === "rendering" ? `${Math.round((it.progress ?? 0) * 100)}%` : "ждёт очереди"}
+                    </div>
+                  )}
+                  <span className="absolute top-2 left-2">
+                    <Badge tone={SHORT_STATUS[it.status].tone}>{SHORT_STATUS[it.status].label}</Badge>
+                  </span>
+                </div>
+                <div className="grid gap-1 p-3 text-xs">
+                  <div className="font-bold text-ink">
+                    {it.n}. {SHORT_KIND[it.kind] ?? it.kind} · {fmt(it.from)}–{fmt(it.to)} ({Math.round(it.to - it.from)} с)
+                  </div>
+                  <div className="text-mute">Хук: «{it.title}»</div>
+                  {it.youtube?.title ? <div className="truncate text-mute" title={it.youtube.title}>YouTube: {it.youtube.title}</div> : null}
+                  {it.status === "rendering" ? <Progress value={it.progress ?? 0} /> : null}
+                  {it.status === "ready" && it.video_url ? (
+                    <a href={it.video_url} download={`short-${it.n}-${it.kind}.mp4`} className="inline-flex items-center gap-1 font-bold text-verde-2 hover:underline">
+                      <Download size={13} /> скачать mp4
+                    </a>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </Card>
   );
 }
 
