@@ -21,6 +21,7 @@ from ..events import publish
 from ..llm.generate import get_provider
 from ..llm.providers import LLMError
 from ..models import Project
+from . import cartoon_art as art
 from . import clients
 from .audio import SR, envelope, load_mono, trim_silence
 from .cartoon_world import SEASONS, TIMES, WEATHERS, auto_wear, merge_wear, resolve_world
@@ -187,13 +188,14 @@ WPS = 1.9  # слов в секунду с учётом пауз (0.5 с меж�
 
 
 # ------------------------------------------------------------------ LLM
-async def llm_plan(s: Any, theme: str, minutes: int, n_stories: int) -> dict[str, Any]:
+async def llm_plan(s: Any, theme: str, minutes: int, n_stories: int, hint: str = "") -> dict[str, Any]:
     prov = await get_provider(s)
     user = (
         f"Plan one YouTube episode (~{minutes} minutes) on the theme: «{theme}».\n"
         f"Exactly {n_stories} different stories (each 5-6 minutes, different locations and a different main character), "
         f"and {max(1, n_stories - 1)} short songs between them that repeat the stories' key words. "
         "Stories must feel fresh and varied — different problems, places and jokes."
+        + hint
     )
     r = await prov.complete_json(SYSTEM_KIDS, user, PLAN_SCHEMA, purpose="cartoon_plan", max_tokens=4000, effort="medium")
     return dict(r.data)
@@ -213,6 +215,26 @@ async def llm_story(s: Any, plan: dict[str, Any], i: int, seconds: int) -> dict[
     )
     r = await prov.complete_json(SYSTEM_KIDS, user, STORY_SCHEMA, purpose="cartoon_story", max_tokens=16000, effort="medium")
     return dict(r.data)
+
+
+async def llm_art(s: Any, story: dict[str, Any], season: str, usage: dict[str, Any], used_worlds: list[str]) -> dict[str, Any]:
+    """Арт-директор: визуальный план сцен истории (время, погода, вставки, наезды, переходы)."""
+    prov = await get_provider(s)
+    r = await prov.complete_json(SYSTEM_KIDS, art.art_prompt(story, season, usage, used_worlds), art.ART_SCHEMA, purpose="cartoon_art", max_tokens=3000, effort="low")
+    return dict(r.data)
+
+
+async def recent_fingerprints(s: Any, exclude: str, n: int = 6) -> list[dict[str, Any]]:
+    """Отпечатки последних эпизодов (для анти-повтора)."""
+    from sqlalchemy import select
+
+    rows = (await s.execute(select(Project).where(Project.kind == "cartoon", Project.id != exclude).order_by(Project.created_at.desc()).limit(n * 2))).scalars().all()
+    out = []
+    for p in rows:
+        fp = (p.meta or {}).get("fingerprint") or (art.fingerprint(p.doc or {}, (p.meta or {}).get("plan")) if (p.doc or {}).get("scenes") else None)
+        if fp:
+            out.append(fp)
+    return out[:n]
 
 
 async def llm_verify(s: Any, story: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
@@ -419,7 +441,8 @@ class Director:
                 keys[c].append({"t": 0.3, "action": "cheer" if c != "mama" else "wave", "emotion": "laugh"})
             overlays.append({"t": 0.4, "dur": 3.2, "kind": "title", "text": title, **({"sub": sub} if sub else {})})
             lt = 0.6
-        for b in beats:
+        shots = {int(x["beat"]): x["shot"] for x in (look or {}).get("special_shots") or [] if isinstance(x, dict) and isinstance(x.get("beat"), int)}
+        for bi, b in enumerate(beats):
             spk = b.get("speaker") or "narrator"
             text = str(b.get("text") or "").strip()
             mv = b.get("move") or {}
@@ -480,6 +503,23 @@ class Director:
                 cam.append({"t": round(lt + 0.9, 3), "x": target[0], "y": target[2], "zoom": target[1]})
                 shot_since = lt
             last_spk = spk
+            special = shots.get(bi)
+            if special == "push_in":  # медленный наезд на говорящего — смешная или трогательная реплика
+                cam.append({"t": round(lt, 3), "x": cam[-1]["x"], "y": cam[-1].get("y", 670.0), "zoom": cam[-1]["zoom"]})
+                cam.append({"t": round(lt + dur, 3), "x": sx, "y": 600.0, "zoom": round(min(2.0, max(1.35, cam[-1]["zoom"]) + 0.3), 3)})
+                shot_since = lt
+            elif special == "insert":  # вставка: крупно предмет, о котором бит, потом назад
+                it = b.get("item") if isinstance(b.get("item"), dict) else {}
+                who = it.get("target") if it.get("kind") in ("give", "throw") else it.get("char")
+                held = next((c for c, u in holding.items() if items.get(u, {}).get("prop") == it.get("prop")), None) if it else None
+                on_ground = next((k["at"]["x"] for v in items.values() for k in v["keys"][:1] if k.get("at", {}).get("kind") == "ground"), None)
+                ix = pos.get(who or held or "", on_ground if on_ground is not None else sx)
+                back = dict(cam[-1])
+                cam.append({"t": round(lt + 0.1, 3), "x": back["x"], "y": back.get("y", 670.0), "zoom": back["zoom"]})
+                cam.append({"t": round(lt + 0.6, 3), "x": float(ix), "y": 730.0, "zoom": 2.2})
+                cam.append({"t": round(lt + max(1.4, dur), 3), "x": float(ix), "y": 730.0, "zoom": 2.2})
+                cam.append({"t": round(lt + max(1.4, dur) + 0.7, 3), "x": back["x"], "y": back.get("y", 670.0), "zoom": back["zoom"]})
+                shot_since = lt + max(1.4, dur)
             if b.get("word"):
                 overlays.append({"t": round(lt, 3), "dur": round(max(dur, 2.2), 3), "kind": "word", "text": str(b["word"])[:24]})
             lt += dur + (LONG_GAP if b.get("word") else LINE_GAP)
@@ -508,6 +548,7 @@ class Director:
             k.sort(key=lambda x: x["t"])
         self.scenes.append({
             "location": location, "kind": kind, "seed": self._seed(), "start": round(self.t, 3), "duration": dur_total,
+            **({"transitionIn": lk["transition_in"]} if lk.get("transition_in") in art.TRANSITIONS else {}),
             "camera": cam, "actors": [{"id": c, "keys": k, **({"wear": wear[c]} if wear.get(c) else {})} for c, k in keys.items()],
             "lines": lines, "overlays": overlays,
             "world": {**world, **({"dressing": dressing} if dressing else {})},
@@ -596,7 +637,9 @@ async def build_cartoon(project_id: str) -> None:
             minutes = int(params.get("minutes", 22))
             n_stories = int(params.get("stories", 3))
             await progress("план эпизода", 0.02)
-            plan = await llm_plan(s, theme, minutes, n_stories)
+            fps_recent = await recent_fingerprints(s, project_id)
+            usage = art.recent_usage(fps_recent)
+            plan = await llm_plan(s, theme, minutes, n_stories, art.usage_hint(usage))
         stories = plan.get("stories", [])[:n_stories]
         songs = plan.get("songs", [])
         # песня ~95 с (припев ×3 + проигрыш), заставка 7 с, финал ~8 с, на историю ещё плашка и титр ~8 с
@@ -607,6 +650,13 @@ async def build_cartoon(project_id: str) -> None:
             async with SessionLocal() as s:
                 sc = await llm_story(s, plan, i, per_story)
                 sc, issues = await llm_verify(s, sc)
+                season = str(stories[i].get("season") or ["summer", "autumn", "winter", "spring"][i % 4])
+                used = [f"{x.get('time', 'day')}/{x.get('weather', 'clear')}" for prev in scripts for x in prev.get("scenes") or []]
+                try:
+                    sc = art.apply_art(sc, await llm_art(s, sc, season, usage, used))
+                except LLMError as e:  # арт-директор — улучшение, не обязательный шаг
+                    report.append(f"story {i + 1}: art director skipped: {e}")
+                report += [f"story {i + 1}: {x}" for x in art.enforce_variety(sc.get("scenes") or [])]
             scripts.append(sc)
             report += [f"story {i + 1}: {x}" for x in issues]
         lyrics = []
@@ -650,7 +700,11 @@ async def build_cartoon(project_id: str) -> None:
         log.info("cartoon %s mix: %s", project_id, mix_stats)
         doc = {"title": plan.get("title") or theme, "fps": 30, "duration": round(total, 3), "scenes": d.scenes, "audio": audio, "show_captions": True}
         chapters = [f"{int(t) // 60:02d}:{int(t) % 60:02d} {name}" for t, name in [(0.0, "Intro"), *d.chapters]]
-        meta = {"plan": plan, "scripts": scripts, "report": report, "chapters": chapters, "kind": "cartoon"}
+        fp = art.fingerprint(doc, plan)
+        sims = [art.similarity(fp, f) for f in fps_recent]
+        if sims:
+            report.append(f"similarity to recent episodes: max {max(sims):.2f} (target ≤ 0.35)")
+        meta = {"plan": plan, "scripts": scripts, "report": report, "chapters": chapters, "kind": "cartoon", "fingerprint": fp}
         await progress("обложки и описание для YouTube", 0.96, doc=doc, meta=meta, title=str(doc["title"])[:200])
         from .youtube import build_youtube_cartoon
 
