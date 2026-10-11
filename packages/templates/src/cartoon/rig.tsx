@@ -577,9 +577,9 @@ const LIDS: Record<CEmotion, Lids> = {
 };
 /** Брови: подъём внутреннего/внешнего конца (в радиусах глаза, + вверх) и общий подъём. */
 const BROWS: Record<CEmotion, [number, number, number]> = {
-  neutral: [0, 0, 0],
-  happy: [0.05, 0, 0.12],
-  laugh: [0.05, 0, 0.18],
+  neutral: [0.08, 0, 0.22],
+  happy: [0.16, 0.04, 0.34], // высоко и чуть домиком — дружелюбно (низкие прямые брови читались «строго»)
+  laugh: [0.14, 0.04, 0.36],
   sad: [0.5, -0.12, 0.05],
   surprised: [0.1, 0.05, 0.5],
   angry: [-0.42, 0.18, -0.05],
@@ -750,7 +750,7 @@ function Face({ spec, st, r, fl, open, closed, puff }: { spec: CharacterSpec; st
     const ox = slot.x - inner * er * 0.75 * slot.sx;
     const iy = by - bin * er;
     const oy = by - bout * er;
-    return <path key={`b${slot.side}`} d={`M${ox} ${oy} Q${slot.x} ${Math.min(iy, oy) - er * 0.3} ${ix} ${iy}`} stroke={shade(spec.fur, 0.5)} strokeWidth="5.5" fill="none" strokeLinecap="round" opacity={slot.op} />;
+    return <path key={`b${slot.side}`} d={`M${ox} ${oy} Q${slot.x} ${Math.min(iy, oy) - er * 0.3} ${ix} ${iy}`} stroke={shade(spec.fur, 0.42)} strokeWidth="4.8" fill="none" strokeLinecap="round" opacity={slot.op} />;
   };
   const mz = fl.muzzle;
   const n = fl.nose;
