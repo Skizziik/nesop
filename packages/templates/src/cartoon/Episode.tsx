@@ -7,7 +7,8 @@ import { Audio } from "@remotion/media";
 import { resolveAsset } from "../lib/assets";
 import { actionPose, type ActionKind } from "./actions";
 import { CAST } from "./cast";
-import { Character, type CEmotion, type Fx, type Wear } from "./rig";
+import { Character, handPositions, type CEmotion, type Fx, type Pose, type Wear } from "./rig";
+import { heldBy, itemAt, type HandOf, type SceneItem } from "./items";
 import { Prop } from "./props";
 import { locationDef, locationProps } from "./locations";
 import type { WorldState } from "./palette";
@@ -55,6 +56,8 @@ export interface SceneDoc {
   time?: "day" | "evening" | "night";
   /** Сид сцены (хэш проекта + номер сцены): мелочи локации выбираются по нему; 0 — каноническая раскладка. */
   seed?: number;
+  /** Предметы с историей: на земле / в руке, передать, бросить, съесть (этап 2). */
+  items?: SceneItem[];
   /** Состояние мира (этап 1 расширяет); без него — день, ясно, лето. */
   world?: Partial<WorldState>;
   start: number;
@@ -186,6 +189,17 @@ export function sceneWorld(sc: SceneDoc): WorldState {
 }
 const isOutdoor = (loc: string) => LOCATION_CATALOG.find((l) => l.id === loc)?.outdoor ?? true;
 
+const TALL = ["umbrella", "balloon", "kite"];
+const NO_HAND: HandOf = () => ({ x: 0, y: 0, scale: 1 });
+
+/** Поза актёра в момент t: действие + «высокий предмет в руке — рука поднята». */
+function actorPose(a: SceneDoc["actors"][number], s: ReturnType<typeof actorAt>, t: number, held: string | undefined): Pose {
+  const basePose = actionPose(s.action, s.tl, t + a.id.length);
+  const tall = TALL.includes(held ?? s.hold?.id ?? "");
+  return tall && (s.action === "idle" || s.action === "talk" || s.action === "walk") ? { ...basePose, armR: [150, 12] as [number, number] } : basePose;
+}
+const actorScale = (a: SceneDoc["actors"][number], adult: boolean) => (a.scale ?? 1) * 1.25 * (adult ? 1.12 : 1);
+
 function Scene({ sc, t, fps }: { sc: SceneDoc; t: number; fps: number }) {
   const cam = camAt(sc.camera, t);
   const actors = sc.actors.map((a) => ({ a, s: actorAt(a.keys, t) }));
@@ -196,6 +210,23 @@ function Scene({ sc, t, fps }: { sc: SceneDoc; t: number; fps: number }) {
   const loc = locationDef(sc.location);
   const world = sceneWorld(sc);
   const lp = locationProps(sc.location, cam, t + sc.start, { world, seed: sc.seed ?? 0, uid: `sc${Math.round(sc.start * 1000)}` });
+  const held = heldBy(sc.items, t, NO_HAND);
+  // кисть героя в мире в любой момент сцены — предметы едут вместе с рукой
+  const hand: HandOf = (char, tt) => {
+    const a = sc.actors.find((x) => x.id === char);
+    const spec = a ? CAST[a.id] : undefined;
+    if (!a || !spec) return null;
+    const st = actorAt(a.keys, tt);
+    const k = actorScale(a, !!spec.adult);
+    const r = handPositions(spec, actorPose(a, st, tt, heldBy(sc.items, tt, NO_HAND)[char]), tt + a.id.length).R;
+    return { x: st.x + r[0] * k, y: GROUND + (a.depth ?? 0) * 40 + r[1] * k, scale: k };
+  };
+  const items = (sc.items ?? []).map((it) => ({ it, p: itemAt(it, t, hand) })).filter((x) => x.p);
+  const drawItem = ({ it, p }: (typeof items)[number]) => (
+    <g key={it.uid} transform={`translate(${p!.x} ${p!.y}) rotate(${p!.rot}) scale(${p!.scale})`} opacity={p!.opacity}>
+      <Prop id={it.prop} color={it.color} state={p!.state} t={t} />
+    </g>
+  );
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{ position: "absolute", inset: 0 }}>
       <loc.Back {...lp} />
@@ -206,6 +237,7 @@ function Scene({ sc, t, fps }: { sc: SceneDoc; t: number; fps: number }) {
             <Prop id={pr.id} color={pr.color} t={t} />
           </g>
         ))}
+        {items.filter((x) => !x.p!.holder && !x.p!.flying).map(drawItem)}
         {actors
           .sort((p, q) => (p.a.depth ?? 0) - (q.a.depth ?? 0))
           .map(({ a, s }) => {
@@ -215,27 +247,25 @@ function Scene({ sc, t, fps }: { sc: SceneDoc; t: number; fps: number }) {
             const other = listener ? actors.find((o) => o.a.id === listener) : undefined;
             const lookX = other ? Math.sign(other.s.x - s.x) : 0;
             const blink = (Math.floor((t + a.id.length * 0.7) * 10) % 37) === 0;
-            // высокие предметы (зонтик, шарик, змей) держат поднятой рукой
-            const basePose = actionPose(s.action, s.tl, t + a.id.length);
-            const tall = s.hold && ["umbrella", "balloon", "kite"].includes(s.hold.id);
             const st = {
-              pose: tall && (s.action === "idle" || s.action === "talk" || s.action === "walk") ? { ...basePose, armR: [150, 12] as [number, number] } : basePose,
+              pose: actorPose(a, s, t, held[a.id]),
               emotion: s.emotion,
               mouth: mouthAt(sc.lines, a.id, t, fps),
               blink,
               look: [lookX, 0] as [number, number],
               facing: (other ? (lookX >= 0 ? 1 : -1) : s.facing) as 1 | -1,
-              hold: s.hold,
+              hold: held[a.id] ? undefined : s.hold, // предмет сцены рисуется сам, поверх руки
               wear: a.wear,
               fx: s.fx,
             };
-            const sc2 = (a.scale ?? 1) * 1.25 * (spec.adult ? 1.12 : 1);
+            const sc2 = actorScale(a, !!spec.adult);
             return (
               <g key={a.id} transform={`translate(${s.x} ${GROUND + (a.depth ?? 0) * 40}) scale(${sc2})`}>
                 <Character spec={spec} st={st} t={t + a.id.length} />
               </g>
             );
           })}
+        {items.filter((x) => x.p!.holder || x.p!.flying).map(drawItem)}
       </g>
       {loc.Front ? <loc.Front {...lp} /> : null}
       <WorldFx world={world} t={t + sc.start} outdoor={isOutdoor(sc.location)} />
