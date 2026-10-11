@@ -322,8 +322,11 @@ class Director:
             holding[ch] = uid
             return uid
 
-        def act(c: str, action: str, at: float, until: float) -> None:
-            keys[c].append({"t": round(at, 3), "action": action})
+        def act(c: str, action: str, at: float, until: float, face: str | None = None) -> None:
+            k: dict[str, Any] = {"t": round(at, 3), "action": action}
+            if face in pos and c in pos and pos[face] != pos[c]:
+                k["facing"] = 1 if pos[face] > pos[c] else -1  # повернуться к тому, кому даём / бросаем
+            keys[c].append(k)
             keys[c].append({"t": round(until, 3), "action": "idle"})
 
         if kind == "pick_up":
@@ -346,12 +349,12 @@ class Director:
                 return
             holding.pop(ch, None)
             if kind == "give":
-                act(ch, "give", lt, lt + 1.0)
+                act(ch, "give", lt, lt + 1.0, tg)
                 items[uid]["keys"].append({"t": round(lt + 0.45, 3), "at": {"kind": "hand", "char": tg}, "anim": "pass"})
             else:
-                act(ch, "throw", lt, lt + 0.9)
+                act(ch, "throw", lt, lt + 0.9, tg)
                 items[uid]["keys"].append({"t": round(lt + 0.4, 3), "at": {"kind": "hand", "char": tg}, "anim": "throw"})
-                act(tg, "catch", lt + 0.75, lt + 1.6)
+                act(tg, "catch", lt + 0.75, lt + 1.6, ch)
             holding[tg] = uid
         elif kind == "eat":
             uid = in_hand()
@@ -427,8 +430,11 @@ class Director:
                     keys[ch] = [{"t": 0, "x": SLOTS["off_right"], "action": "idle", "emotion": "happy"}]
                     pos[ch] = SLOTS["off_right"]
                 dest = self.free_spot(ch, SLOTS.get(mv.get("to") or "center", 960.0), pos)
-                d = max(0.9, min(2.6, abs(dest - pos[ch]) / (520 if mv.get("run") else 330)))
-                keys[ch].append({"t": lt, "x": pos[ch], "action": "run" if mv.get("run") else "walk"})
+                # скорость под длину шага скелета (шаг ~37 ед. × масштаб за 0.39 с ≈ 115 ед./с), иначе ноги «скользят»; далеко — бегом
+                dist = abs(dest - pos[ch])
+                run = bool(mv.get("run")) or dist / 115 > 4.0
+                d = max(0.9, min(4.5, dist / (230 if run else 115)))
+                keys[ch].append({"t": lt, "x": pos[ch], "action": "run" if run else "walk"})
                 keys[ch].append({"t": lt + d, "x": dest, "action": "idle"})
                 pos[ch] = dest
                 cam.append({"t": lt, "x": cam[-1]["x"], "zoom": cam[-1]["zoom"]})

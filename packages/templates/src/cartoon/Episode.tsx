@@ -112,6 +112,7 @@ function actorAt(keys0: ActorKey[], t: number) {
   let x = 960;
   let facing: 1 | -1 = 1;
   let action: ActionKind = "idle";
+  let prev: ActionKind | undefined;
   let emotion: CEmotion = "neutral";
   let since = 0;
   let hold: { id: string; color?: string } | undefined;
@@ -132,6 +133,7 @@ function actorAt(keys0: ActorKey[], t: number) {
   for (const k of keys) {
     if (k.t > t) break;
     if (k.action) {
+      if (k.action !== action) prev = action;
       action = k.action;
       since = k.t;
     }
@@ -144,7 +146,7 @@ function actorAt(keys0: ActorKey[], t: number) {
     }
   }
   if (t - fxAt > 2.6) fx = undefined; // эффект живёт ~2.5 с
-  return { x, facing, action, emotion, tl: t - since, hold, fx };
+  return { x, facing, action, emotion, tl: t - since, hold, fx, prev };
 }
 
 /** Открытость рта: по огибающей голоса или по слогам (≈ 4.5 слога/с). */
@@ -206,11 +208,23 @@ const NO_HAND: HandOf = () => ({ x: 0, y: 0, scale: 1 });
 
 /** Поза актёра в момент t: действие + «высокий предмет в руке — рука поднята». */
 function actorPose(a: SceneDoc["actors"][number], s: ReturnType<typeof actorAt>, t: number, held: string | undefined): Pose {
-  const basePose = actionPose(s.action, s.tl, t + a.id.length);
+  const basePose = actionPose(s.action, s.tl, t + a.id.length, 2, s.prev);
   const tall = TALL.includes(held ?? s.hold?.id ?? "");
   return tall && (s.action === "idle" || s.action === "talk" || s.action === "walk") ? { ...basePose, armR: [150, 12] as [number, number] } : basePose;
 }
 const actorScale = (a: SceneDoc["actors"][number], adult: boolean) => (a.scale ?? 1) * 1.25 * (adult ? 1.12 : 1);
+const MOVING = new Set<ActionKind>(["walk", "run", "tiptoe", "hop"]);
+const AIMED = new Set<ActionKind>(["give", "throw", "catch", "high_five", "pick_up", "put_down"]); // повёрнуты к адресату (facing в ключе)
+
+/** Куда повернут герой: в движении — по ходу движения, иначе к тому, кто с ним говорит. */
+function actorFacing(sc: SceneDoc, a: SceneDoc["actors"][number], s: ReturnType<typeof actorAt>, t: number): 1 | -1 {
+  if (MOVING.has(s.action) || AIMED.has(s.action)) return s.facing;
+  const listener = speakingTo(sc.lines, a.id, t);
+  const other = listener ? sc.actors.find((o) => o.id === listener) : undefined;
+  if (!other) return s.facing;
+  const ox = actorAt(other.keys, t).x;
+  return ox >= s.x ? 1 : -1;
+}
 
 function Scene({ sc, t, fps }: { sc: SceneDoc; t: number; fps: number }) {
   const cam = camAt(sc.camera, t);
@@ -230,7 +244,7 @@ function Scene({ sc, t, fps }: { sc: SceneDoc; t: number; fps: number }) {
     if (!a || !spec) return null;
     const st = actorAt(a.keys, tt);
     const k = actorScale(a, !!spec.adult);
-    const r = handPositions(spec, actorPose(a, st, tt, heldBy(sc.items, tt, NO_HAND)[char]), tt + a.id.length).R;
+    const r = handPositions(spec, actorPose(a, st, tt, heldBy(sc.items, tt, NO_HAND)[char]), tt + a.id.length, actorFacing(sc, a, st, tt)).R;
     return { x: st.x + r[0] * k, y: GROUND + (a.depth ?? 0) * 40 + r[1] * k, scale: k };
   };
   const items = (sc.items ?? []).map((it) => ({ it, p: itemAt(it, t, hand) })).filter((x) => x.p);
@@ -258,14 +272,13 @@ function Scene({ sc, t, fps }: { sc: SceneDoc; t: number; fps: number }) {
             const listener = speakingTo(sc.lines, a.id, t);
             const other = listener ? actors.find((o) => o.a.id === listener) : undefined;
             const lookX = other ? Math.sign(other.s.x - s.x) : 0;
-            const blink = (Math.floor((t + a.id.length * 0.7) * 10) % 37) === 0;
             const st = {
               pose: actorPose(a, s, t, held[a.id]),
               emotion: s.emotion,
               mouth: mouthAt(sc.lines, a.id, t, fps),
-              blink,
-              look: [lookX, 0] as [number, number],
-              facing: (other ? (lookX >= 0 ? 1 : -1) : s.facing) as 1 | -1,
+              blink: false, // скелет моргает сам (blinkAt: каждые 2-6 с, у каждого героя свой ритм)
+              look: [MOVING.has(s.action) ? s.facing : lookX, 0] as [number, number],
+              facing: actorFacing(sc, a, s, t),
               hold: held[a.id] ? undefined : s.hold, // предмет сцены рисуется сам, поверх руки
               wear: a.wear,
               fx: s.fx,
