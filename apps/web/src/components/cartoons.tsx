@@ -294,13 +294,28 @@ export function CartoonView({ id }: { id: string }) {
 
 /** Контактный лист отрендеренного мультика: кадр каждые 15 с — весь эпизод одним взглядом (проверка перед загрузкой). */
 function ContactSheet({ src }: { src: string }) {
-  const [ok, setOk] = useState(true);
-  if (!ok) return null;
+  const base = src.replace(/contact\.png$/, "contact/");
+  const { data } = useQuery({
+    queryKey: ["contact", base],
+    queryFn: async () => {
+      const r = await fetch(`${base}index.json`, { cache: "no-store" });
+      return r.ok ? ((await r.json()) as { every: number; frames: string[] }) : null;
+    },
+    staleTime: 60_000,
+  });
+  if (!data?.frames.length) return null;
   return (
     <details className="border-t border-line bg-panel p-2 text-xs text-mute">
-      <summary className="cursor-pointer font-bold">Контактный лист (кадр каждые 15 с)</summary>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt="контактный лист" className="mt-2 w-full rounded-lg" onError={() => setOk(false)} />
+      <summary className="cursor-pointer font-bold">Контактный лист — кадр каждые {data.every} с ({data.frames.length})</summary>
+      <div className="mt-2 grid grid-cols-3 gap-1 sm:grid-cols-5">
+        {data.frames.map((f, i) => (
+          <figure key={f} className="relative">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={`${base}${f}`} alt="" loading="lazy" className="w-full rounded" />
+            <figcaption className="absolute bottom-0.5 left-1 rounded bg-black/60 px-1 text-[10px] text-white">{fmt(2 + i * data.every)}</figcaption>
+          </figure>
+        ))}
+      </div>
     </details>
   );
 }

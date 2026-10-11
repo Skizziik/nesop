@@ -1,5 +1,5 @@
 import express from "express";
-import { mkdir, rename, rm } from "node:fs/promises";
+import { mkdir, rename, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { ensureBrowser, openBrowser, renderMedia, renderStill, selectComposition } from "@remotion/renderer";
 import { bundleTemplates } from "./bundle";
@@ -111,11 +111,18 @@ async function renderOnce(job: RenderJob): Promise<void> {
     job.outputs = { video };
   }
   if (compId === "Cartoon") {
-    // контактный лист для проверки глазами: кадр каждые 15 с, по 5 в ряд (docs/cartoon-visual-variety.md, автопроверки)
+    // контактный лист для проверки глазами: кадр каждые 15 с (ffmpeg из Remotion без tile/fps — режем по одному кадру)
     const secs = composition.durationInFrames / composition.fps;
-    const rows = Math.max(1, Math.ceil(secs / 15 / 5));
+    const dir = join(job.outDir, "contact");
+    const frames: string[] = [];
     try {
-      await ffmpeg(["-y", "-i", video, "-vf", `fps=1/15,scale=384:-1,tile=5x${rows}:padding=4:color=0x2A1B33`, "-frames:v", "1", join(job.outDir, "contact.png")]);
+      await mkdir(dir, { recursive: true });
+      for (let s = 2; s < secs; s += 15) {
+        const name = `${String(frames.length).padStart(3, "0")}.jpg`;
+        await ffmpeg(["-y", "-ss", s.toFixed(2), "-i", video, "-frames:v", "1", "-vf", "scale=384:-2", "-q:v", "4", join(dir, name)]);
+        frames.push(name);
+      }
+      await writeFile(join(dir, "index.json"), JSON.stringify({ every: 15, frames }));
     } catch (e) {
       log("warn", "contact sheet failed", { job: job.id, error: String(e).slice(0, 300) });
     }
