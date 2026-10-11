@@ -79,6 +79,14 @@ describe("скелет: кисть совпадает с отрисовкой", 
     ["ollie", "jump", 0.5],
     ["benny", "point", 1],
     ["dot", "spin", 0.3],
+    // гости: свой скелет (мышка меньше, слонёнок крупнее) — кисть всё равно там, где предмет
+    ["finn", "walk", 0.7],
+    ["molly", "give", 0.8],
+    ["ellie", "throw", 0.35],
+    ["leo", "cover_eyes", 0.5],
+    ["papa", "pick_up", 0.3],
+    ["molly", "run", 1.1],
+    ["ellie", "eat", 0.5],
   ];
   for (const [id, kind, tl] of cases)
     for (const facing of [1, -1] as const)
@@ -129,6 +137,23 @@ describe("действия", () => {
     const ce = handPositions(CAST.benny!, actionPose("cover_eyes", 0.5, 0), 0, 1);
     expect(Math.abs(ce.R[1] - ce.head[1])).toBeLessThan(30);
     expect(Math.abs(ce.L[1] - ce.head[1])).toBeLessThan(30);
+  });
+});
+
+describe("гости", () => {
+  const draw = (id: string, over: Partial<CharState> = {}) =>
+    renderToStaticMarkup(createElement(Character, { spec: CAST[id]!, st: { pose: REST, emotion: "happy", mouth: 0, blink: false, look: [0, 0], facing: 1, autoBlink: false, ...over }, t: 2 }));
+  it("все виды рисуются во всех ракурсах и действиях без NaN", () => {
+    for (const id of ["finn", "molly", "ellie", "leo", "papa"])
+      for (const facing of [1, -1] as const)
+        for (const k of ["idle", "walk", "laugh", "sad", "spin"] as ActionKind[])
+          for (const turn of [0, 0.5, 1]) expect(draw(id, { pose: actionPose(k, 0.6, 2), facing, turn, emotion: k === "laugh" ? "laugh" : "happy" }), `${id} ${k} ${facing} ${turn}`).not.toContain("NaN");
+  });
+  it("хобот поднимается от смеха, мышка меньше слонёнка", () => {
+    expect(draw("ellie", { emotion: "laugh" })).not.toBe(draw("ellie", { emotion: "neutral" }));
+    const top = (id: string) => handPositions(CAST[id]!, REST, 0).top[1];
+    expect(top("molly")).toBeGreaterThan(top("benny"));
+    expect(top("ellie")).toBeLessThan(top("benny"));
   });
 });
 

@@ -25,6 +25,8 @@ export interface CharacterEntry {
   catchphrase: string;
   voice: { description: string; speed: number };
   adult?: boolean;
+  /** Постоянный гость (сосед / друг из детского сада): не в заставке и песнях, в истории — по одному, когда нужен сюжету. */
+  guest?: boolean;
 }
 export interface LocationEntry {
   id: string;
@@ -117,6 +119,51 @@ export const CHARACTERS: CharacterEntry[] = [
     catchphrase: "Let's think about it together.",
     voice: { description: "A warm, loving young mother in her early thirties with a soft, calm, gentle voice, patient and reassuring, clear American English.", speed: 0.95 },
     adult: true,
+  },
+  {
+    id: "papa",
+    name: "Papa Bunny",
+    label: "Папа-заяц",
+    llm: "Benny's cheerful, playful dad with glasses; loves silly jokes, fixing things and building with the kids, appears at home",
+    catchphrase: "Well, what do we have here?",
+    voice: { description: "A warm, friendly father in his thirties with a relaxed, medium-low, smiling voice, playful and kind, gently chuckling, clear American English, speaking slowly.", speed: 0.95 },
+    adult: true,
+  },
+  {
+    id: "finn",
+    name: "Finn",
+    label: "Финн (лисёнок)",
+    llm: "a curious, slightly cheeky fox cub (6), the friends' neighbour from across the fence; full of clever ideas and playful tricks, but always says sorry",
+    catchphrase: "Ooh, I know a trick!",
+    voice: { description: "A bright, quick-witted little boy about six years old with a lively, clear, medium-high voice, cheeky and playful, a little mischievous, clear American English, speaking slowly.", speed: 1.0 },
+    guest: true,
+  },
+  {
+    id: "molly",
+    name: "Molly",
+    label: "Молли (мышка)",
+    llm: "a tiny, shy mouse (4) from the friends' nursery class; speaks softly, loves crumbs, cheese and counting everything, braver than she thinks",
+    catchphrase: "One, two, three... yummy crumbs!",
+    voice: { description: "A tiny, shy little girl about four years old with a very soft, gentle, high and breathy voice, quiet and sweet, a little hesitant, clear American English, speaking slowly.", speed: 0.95 },
+    guest: true,
+  },
+  {
+    id: "ellie",
+    name: "Ellie",
+    label: "Элли (слонёнок)",
+    llm: "a gentle, big-hearted elephant girl (5) from the friends' nursery class; strong and careful, always helps, trumpets 'Toot-toot!' when she is happy",
+    catchphrase: "Toot-toot! I can help!",
+    voice: { description: "A warm, gentle little girl about five years old with a soft, slightly lower, round and cozy voice, kind and calm, happy giggle, clear American English, speaking slowly.", speed: 0.95 },
+    guest: true,
+  },
+  {
+    id: "leo",
+    name: "Leo",
+    label: "Лео (львёнок)",
+    llm: "a lion cub (5) with a big fluffy mane who lives next door; tries to sound big and brave with a mighty 'ROAR!', but is secretly gentle and a bit shy",
+    catchphrase: "ROAR! ...hee hee, I'm a nice lion!",
+    voice: { description: "A little boy about five years old trying to sound big and brave, with a playful pretend-deep voice that keeps breaking into high giggles, sweet and gentle, clear American English, speaking slowly.", speed: 1.0 },
+    guest: true,
   },
 ];
 

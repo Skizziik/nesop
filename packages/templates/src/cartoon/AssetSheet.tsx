@@ -18,7 +18,7 @@ import { GROUND } from "./scenes";
 import { VISEMES, type Viseme } from "./lipsync";
 
 export const ASSET_SHEET_ID = "AssetSheet";
-export const SHEET_KINDS = ["locations", "props", "outfits", "fx", "actions", "characters", "walk", "walk_left", "faces", "visemes", "states"] as const;
+export const SHEET_KINDS = ["locations", "props", "outfits", "fx", "actions", "characters", "walk", "walk_left", "faces", "visemes", "states", "closeup"] as const;
 export type SheetKind = (typeof SHEET_KINDS)[number];
 
 export interface AssetSheetProps {
@@ -26,6 +26,8 @@ export interface AssetSheetProps {
   only?: string; // один ассет (превью); для outfits/characters — id костюма/героя
   seed?: number;
   world?: Partial<WorldState>;
+  /** Герои листа: outfits — кто в клетке (по умолчанию 4 главных), actions/fx — первый из списка (по умолчанию Бенни). */
+  chars?: string[];
 }
 
 const BG = "#F4F1FA";
@@ -100,8 +102,8 @@ function PropCell({ id, t }: { id: string; t: number }) {
   );
 }
 
-function OutfitCell({ id, t, char }: { id: string; t: number; char?: string }) {
-  const chars = char ? [char] : ["benny", "mia", "ollie", "dot"];
+function OutfitCell({ id, t, char, list }: { id: string; t: number; char?: string; list?: string[] }) {
+  const chars = char ? [char] : list?.length ? list : ["benny", "mia", "ollie", "dot"];
   const step = 600 / chars.length;
   return (
     <svg viewBox={`${-300 * Math.max(1, chars.length / 1.6)} -640 ${600 * Math.max(1, chars.length / 1.6)} 700`} width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
@@ -115,7 +117,8 @@ function OutfitCell({ id, t, char }: { id: string; t: number; char?: string }) {
 const ACTION_T: Partial<Record<ActionKind, number>> = { jump: 0.4, wave: 0.6, cheer: 0.5, shrug: 0.3, bow: 0.6, clap: 0.43, dance: 0.3, nod: 0.22, shake_head: 0.17, yawn: 0.9, stretch: 1, spin: 0.3, hop: 0.35, high_five: 0.45, cover_eyes: 0.5, throw: 0.3, catch: 0.22, eat: 0.5, pick_up: 0.3, put_down: 0.9, give: 0.8, wiggle: 0.17 };
 
 /** Содержимое одной клетки по виду листа. */
-function item(kind: SheetKind, id: string, t: number, seed: number, world: WorldState): { label: string; sub: string; node: ReactNode } {
+function item(kind: SheetKind, id: string, t: number, seed: number, world: WorldState, chars?: string[]): { label: string; sub: string; node: ReactNode } {
+  const hero = chars?.find((c) => CAST[c]) ?? "benny";
   switch (kind) {
     case "locations": {
       const e = LOCATION_CATALOG.find((l) => l.id === id);
@@ -127,15 +130,15 @@ function item(kind: SheetKind, id: string, t: number, seed: number, world: World
     }
     case "outfits": {
       const e = OUTFIT_CATALOG.find((o) => o.id === id);
-      return { label: e?.label ?? "Без костюма", sub: id, node: <OutfitCell id={id} t={t} /> };
+      return { label: e?.label ?? "Без костюма", sub: id, node: <OutfitCell id={id} t={t} list={chars?.filter((c) => CAST[c])} /> };
     }
     case "fx": {
       const e = FX_CATALOG.find((f) => f.id === id);
-      return { label: e?.label ?? id, sub: id, node: <Stage><Hero st={state({ fx: id as Fx })} t={t} /></Stage> };
+      return { label: e?.label ?? id, sub: id, node: <Stage><Hero id={hero} st={state({ fx: id as Fx })} t={t} /></Stage> };
     }
     case "actions": {
       const k = id as ActionKind;
-      return { label: k, sub: id, node: <Stage><Hero st={state({ pose: actionPose(k, ACTION_T[k] ?? 0.8, t) })} t={t} /></Stage> };
+      return { label: k, sub: id, node: <Stage><Hero id={hero} st={state({ pose: actionPose(k, ACTION_T[k] ?? 0.8, t) })} t={t} /></Stage> };
     }
     case "states": {
       const [pid, st] = id.split(":") as [string, string | undefined];
@@ -155,12 +158,31 @@ function item(kind: SheetKind, id: string, t: number, seed: number, world: World
     }
     case "walk":
     case "walk_left":
+      return { label: id, sub: "", node: <WalkRow id={id} t={t} facing={kind === "walk_left" ? -1 : 1} /> };
     case "visemes":
       return { label: id, sub: "", node: <VisemesRow id={id} t={t} /> };
     case "faces":
-      return { label: id, sub: "", node: kind === "faces" ? <FacesRow id={id} t={t} /> : <WalkRow id={id} t={t} facing={kind === "walk_left" ? -1 : 1} /> };
+      return { label: id, sub: "", node: <FacesRow id={id} t={t} /> };
+    case "closeup": {
+      const c = CLOSEUP[id]!;
+      return { label: id, sub: hero, node: <Stage><Hero id={hero} st={c(t)} t={t} /></Stage> };
+    }
   }
 }
+
+/** Крупный план одного героя (--chars <id>): ракурсы, эмоции, ходьба — проверка нового персонажа в деталях. */
+const CLOSEUP: Record<string, (t: number) => CharState> = {
+  neutral: () => state({ emotion: "neutral" }),
+  "talk D": () => state({ emotion: "happy", viseme: "D", mouth: 0.7 }),
+  laugh: (t) => state({ emotion: "laugh", pose: actionPose("laugh", 0.6, t) }),
+  sad: () => state({ emotion: "sad" }),
+  surprised: () => state({ emotion: "surprised", mouth: 0.5 }),
+  "3/4 think": () => state({ emotion: "thinking", turn: 0.55 }),
+  "profile talk": () => state({ emotion: "happy", turn: 1, viseme: "C", mouth: 0.6 }),
+  walk: (t) => state({ pose: actionPose("walk", 1.05, t) }),
+  "run left": (t) => state({ facing: -1, pose: actionPose("run", 1.1, t) }),
+  "hold+wave": (t) => state({ pose: actionPose("wave", 0.6, t), hold: { id: "apple" }, wear: ["scarf"] }),
+};
 
 /** Цикл шага: 8 фаз шага, бег, разворот 3/4. Ступни в (0,0) — видно, не скользит ли стопа и не «отрываются» ли конечности. */
 function WalkRow({ id, t, facing }: { id: string; t: number; facing: 1 | -1 }) {
@@ -255,12 +277,14 @@ function ids(kind: SheetKind): string[] {
     case "faces":
     case "visemes":
       return CHARACTERS.map((c) => c.id);
+    case "closeup":
+      return Object.keys(CLOSEUP);
     case "states":
       return Object.entries(PROP_STATES).flatMap(([id, sts]) => [id, ...sts.map((st) => `${id}:${st}`)]);
   }
 }
 
-const COLS: Record<SheetKind, number> = { states: 8, locations: 4, props: 10, outfits: 4, fx: 4, actions: 9, characters: 5, walk: 1, walk_left: 1, faces: 1, visemes: 1 };
+const COLS: Record<SheetKind, number> = { states: 8, locations: 4, props: 10, outfits: 4, fx: 4, actions: 9, characters: 5, walk: 1, walk_left: 1, faces: 1, visemes: 1, closeup: 5 };
 
 /** Эмоции всех героев — отдельной строкой листа characters. */
 function EmotionsRow({ t }: { t: number }) {
@@ -279,16 +303,17 @@ function EmotionsRow({ t }: { t: number }) {
   );
 }
 
-export function AssetSheet({ kind, only, seed = 0, world }: AssetSheetProps) {
+export function AssetSheet({ kind, only, seed = 0, world, chars }: AssetSheetProps) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const t = frame / fps + 1;
   const w: WorldState = { ...DEFAULT_WORLD, ...world };
   if (only) {
-    const it = item(kind, only, t, seed, w);
+    const it = item(kind, only, t, seed, w, chars);
     return <AbsoluteFill style={{ background: kind === "locations" ? INK : "#FFFFFF" }}>{it.node}</AbsoluteFill>;
   }
-  const list = ids(kind);
+  const perHero = kind === "walk" || kind === "walk_left" || kind === "faces" || kind === "visemes" || kind === "characters";
+  const list = perHero && chars?.length ? chars.filter((c) => CAST[c]) : ids(kind);
   const cols = COLS[kind];
   const rows = Math.ceil(list.length / cols);
   return (
@@ -299,7 +324,7 @@ export function AssetSheet({ kind, only, seed = 0, world }: AssetSheetProps) {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)`, gap: 12, flex: kind === "characters" ? 2 : 1, minHeight: 0 }}>
         {list.map((id) => {
-          const it = item(kind, id, t, seed, w);
+          const it = item(kind, id, t, seed, w, chars);
           return (
             <Cell key={id} label={it.label} sub={it.sub}>
               {it.node}

@@ -36,7 +36,9 @@
 - `items.tsx` — предметы с историей (на земле / в руке / в полёте, состояния «надкушено», «лопнул»…).
 - `Episode.tsx`, `transitions.tsx`, `overlays.tsx`, `ShowIntro.tsx` — эпизод, переходы, карточки, заставка.
 - `Thumb.tsx` — обложки (6 раскладок), `Short.tsx` — вертикальные шортсы.
-- `AssetSheet.tsx`, `WorldSheet.tsx` — листы для визуальной проверки: `cd apps/renderer && npx tsx scripts/sheets.ts <папка> locations props states characters faces walk visemes world:<локация>`.
+- `AssetSheet.tsx`, `WorldSheet.tsx` — листы для визуальной проверки: `cd apps/renderer && npx tsx scripts/sheets.ts <папка> locations props states characters faces walk visemes world:<локация>`; `--chars finn,molly` — только эти герои (faces/walk/visemes/characters), они же в outfits, первый — в actions/fx; `closeup --chars <id>` — крупный план одного героя (ракурсы, эмоции, ходьба).
+
+**Герои.** Главная четвёрка (Benny, Mia, Ollie, Dot) — в заставке, финале и песнях; Mama и Papa Bunny — дома; постоянные гости (`guest: true` в каталоге) — Finn (лисёнок), Molly (мышка), Ellie (слонёнок, хобот поднимается от смеха), Leo (львёнок с гривой): сценарист зовёт не больше одного гостя на историю. Новый вид зверя — в `rig.tsx` (`Species`, `FACE_GEO`, уши/хвост, при необходимости свой размер скелета в `rigMetrics`).
 
 ## Добавить ассет
 

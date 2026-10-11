@@ -24,6 +24,13 @@ describe("каталог мультиков", () => {
   it("состояния предметов в каталоге совпадают с отрисовкой", () => {
     for (const p of PROP_CATALOG) expect([...(p.states ?? [])].sort(), p.id).toEqual([...(PROP_STATES[p.id] ?? [])].sort());
   });
+  it("главная четвёрка — первые дети каталога; гости — дети, взрослые — не гости", () => {
+    const kids = CHARACTERS.filter((c) => !c.adult && !c.guest).map((c) => c.id);
+    expect(kids).toEqual(["benny", "mia", "ollie", "dot"]);
+    for (const c of CHARACTERS) expect(!!(c.adult && c.guest), c.id).toBe(false);
+    expect(CHARACTERS.filter((c) => c.guest).map((c) => c.id).sort()).toEqual(["ellie", "finn", "leo", "molly"]);
+    for (const c of CHARACTERS) expect(c.voice.speed, c.id).toBeGreaterThanOrEqual(0.92);
+  });
   it("id уникальны", () => {
     for (const list of [CHARACTERS, LOCATION_CATALOG, PROP_CATALOG, OUTFIT_CATALOG, FX_CATALOG, ACTION_CATALOG]) {
       const ids = list.map((x) => x.id);
