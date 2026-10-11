@@ -138,6 +138,14 @@ export const LOCATION_CATALOG: LocationEntry[] = [
   { id: "playground", label: "Детская площадка", llm: "the playground (slide, swings, sandbox)", outdoor: true, tags: ["play"], times: ["morning", "day", "evening"], weather: ALL_WEATHER, seasons: ALL_SEASONS },
   { id: "beach", label: "Пляж", llm: "the beach (waves, umbrella, bucket, shells)", outdoor: true, tags: ["summer", "water"], times: ALL_TIMES, weather: ["clear", "cloudy", "windy"], seasons: ["spring", "summer"] },
   { id: "forest", label: "Лес", llm: "the forest (tall pine trees, stream, mushrooms, fireflies at night)", outdoor: true, tags: ["nature"], times: ALL_TIMES, weather: ALL_WEATHER, seasons: ALL_SEASONS },
+  { id: "bathroom", label: "Ванная", llm: "the bathroom (bubble bath with a rubber duck, sink and mirror, towels) — bath time and brushing teeth", outdoor: false, tags: ["home", "routine"], times: ALL_TIMES, weather: ALL_WEATHER, seasons: ALL_SEASONS },
+  { id: "classroom", label: "Детский сад", llm: "the nursery classroom (little tables, colourful chairs, alphabet cards, easel, cubbies, shape rug)", outdoor: false, tags: ["learning", "friends"], times: ["morning", "day", "evening"], weather: ALL_WEATHER, seasons: ALL_SEASONS },
+  { id: "farm", label: "Ферма", llm: "the farm (red barn, hay bales, tractor, cows, sheep, hens and a pig in the mud)", outdoor: true, tags: ["animals", "nature"], times: ["morning", "day", "evening"], weather: ALL_WEATHER, seasons: ALL_SEASONS },
+  { id: "park_pond", label: "Парк с прудом", llm: "the park with a duck pond (ducks, little bridge, bench, lamp post, trees)", outdoor: true, tags: ["nature", "animals", "water"], times: ALL_TIMES, weather: ALL_WEATHER, seasons: ALL_SEASONS },
+  { id: "snowy_hill", label: "Снежная горка", llm: "a snowy sledding hill (pine trees, snowman, cosy cabin with smoke) — winter only", outdoor: true, tags: ["winter", "play"], times: ALL_TIMES, weather: ["clear", "cloudy", "snow", "windy"], seasons: ["winter"] },
+  { id: "campsite", label: "Поход с палаткой", llm: "a campsite (tent, crackling campfire, logs to sit on, mountains and a lake, stars at night)", outdoor: true, tags: ["nature", "adventure", "night"], times: ALL_TIMES, weather: ["clear", "cloudy", "windy"], seasons: ["spring", "summer", "autumn"] },
+  { id: "space", label: "Космос (понарошку)", llm: "pretend outer space (friendly rocket, colourful planets, twinkly stars, bouncy moon ground) — an imagination game", outdoor: false, tags: ["imagination", "adventure"], times: ["day"], weather: ["clear"], seasons: ALL_SEASONS },
+  { id: "underwater", label: "Под водой (понарошку)", llm: "pretend under the sea (coral, swaying seaweed, friendly fish, bubbles, treasure chest) — an imagination game", outdoor: false, tags: ["imagination", "water"], times: ["day"], weather: ["clear"], seasons: ALL_SEASONS },
 ];
 
 /** Общие правила мира: снег только зимой, дождь не зимой. */

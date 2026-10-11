@@ -7,6 +7,7 @@ import { DEFAULT_WORLD, jitter, pick, resolvePalette, skyState, TOY_COLORS, type
 import { FallenLeaves, Puddles, SnowDrifts, SnowStrip, Stars, SunMoon, WeatherClouds, WindowWeather } from "./world";
 import { shade } from "./rig";
 import { GardenForeground, GardenLife, GardenScene, GROUND, Layer, Sky, type LocProps } from "./scenes";
+import { BathroomLoc, CampsiteLoc, ClassroomLoc, FarmLoc, ParkPondLoc, SnowyHillLoc, SpaceLoc, UnderwaterLoc } from "./locations_more";
 
 const W = 1920;
 const H = 1080;
@@ -517,6 +518,14 @@ export const LOCATIONS: Record<string, LocationDef> = {
   playground: { label: "Детская площадка", Back: Playground },
   beach: { label: "Пляж", Back: Beach },
   forest: { label: "Лес", Back: Forest },
+  bathroom: BathroomLoc,
+  classroom: ClassroomLoc,
+  farm: FarmLoc,
+  park_pond: ParkPondLoc,
+  snowy_hill: SnowyHillLoc,
+  campsite: CampsiteLoc,
+  space: SpaceLoc,
+  underwater: UnderwaterLoc,
 };
 
 export const LOCATION_IDS = Object.keys(LOCATIONS);
