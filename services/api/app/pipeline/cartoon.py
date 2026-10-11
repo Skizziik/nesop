@@ -50,7 +50,9 @@ PROPS_LLM = "; ".join(f"{pr['id']} = {pr['llm']}" for pr in CATALOG["props"])
 
 RULES = (
     "Audience: children aged 2-5 who are learning to speak; parents watch too. Language: simple, warm, natural English.\n"
-    "- Sentences of 3-10 words. Present tense. Concrete words. Lots of gentle repetition of the key words.\n"
+    "- Sentences of 3-8 words (never more than 10). Present tense. Concrete words. One idea per line.\n"
+    "- ONE target word per story, central to the problem (e.g. 'share', 'round', 'red'). Say it at least 5 times, by at least 2 different "
+    "characters, and show it once or twice with the beat field word=<the word>. Other new words: at most 2 per story.\n"
     "- Every story: a small everyday problem → the friends try (rule of three, funny failures) → they solve it together → "
     "a gentle lesson said simply. Happy, safe ending. Kindness, sharing, feelings, curiosity.\n"
     "- Humour for toddlers: silly sounds, funny surprises, playful mistakes, giggles — never mean or scary.\n"
@@ -59,6 +61,8 @@ RULES = (
     "- Safety: no dangerous acts a child could copy (no climbing high, no playing with fire, knives, medicine, water without an adult), "
     "no violence, no frightening villains, no brands, no religion/politics, no unhealthy messages.\n"
     "- Each beat is one short line by one speaker. The narrator only frames the story briefly.\n"
+    "- Keep the world believable: characters walk or run in and out (no popping out of nowhere, no teleporting); "
+    "at most ONE magical/impossible moment per story. Sparkles and hearts are only decoration.\n"
     "- Make it VISUAL and varied: every story has its own season, and scenes change the time of day (a sunny morning, a rainy afternoon, "
     "a sunset, a starry bedtime) and the weather (rain: puddles and raincoats; snow: snowmen and hats; wind: kites and flying leaves). "
     "Use the story's key object (props), outfits that fit, and little effects (hearts when happy, zzz when sleepy, sparkles for magic, ! when surprised).\n"
@@ -169,9 +173,13 @@ SONG_SCHEMA: dict[str, Any] = {
 }
 
 SLOTS = {"off_left": -260.0, "left": 520.0, "center_left": 760.0, "center": 960.0, "center_right": 1160.0, "right": 1400.0, "off_right": 2180.0}
+LINE_GAP = 0.5  # пауза между репликами (исследование: 0.45-0.7 с для 2-5 лет)
+LONG_GAP = 0.8  # после вопроса, нового слова и смены говорящего на сцене с движением
+ASK_PAUSE = 5.0  # тишина на ответ ребёнка (Disney Research: дети отвечают позже 2 с, ждать до 8 с)
+MIN_SHOT = 3.0  # камера не перекадрируется чаще (цель 5-8 с на план)
 GAP = 250.0  # минимум между героями по миру: голова малыша ~215 в ширину при масштабе сцены — иначе стоят друг в друге
 STAGE = (330.0, 1590.0)  # где можно стоять, не уходя за край общего плана
-WPS = 2.3  # слов в секунду у детских голосов (с паузами) — для расчёта длины историй
+WPS = 1.9  # слов в секунду с учётом пауз (0.5 с между репликами, 5 с на ответ зрителя) — для расчёта длины историй
 
 
 # ------------------------------------------------------------------ LLM
@@ -206,9 +214,12 @@ async def llm_story(s: Any, plan: dict[str, Any], i: int, seconds: int) -> dict[
 async def llm_verify(s: Any, story: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
     prov = await get_provider(s)
     user = (
-        "You are a strict children's TV standards editor (ages 2-5). Check this story JSON: age-appropriate vocabulary and sentence length, "
+        "You are a strict children's TV standards editor (ages 2-5). Check this story JSON: age-appropriate vocabulary, lines of 3-8 words, "
         "safety (nothing dangerous to imitate), kindness, no scary parts, correct English, the questions to the viewer are answerable "
-        "and answered in the next beat, the ending is happy and the lesson is clear. Fix problems without changing the structure.\n"
+        "and answered in the next beat, a clear beginning-middle-end, the ending is happy and the lesson is shown, not only told. "
+        "The story's ONE target word is said at least 5 times by at least 2 characters. Colours, numbers and objects named in lines must match "
+        "the scene props/hold data (if Mia says 'the red ball', the ball is red). No brands, no keyword stuffing, nobody appears from nowhere. "
+        "Fix problems without changing the structure.\n"
         + json.dumps(story, ensure_ascii=False)
     )
     r = await prov.complete_json(SYSTEM_KIDS, user, VERIFY_SCHEMA, purpose="cartoon_verify", max_tokens=16000, effort="high")
@@ -305,6 +316,9 @@ class Director:
         lines: list[dict[str, Any]] = []
         overlays: list[dict[str, Any]] = []
         lt = 0.6
+        shot_since = -MIN_SHOT  # когда камера последний раз сменила план
+        last_spk: str | None = None
+        lines_same = 0  # сколько реплик подряд у текущего говорящего / диалога без смены плана
         if title:
             for c in cast:
                 keys[c].append({"t": 0.3, "action": "cheer" if c != "mama" else "wave", "emotion": "laugh"})
@@ -347,25 +361,37 @@ class Director:
                 keys[fx["char"]].append({"t": round(lt + 0.2, 3), "fx": fx["kind"]})
             for rc in b.get("reactions") or []:
                 if rc.get("char") in keys:
-                    keys[rc["char"]].append({"t": round(lt + 0.25, 3), "action": rc.get("action") or "idle", "emotion": rc.get("emotion") or "happy"})
+                    big = rc.get("action") in ("jump", "cheer", "clap", "dance", "scared", "hug", "sad", "hop", "laugh", "catch", "spin")
+                    keys[rc["char"]].append({"t": round(lt + 0.25, 3), "action": rc.get("action") if big else "idle", "emotion": rc.get("emotion") or "happy"})
                     keys[rc["char"]].append({"t": round(lt + dur + 0.4, 3), "action": "idle"})
             shot = b.get("shot") or "medium"
             sx = pos.get(spk, float(np.mean(list(pos.values()))))
             group = float(np.mean([v for v in pos.values() if -100 < v < 2000] or [960]))
             target = {"wide": (group, 1.0, 670.0), "medium": ((sx + group) / 2, 1.3, 640.0), "close": (sx, 1.85, 560.0)}[shot]
-            cam.append({"t": round(lt, 3), "x": cam[-1]["x"], "y": cam[-1].get("y", 670.0), "zoom": cam[-1]["zoom"]})
-            cam.append({"t": round(lt + 0.55, 3), "x": target[0], "y": target[2], "zoom": target[1]})
+            # дисциплина камеры: план держится ≥ MIN_SHOT; меняем, когда сменился говорящий после 2+ реплик, на вопрос зрителю
+            # (крупно) или по явной просьбе крупного плана; иначе камера стоит — кадр не «плавает» на каждой реплике
+            lines_same = lines_same + 1 if spk == last_spk else 1
+            want_change = b.get("ask_viewer") or shot == "close" or (spk != last_spk and lines_same == 1 and lt - shot_since >= MIN_SHOT * 1.6)
+            if b.get("ask_viewer"):
+                target = (sx, 1.6, 590.0)
+            if want_change and lt - shot_since >= MIN_SHOT and abs(target[0] - cam[-1]["x"]) + abs(target[1] - cam[-1]["zoom"]) * 400 > 60:
+                cam.append({"t": round(lt, 3), "x": cam[-1]["x"], "y": cam[-1].get("y", 670.0), "zoom": cam[-1]["zoom"]})
+                cam.append({"t": round(lt + 0.9, 3), "x": target[0], "y": target[2], "zoom": target[1]})
+                shot_since = lt
+            last_spk = spk
             if b.get("word"):
                 overlays.append({"t": round(lt, 3), "dur": round(max(dur, 2.2), 3), "kind": "word", "text": str(b["word"])[:24]})
-            lt += dur + 0.32
+            lt += dur + (LONG_GAP if b.get("word") else LINE_GAP)
             if b.get("ask_viewer"):
-                # пауза: ребёнок отвечает вслух; остальные герои «думают»
-                overlays.append({"t": round(lt - 0.2, 3), "dur": 2.8, "kind": "question", "text": "?"})
+                # пауза: ребёнок отвечает вслух; спросивший ждёт (смотрит в зал), остальные «думают»
+                overlays.append({"t": round(lt - 0.2, 3), "dur": ASK_PAUSE, "kind": "question", "text": "?"})
+                if spk in keys:
+                    keys[spk].append({"t": round(lt, 3), "action": "idle", "emotion": "happy", "facing": 1})
                 for c in keys:
                     if c != spk:
-                        keys[c].append({"t": round(lt, 3), "action": "think", "emotion": "thinking"})
-                        keys[c].append({"t": round(lt + 2.6, 3), "action": "idle", "emotion": "happy"})
-                lt += 2.8
+                        keys[c].append({"t": round(lt + 0.3, 3), "action": "think", "emotion": "thinking"})
+                        keys[c].append({"t": round(lt + ASK_PAUSE - 0.3, 3), "action": "idle", "emotion": "happy"})
+                lt += ASK_PAUSE + 0.3
         dur_total = round(lt + 0.9, 3)
         lk = look or {}
         world = resolve_world(CATALOG, location, lk, self.season) if kind != "song" else dict(self.world)
