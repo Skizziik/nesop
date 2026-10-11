@@ -24,6 +24,7 @@ from ..llm.providers import LLMError
 from ..models import Project
 from . import clients
 from .audio import SR, envelope, load_mono, trim_silence, write_wav
+from .cartoon_world import SEASONS, TIMES, WEATHERS, auto_wear, merge_wear, resolve_world
 from .gone import ProjectGone
 from .music import Track
 from .music import render as render_music
@@ -34,7 +35,7 @@ log = logging.getLogger("farm.cartoon")
 # packages/templates/src/cartoon/catalog → `pnpm --filter @ipt/templates catalog:export` → cartoon_catalog.json
 CATALOG: dict[str, Any] = json.loads((Path(__file__).with_name("cartoon_catalog.json")).read_text(encoding="utf-8"))
 
-CAST = {c["id"]: {"name": c["name"], "who": c["llm"], "catch": c["catchphrase"]} for c in CATALOG["characters"]}
+CAST = {c["id"]: {"name": c["name"], "who": c["llm"], "catch": c["catchphrase"], "adult": bool(c.get("adult"))} for c in CATALOG["characters"]}
 VOICES: dict[str, tuple[str, float]] = {c["id"]: (c["voice"]["description"], float(c["voice"]["speed"])) for c in CATALOG["characters"]}
 VOICES["narrator"] = (CATALOG["narrator"]["voice"]["description"], float(CATALOG["narrator"]["voice"]["speed"]))
 LOCATIONS = {loc["id"]: loc["llm"] for loc in CATALOG["locations"]}
@@ -58,8 +59,9 @@ RULES = (
     "- Safety: no dangerous acts a child could copy (no climbing high, no playing with fire, knives, medicine, water without an adult), "
     "no violence, no frightening villains, no brands, no religion/politics, no unhealthy messages.\n"
     "- Each beat is one short line by one speaker. The narrator only frames the story briefly.\n"
-    "- Make it VISUAL and varied: the story's key object (props), weather and time of day, outfits that fit (raincoat in the rain, pajamas at bedtime, "
-    "party hats at a birthday), and little effects (hearts when happy, zzz when sleepy, sparkles for magic moments, ! when surprised).\n"
+    "- Make it VISUAL and varied: every story has its own season, and scenes change the time of day (a sunny morning, a rainy afternoon, "
+    "a sunset, a starry bedtime) and the weather (rain: puddles and raincoats; snow: snowmen and hats; wind: kites and flying leaves). "
+    "Use the story's key object (props), outfits that fit, and little effects (hearts when happy, zzz when sleepy, sparkles for magic, ! when surprised).\n"
 )
 BIBLE = (
     "Series: friends Benny (bunny), Mia (kitten), Ollie (bear cub) and Dot (puppy), with Mama Bunny.\n"
@@ -89,6 +91,7 @@ PLAN_SCHEMA: dict[str, Any] = {
                     "key_words": {"type": "array", "items": {"type": "string"}, "description": "3-5 simple words to teach and repeat"},
                     "cast": {"type": "array", "items": {"type": "string", "enum": list(CAST)}},
                     "locations": {"type": "array", "items": {"type": "string", "enum": list(LOCATIONS)}},
+                    "season": {"type": "string", "enum": SEASONS, "description": "season of this story — vary seasons across the episode"},
                 },
             },
         },
@@ -133,8 +136,8 @@ STORY_SCHEMA: dict[str, Any] = {
                 "properties": {
                     "location": {"type": "string", "enum": list(LOCATIONS)},
                     "cast": {"type": "array", "items": {"type": "string", "enum": list(CAST)}, "description": "characters present at the start"},
-                    "weather": {"type": "string", "enum": ["clear", "rain", "snow", "leaves"]},
-                    "time": {"type": "string", "enum": ["day", "evening", "night"]},
+                    "weather": {"type": "string", "enum": WEATHERS, "description": "snow only in winter, no rain in winter; beach: clear/cloudy/windy"},
+                    "time": {"type": "string", "enum": TIMES, "description": "morning (waking up, breakfast), day, evening (sunset, dinner), night (bedtime, stars)"},
                     "decor": {"type": "string", "enum": ["none", "birthday"]},
                     "props": {"type": "array", "description": "objects standing on the ground in this scene",
                               "items": {"type": "object", "properties": {"prop": {"type": "string", "enum": PROPS},
@@ -257,6 +260,8 @@ class Director:
 
     def __init__(self, project_id: str = "") -> None:
         self.project_id = project_id
+        self.season = "summer"  # сезон текущей истории (из плана)
+        self.world: dict[str, str] = {"time": "day", "weather": "clear", "season": "summer"}  # мир последней сцены — для песен
         self.scenes: list[dict[str, Any]] = []
         self.clips: list[tuple[float, np.ndarray]] = []  # (глобальное время, звук) — дорожка голосов
         self.t = 0.0  # глобальное время
@@ -363,16 +368,21 @@ class Director:
                 lt += 2.8
         dur_total = round(lt + 0.9, 3)
         lk = look or {}
-        wear = {w.get("char"): [x for x in (w.get("items") or []) if x in WEAR] for w in (lk.get("wear") or []) if w.get("char") in CAST}
+        world = resolve_world(CATALOG, location, lk, self.season) if kind != "song" else dict(self.world)
+        dressing = "birthday" if lk.get("decor") == "birthday" else None
+        if kind == "story":
+            self.world = world
+        explicit = {w.get("char"): [x for x in (w.get("items") or []) if x in WEAR] for w in (lk.get("wear") or []) if w.get("char") in CAST}
+        auto = auto_wear(CATALOG, location, world, dressing)
+        wear = {c: merge_wear([x for x in auto if not (x == "pajamas" and CAST.get(c, {}).get("adult"))], explicit.get(c, []), CATALOG) for c in keys}
         props = [{"id": pp["prop"], "x": SLOTS.get(pp.get("where") or "center", 960.0) + 60, **({"color": COLORS[pp["color"]]} if pp.get("color") in COLORS else {})}
                  for pp in (lk.get("props") or []) if pp.get("prop") in PROPS][:4]
         self.scenes.append({
             "location": location, "kind": kind, "seed": self._seed(), "start": round(self.t, 3), "duration": dur_total,
             "camera": cam, "actors": [{"id": c, "keys": k, **({"wear": wear[c]} if wear.get(c) else {})} for c, k in keys.items()],
             "lines": lines, "overlays": overlays,
-            **({"weather": lk["weather"]} if lk.get("weather") in ("rain", "snow", "leaves") else {}),
-            **({"time": lk["time"]} if lk.get("time") in ("evening", "night") else {}),
-            **({"decor": "birthday"} if lk.get("decor") == "birthday" else {}),
+            "world": {**world, **({"dressing": dressing} if dressing else {})},
+            **({"decor": "birthday"} if dressing else {}),
             **({"props": props} if props else {}),
         })
         self.t += dur_total
@@ -399,7 +409,7 @@ class Director:
         bars = int(np.ceil(total / bar))
         music = Track(f"song-{int(time.time() * 1000) % 10**9}", title, "C", bpm, (0, 4, 5, 3), bars, 0.8, 0.0, True)
         self.scenes.append({
-            "location": location, "kind": "song", "seed": self._seed(), "start": round(self.t, 3), "duration": round(total, 3),
+            "location": location, "kind": "song", "seed": self._seed(), "world": dict(self.world), "start": round(self.t, 3), "duration": round(total, 3),
             "camera": [{"t": 0, "x": float(np.mean(list(pos.values()))), "zoom": 1.0}, {"t": total, "x": float(np.mean(list(pos.values()))), "zoom": 1.12}],
             "actors": [{"id": c, "keys": k} for c, k in keys.items()], "lines": lines, "overlays": overlays,
         })
@@ -458,6 +468,7 @@ async def build_cartoon(project_id: str) -> None:
         song_starts: list[dict[str, Any]] = []
         for i, (story, script) in enumerate(zip(stories, scripts, strict=False)):
             d.chapters.append((d.t, str(story.get("title", f"Story {i + 1}"))))
+            d.season = str(story.get("season") or "") if story.get("season") in SEASONS else ["summer", "autumn", "winter", "spring"][i % 4]
             scenes = script.get("scenes") or []
             first = scenes[0] if scenes else {"location": "garden", "cast": story.get("cast", ["benny"])}
             await d.scene(first.get("location") or "garden", first.get("cast") or story.get("cast") or ["benny"], [], kind="title",

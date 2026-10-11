@@ -52,7 +52,7 @@ export interface OutfitEntry {
   label: string;
   llm: string;
   slot: "head" | "body" | "feet" | "face" | "hand";
-  auto?: { weather?: Weather[]; locations?: string[]; times?: TimeOfDay[]; dressing?: string[] };
+  auto?: { weather?: Weather[]; seasons?: Season[]; outdoor?: boolean; locations?: string[]; times?: TimeOfDay[]; dressing?: string[] };
 }
 export interface SimpleEntry {
   id: string;
@@ -184,12 +184,12 @@ export const PROP_CATALOG: PropEntry[] = [
 ];
 
 export const OUTFIT_CATALOG: OutfitEntry[] = [
-  { id: "raincoat", label: "Дождевик", llm: "a yellow raincoat with a hood", slot: "body", auto: { weather: ["rain"] } },
+  { id: "raincoat", label: "Дождевик", llm: "a yellow raincoat with a hood", slot: "body", auto: { weather: ["rain"], outdoor: true } },
   { id: "pajamas", label: "Пижама", llm: "striped pajamas", slot: "body", auto: { locations: ["bedroom"], times: ["night"] } },
   { id: "party_hat", label: "Праздничный колпак", llm: "a party hat", slot: "head", auto: { dressing: ["birthday"] } },
-  { id: "scarf", label: "Шарф", llm: "a warm scarf", slot: "body", auto: { weather: ["snow"] } },
-  { id: "sun_hat", label: "Панамка", llm: "a sun hat", slot: "head", auto: { locations: ["beach"] } },
-  { id: "winter_hat", label: "Зимняя шапка", llm: "a woolly winter hat", slot: "head", auto: { weather: ["snow"] } },
+  { id: "scarf", label: "Шарф", llm: "a warm scarf", slot: "body", auto: { seasons: ["winter"], outdoor: true } },
+  { id: "sun_hat", label: "Панамка", llm: "a sun hat", slot: "head", auto: { locations: ["beach"], times: ["morning", "day"] } },
+  { id: "winter_hat", label: "Зимняя шапка", llm: "a woolly winter hat", slot: "head", auto: { seasons: ["winter"], outdoor: true } },
 ];
 
 export const FX_CATALOG: SimpleEntry[] = [

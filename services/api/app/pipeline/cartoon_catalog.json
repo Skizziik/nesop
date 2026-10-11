@@ -661,7 +661,8 @@
       "auto": {
         "weather": [
           "rain"
-        ]
+        ],
+        "outdoor": true
       }
     },
     {
@@ -695,9 +696,10 @@
       "llm": "a warm scarf",
       "slot": "body",
       "auto": {
-        "weather": [
-          "snow"
-        ]
+        "seasons": [
+          "winter"
+        ],
+        "outdoor": true
       }
     },
     {
@@ -708,6 +710,10 @@
       "auto": {
         "locations": [
           "beach"
+        ],
+        "times": [
+          "morning",
+          "day"
         ]
       }
     },
@@ -717,9 +723,10 @@
       "llm": "a woolly winter hat",
       "slot": "head",
       "auto": {
-        "weather": [
-          "snow"
-        ]
+        "seasons": [
+          "winter"
+        ],
+        "outdoor": true
       }
     }
   ],
