@@ -321,6 +321,8 @@ export const api = {
   projectVersions: (id: string) => request<ProjectVersion[]>(`/api/projects/${id}/versions`),
   restoreVersion: (id: string, vid: string) => request<Project>(`/api/projects/${id}/versions/${vid}/restore`, { method: "POST" }),
   renderProject: (id: string) => request<Project>(`/api/projects/${id}/render`, { method: "POST" }),
+  /** Вертикальные шортсы мультика: 2-3 момента (припев, смешное, вопрос), рендер в фоне, статусы — meta.shorts. */
+  makeShorts: (id: string) => request<ProjectFull>(`/api/projects/${id}/shorts`, { method: "POST" }),
   deleteProject: (id: string) => request<{ ok: boolean }>(`/api/projects/${id}`, { method: "DELETE" }),
   duplicateProject: (id: string) => request<Project>(`/api/projects/${id}/duplicate`, { method: "POST" }),
   videoToProject: (videoId: string) => request<ProjectFull>(`/api/videos/${videoId}/to-project`, { method: "POST" }),

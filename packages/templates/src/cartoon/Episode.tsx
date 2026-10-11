@@ -97,7 +97,7 @@ export interface CartoonDoc {
 
 const easeIO = (k: number) => (k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2);
 
-function camAt(keys: CamKey[], t: number): Camera {
+export function camAt(keys: CamKey[], t: number): Camera {
   if (!keys.length) return { x: 960, y: 670, zoom: 1 };
   let a = keys[0]!;
   let b = keys[keys.length - 1]!;
@@ -108,7 +108,7 @@ function camAt(keys: CamKey[], t: number): Camera {
 }
 
 /** Состояние актёра: позиция — линейно между ключами с x; действие/эмоция/взгляд — последний ключ до t. */
-function actorAt(keys0: ActorKey[], t: number) {
+export function actorAt(keys0: ActorKey[], t: number) {
   const keys = [...keys0].sort((a, b) => a.t - b.t); // устойчивая сортировка: при равном t побеждает ключ, записанный позже
   let x = 960;
   let facing: 1 | -1 = 1;
@@ -227,7 +227,7 @@ function actorFacing(sc: SceneDoc, a: SceneDoc["actors"][number], s: ReturnType<
   return ox >= s.x ? 1 : -1;
 }
 
-function Scene({ sc, t, fps }: { sc: SceneDoc; t: number; fps: number }) {
+export function Scene({ sc, t, fps }: { sc: SceneDoc; t: number; fps: number }) {
   const cam = camAt(sc.camera, t);
   const actors = sc.actors.map((a) => ({ a, s: actorAt(a.keys, t) }));
   const W = 1920;
@@ -301,7 +301,7 @@ function Scene({ sc, t, fps }: { sc: SceneDoc; t: number; fps: number }) {
 }
 
 /** Сцены-карточки сериала (рисуются целиком, без локации). */
-const isCard = (sc: SceneDoc) => sc.kind === "intro" || sc.kind === "outro" || sc.kind === "bumper";
+export const isCard = (sc: SceneDoc) => sc.kind === "intro" || sc.kind === "outro" || sc.kind === "bumper";
 
 /** Слой одной сцены: картинка (локация или заставка сериала) + надписи + субтитры. */
 function SceneLayer({ sc, t, fps, captions }: { sc: SceneDoc; t: number; fps: number; captions: boolean }) {

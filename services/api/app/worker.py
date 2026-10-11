@@ -18,6 +18,7 @@ from .pipeline.ideas import fill_bank, run_ideas
 from .pipeline.lecture import build_lecture
 from .pipeline.produce import plan_batch, produce_video
 from .pipeline.project_render import render_project
+from .pipeline.shorts import render_shorts
 
 
 async def run_batch(ctx: dict[str, Any], batch_id: str) -> int:
@@ -75,6 +76,11 @@ async def run_project_render(ctx: dict[str, Any], project_id: str) -> None:
     await render_project(project_id)
 
 
+async def run_cartoon_shorts(ctx: dict[str, Any], project_id: str) -> None:
+    """Вертикальные шортсы мультика (CartoonShort): окна уже выбраны эндпоинтом, рендерим по очереди."""
+    await render_shorts(project_id)
+
+
 def redis_settings() -> RedisSettings:
     return RedisSettings.from_dsn(get_settings().redis_url)
 
@@ -125,7 +131,7 @@ async def startup(ctx: dict[str, Any]) -> None:
 
 class WorkerSettings:
     on_startup = startup
-    functions = [run_batch, run_video, run_llm_ideas, run_fill_bank, run_lecture, run_cartoon, run_compilation, run_project_render]
+    functions = [run_batch, run_video, run_llm_ideas, run_fill_bank, run_lecture, run_cartoon, run_compilation, run_project_render, run_cartoon_shorts]
     redis_settings = redis_settings()
     max_jobs = get_settings().worker_max_jobs
     job_timeout = 60 * 60 * 6  # длинные лекции: генерация + рендер 20 минут видео на CPU

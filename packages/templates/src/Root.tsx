@@ -11,6 +11,7 @@ import { Thumbnail, THUMBNAIL_ID, THUMB_H, THUMB_W } from "./timeline/Thumbnail"
 import { ChannelBanner, BANNER_ID, BANNER_H, BANNER_W } from "./timeline/ChannelBanner";
 import { CartoonEpisode, DEMO_CARTOON } from "./cartoon/Episode";
 import { CartoonThumb, CARTOON_THUMB_ID } from "./cartoon/Thumb";
+import { CartoonShort, CARTOON_SHORT_ID, shortFrames, type CartoonShortProps } from "./cartoon/Short";
 import { AssetSheet, ASSET_SHEET_ID } from "./cartoon/AssetSheet";
 import { WorldSheet, WORLD_SHEET_ID } from "./cartoon/WorldSheet";
 
@@ -44,6 +45,16 @@ export const RemotionRoot: React.FC = () => (
     height={1080}
     defaultProps={DEMO_CARTOON as unknown as AnyProps}
     calculateMetadata={({ props }) => ({ durationInFrames: Math.max(1, Math.round(Number((props as { duration?: number }).duration ?? 15) * 30)) })}
+  />
+  <Composition
+    id={CARTOON_SHORT_ID}
+    component={CartoonShort as unknown as React.FC<AnyProps>}
+    durationInFrames={shortFrames({ from: 0, to: 15 })}
+    fps={30}
+    width={1080}
+    height={1920}
+    defaultProps={{ doc: DEMO_CARTOON, from: 2, to: 14, title: "Hi, Mia!" } as unknown as AnyProps}
+    calculateMetadata={({ props }) => ({ durationInFrames: shortFrames(props as unknown as Partial<CartoonShortProps>), fps: (props as unknown as Partial<CartoonShortProps>).doc?.fps ?? 30 })}
   />
   <Composition
     id={CARTOON_THUMB_ID}

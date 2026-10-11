@@ -200,6 +200,32 @@ async def create_compilation(body: CompilationIn, s: Session) -> dict[str, Any]:
     return project_out(p)
 
 
+@router.post("/projects/{pid}/shorts", status_code=202)
+async def make_shorts(pid: str, s: Session) -> dict[str, Any]:
+    """Шортсы из мультика: 2-3 вертикальных ролика 20-45 с (припев песни, смешной/милый момент, вопрос зрителю).
+    Моменты выбираются сразу (pick_moments), рендер — в фоне (run_cartoon_shorts), статусы — в meta["shorts"]."""
+    from ..pipeline.shorts import pick_moments, short_meta
+
+    p = await s.get(Project, pid)
+    if p is None:
+        raise HTTPException(404, "Проект не найден")
+    doc = p.doc or {}
+    if p.kind != "cartoon" or not doc.get("scenes"):
+        raise HTTPException(400, "Шортсы делаются из готового мультика")
+    if p.status == "generating":
+        raise HTTPException(409, "Мультик ещё создаётся")
+    if ((p.meta or {}).get("shorts") or {}).get("status") in ("queued", "rendering"):
+        raise HTTPException(409, "Шортсы уже рендерятся")
+    moments = pick_moments(doc)
+    if not moments:
+        raise HTTPException(400, "Не нашлось подходящих моментов (песня, вопрос зрителю, смешная сцена)")
+    items = [{**m, "n": i + 1, "status": "queued", "progress": 0.0, "youtube": short_meta(doc, m)} for i, m in enumerate(moments)]
+    p.meta = {**(p.meta or {}), "shorts": {"status": "queued", "revision": p.revision, "items": items}}
+    await s.commit()
+    await enqueue("run_cartoon_shorts", p.id)
+    return project_out(p, full=True)
+
+
 @router.get("/projects/{pid}")
 async def get_project(pid: str, s: Session) -> dict[str, Any]:
     p = await s.get(Project, pid)
